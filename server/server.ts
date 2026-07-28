@@ -12,9 +12,14 @@ import { usersRouter } from "./modules/users/users.routes.js";
 import { requireAuthentication } from "./modules/auth/auth.middleware.js";
 
 const app = express();
+const allowedOrigins = new Set([env.CLIENT_URL, ...env.CORS_ORIGINS]);
 app.use(
   cors({
-    origin: env.CLIENT_URL,
+    origin: (origin, callback) => {
+      // Requests without Origin (health checks, server-to-server calls) remain valid.
+      if (!origin || allowedOrigins.has(origin)) return callback(null, true);
+      return callback(new Error("Origen no autorizado."));
+    },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
