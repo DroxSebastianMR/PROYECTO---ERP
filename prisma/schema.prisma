@@ -141,7 +141,28 @@ model User {
   sessions         AuthSession[]
   loginAudits      LoginAudit[]
   inventoryMovements InventoryMovement[]
+  notifications     Notification[]
   @@index([companyId, isActive])
+}
+
+enum NotificationType {
+  INVENTORY
+  SALE
+  PURCHASE
+  SYSTEM
+}
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
+  type      NotificationType @default(SYSTEM)
+  title     String
+  message   String
+  actionUrl String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, isRead, createdAt])
 }
 
 model AuthSession {

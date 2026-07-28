@@ -9,6 +9,7 @@ import { inventoryRouter } from "./modules/inventory/inventory.routes.js";
 import { purchasesRouter } from "./modules/purchases/purchases.routes.js";
 import { salesRouter } from "./modules/sales/sales.routes.js";
 import { usersRouter } from "./modules/users/users.routes.js";
+import { notificationsRouter } from "./modules/notifications/notifications.routes.js";
 import { requireAuthentication } from "./modules/auth/auth.middleware.js";
 
 const app = express();
@@ -34,6 +35,7 @@ app.use("/api/inventory", requireAuthentication, inventoryRouter);
 app.use("/api/purchases", requireAuthentication, purchasesRouter);
 app.use("/api/sales", requireAuthentication, salesRouter);
 app.use("/api/users", requireAuthentication, usersRouter);
+app.use("/api/notifications", requireAuthentication, notificationsRouter);
 app.use(
   (
     error: unknown,
