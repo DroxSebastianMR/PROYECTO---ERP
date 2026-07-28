@@ -6,7 +6,8 @@ for (const key of required) {
 }
 
 export const env = {
-  PORT: Number(process.env.API_PORT ?? 3001),
+  // Hosting providers such as Render provide PORT at runtime; API_PORT remains for local development.
+  PORT: Number(process.env.PORT ?? process.env.API_PORT ?? 3001),
   CLIENT_URL: process.env.CLIENT_URL ?? "http://localhost:5173",
   JWT_SECRET: process.env.JWT_SECRET!,
   ACCESS_TOKEN_TTL: process.env.AUTH_ACCESS_TOKEN_TTL ?? "15m",
