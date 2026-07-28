@@ -4,13 +4,31 @@ import express from "express";
 import { env } from "./config/env.js";
 import { dashboardRouter } from "./modules/dashboard/dashboard.routes.js";
 import { authRouter } from "./modules/auth/auth.routes.js";
+import { productsRouter } from "./modules/products/products.routes.js";
+import { inventoryRouter } from "./modules/inventory/inventory.routes.js";
+import { purchasesRouter } from "./modules/purchases/purchases.routes.js";
+import { salesRouter } from "./modules/sales/sales.routes.js";
+import { usersRouter } from "./modules/users/users.routes.js";
+import { requireAuthentication } from "./modules/auth/auth.middleware.js";
 
 const app = express();
-app.use(cors({ origin: env.CLIENT_URL }));
+app.use(
+  cors({
+    origin: env.CLIENT_URL,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 app.use(express.json());
 app.get("/api/health", (_request, response) => response.json({ status: "ok" }));
 app.use("/api/auth", authRouter);
-app.use("/api/dashboard", dashboardRouter);
+// Every ERP resource requires a verified JWT; UI guards are not the security boundary.
+app.use("/api/dashboard", requireAuthentication, dashboardRouter);
+app.use("/api/products", requireAuthentication, productsRouter);
+app.use("/api/inventory", requireAuthentication, inventoryRouter);
+app.use("/api/purchases", requireAuthentication, purchasesRouter);
+app.use("/api/sales", requireAuthentication, salesRouter);
+app.use("/api/users", requireAuthentication, usersRouter);
 app.use(
   (
     error: unknown,

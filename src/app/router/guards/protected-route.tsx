@@ -1,4 +1,10 @@
-import { Outlet } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
+import { PATHS } from "@/app/router/constants/paths";
+import { useAuth } from "@/features/auth/hooks/use-auth";
+import { AppLoadingSkeleton } from "@/components/ui/app-loading-skeleton";
 
-/** Authentication enforcement will be connected when the session API is available. */
-export const ProtectedRoute = () => <Outlet />;
+export const ProtectedRoute = () => {
+  const { isAuthenticated, isInitializing } = useAuth();
+  if (isInitializing) return <AppLoadingSkeleton />;
+  return isAuthenticated ? <Outlet /> : <Navigate to={PATHS.AUTH.LOGIN} replace />;
+};

@@ -46,9 +46,14 @@ export const authRepository = {
     userAgent?: string,
   ) =>
     prisma.authSession.create({ data: { userId, refreshHash, expiresAt, ipAddress, userAgent } }),
-  revokeSession: (refreshHash: string) =>
+  findActiveSessionByRefreshHash: (refreshHash: string) =>
+    prisma.authSession.findFirst({
+      where: { refreshHash, revokedAt: null, expiresAt: { gt: new Date() } },
+      include: { user: true },
+    }),
+  revokeSession: (refreshHash: string, userId?: string) =>
     prisma.authSession.updateMany({
-      where: { refreshHash, revokedAt: null },
+      where: { refreshHash, revokedAt: null, ...(userId ? { userId } : {}) },
       data: { revokedAt: new Date() },
     }),
 };

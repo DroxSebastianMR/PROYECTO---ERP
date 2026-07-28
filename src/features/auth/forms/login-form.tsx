@@ -5,11 +5,40 @@ import { PATHS } from "@/app/router/constants/paths";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AuthInput } from "@/features/auth/components/auth-input";
+import { useAuth } from "@/features/auth/hooks/use-auth";
+import { ApiError } from "@/lib/api/http-client";
 
 export const LoginForm = () => {
+  const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-  const onSubmit = (event: FormEvent) => event.preventDefault();
+  const [rememberMe, setRememberMe] = useState(true);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError(null);
+    if (!email.trim() || !password) {
+      setError("Ingresa tu correo y contraseña.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await login({ email: email.trim(), password }, rememberMe);
+    } catch (submissionError) {
+      setError(
+        submissionError instanceof ApiError
+          ? submissionError.message
+          : "No se pudo iniciar sesión. Inténtalo nuevamente.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-6">
       <div className="space-y-5">
@@ -20,6 +49,9 @@ export const LoginForm = () => {
           autoComplete="username"
           placeholder="ejemplo@districorp.com"
           Icon={UserRound}
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          required
         />
         <AuthInput
           id="password"
@@ -28,6 +60,9 @@ export const LoginForm = () => {
           autoComplete="current-password"
           placeholder="••••••••"
           Icon={LockKeyhole}
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          required
           rightElement={
             <button
               type="button"
@@ -59,11 +94,18 @@ export const LoginForm = () => {
           ¿Olvidaste tu contraseña?
         </Link>
       </div>
+      {error && (
+        <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+          {error}
+        </p>
+      )}
       <Button
         type="submit"
+        disabled={isSubmitting}
         className="mt-2 h-12 w-full rounded-xl text-[15px] font-medium shadow-sm hover:shadow-md"
       >
-        Iniciar Sesión <ArrowRight className="ml-2.5 h-[18px] w-[18px]" />
+        {isSubmitting ? "Iniciando sesión..." : "Iniciar sesión"}
+        <ArrowRight className="ml-2.5 h-[18px] w-[18px]" />
       </Button>
     </form>
   );

@@ -1,0 +1,29 @@
+ALTER TYPE "SaleStatus" ADD VALUE IF NOT EXISTS 'PENDING_PAYMENT';
+ALTER TYPE "SaleStatus" ADD VALUE IF NOT EXISTS 'PARTIALLY_PAID';
+ALTER TYPE "SaleStatus" ADD VALUE IF NOT EXISTS 'PREPARING';
+ALTER TYPE "SaleStatus" ADD VALUE IF NOT EXISTS 'DISPATCHED';
+CREATE TYPE "SalePaymentMethod" AS ENUM ('CASH', 'BANK_TRANSFER', 'CARD', 'YAPE_PLIN', 'CREDIT');
+CREATE TYPE "SaleDocumentType" AS ENUM ('RECEIPT', 'INVOICE');
+
+ALTER TABLE "Customer" ADD COLUMN "creditLimit" DECIMAL(12,2) NOT NULL DEFAULT 0, ADD COLUMN "creditDays" INTEGER NOT NULL DEFAULT 0, ADD COLUMN "isActive" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "Sale" ADD COLUMN "warehouseId" UUID, ADD COLUMN "paymentMethod" "SalePaymentMethod" NOT NULL DEFAULT 'CASH', ADD COLUMN "documentType" "SaleDocumentType" NOT NULL DEFAULT 'RECEIPT', ADD COLUMN "currency" TEXT NOT NULL DEFAULT 'PEN', ADD COLUMN "subtotal" DECIMAL(12,2) NOT NULL DEFAULT 0, ADD COLUMN "taxAmount" DECIMAL(12,2) NOT NULL DEFAULT 0, ADD COLUMN "discountAmount" DECIMAL(12,2) NOT NULL DEFAULT 0, ADD COLUMN "dueAt" TIMESTAMP(3);
+ALTER TABLE "SaleItem" ADD COLUMN "discount" DECIMAL(12,2) NOT NULL DEFAULT 0, ADD COLUMN "taxRate" DECIMAL(5,2) NOT NULL DEFAULT 18;
+
+CREATE TABLE "SaleDocument" ("id" UUID NOT NULL, "saleId" UUID NOT NULL, "type" "SaleDocumentType" NOT NULL, "series" TEXT NOT NULL, "number" TEXT NOT NULL, "issuedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT "SaleDocument_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "SalePayment" ("id" UUID NOT NULL, "saleId" UUID NOT NULL, "amount" DECIMAL(12,2) NOT NULL, "method" "SalePaymentMethod" NOT NULL, "paidAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "reference" TEXT, CONSTRAINT "SalePayment_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "SaleDispatch" ("id" UUID NOT NULL, "saleId" UUID NOT NULL, "warehouseId" UUID NOT NULL, "dispatchedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "dispatchedById" UUID, "notes" TEXT, CONSTRAINT "SaleDispatch_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "SaleReturn" ("id" UUID NOT NULL, "saleId" UUID NOT NULL, "warehouseId" UUID NOT NULL, "reason" TEXT NOT NULL, "createdById" UUID, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT "SaleReturn_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "SaleReturnLine" ("id" UUID NOT NULL, "returnId" UUID NOT NULL, "saleItemId" UUID NOT NULL, "quantity" DECIMAL(14,3) NOT NULL, CONSTRAINT "SaleReturnLine_pkey" PRIMARY KEY ("id"));
+
+CREATE UNIQUE INDEX "SaleDocument_saleId_key" ON "SaleDocument"("saleId");
+CREATE UNIQUE INDEX "SaleDocument_type_series_number_key" ON "SaleDocument"("type", "series", "number");
+CREATE INDEX "SalePayment_saleId_paidAt_idx" ON "SalePayment"("saleId", "paidAt");
+ALTER TABLE "Sale" ADD CONSTRAINT "Sale_warehouseId_fkey" FOREIGN KEY ("warehouseId") REFERENCES "Warehouse"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "SaleDocument" ADD CONSTRAINT "SaleDocument_saleId_fkey" FOREIGN KEY ("saleId") REFERENCES "Sale"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "SalePayment" ADD CONSTRAINT "SalePayment_saleId_fkey" FOREIGN KEY ("saleId") REFERENCES "Sale"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "SaleDispatch" ADD CONSTRAINT "SaleDispatch_saleId_fkey" FOREIGN KEY ("saleId") REFERENCES "Sale"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "SaleDispatch" ADD CONSTRAINT "SaleDispatch_warehouseId_fkey" FOREIGN KEY ("warehouseId") REFERENCES "Warehouse"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "SaleReturn" ADD CONSTRAINT "SaleReturn_saleId_fkey" FOREIGN KEY ("saleId") REFERENCES "Sale"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "SaleReturn" ADD CONSTRAINT "SaleReturn_warehouseId_fkey" FOREIGN KEY ("warehouseId") REFERENCES "Warehouse"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "SaleReturnLine" ADD CONSTRAINT "SaleReturnLine_returnId_fkey" FOREIGN KEY ("returnId") REFERENCES "SaleReturn"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "SaleReturnLine" ADD CONSTRAINT "SaleReturnLine_saleItemId_fkey" FOREIGN KEY ("saleItemId") REFERENCES "SaleItem"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

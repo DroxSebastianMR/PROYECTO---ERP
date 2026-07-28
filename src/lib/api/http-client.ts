@@ -1,19 +1,13 @@
-import { env } from "@/app/config/env";
+import { axiosInstance, ApiError, setAccessToken } from "@/infrastructure/api/client/axios.instance";
 
-export class ApiError extends Error {
-  constructor(
-    message: string,
-    public readonly status: number,
-  ) {
-    super(message);
-  }
-}
+export { ApiError, setAccessToken };
 
 export const httpClient = async <T>(path: string, options?: RequestInit): Promise<T> => {
-  const response = await fetch(`${env.API_URL}${path}`, {
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    ...options,
+  const { data } = await axiosInstance.request<T>({
+    url: path,
+    method: options?.method,
+    headers: options?.headers ? Object.fromEntries(new Headers(options.headers).entries()) : undefined,
+    data: options?.body ? JSON.parse(options.body.toString()) : undefined,
   });
-  if (!response.ok) throw new ApiError("No se pudo completar la solicitud.", response.status);
-  return response.json() as Promise<T>;
+  return data as T;
 };

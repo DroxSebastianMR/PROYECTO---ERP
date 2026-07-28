@@ -1,0 +1,99 @@
+import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { productService } from "@/features/products/services/product.service";
+import { saleService } from "@/features/sales/services/sale.service";
+import type { CreateSaleInput, SaleReceipt, SaleStatus } from "@/features/sales/types/sale.types";
+
+const SALES_KEY = ["sales"] as const;
+const EMPTY_SALES: SaleReceipt[] = [];
+export const useSales = () => {
+  const client = useQueryClient();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"ALL" | SaleStatus>("ALL");
+  const [isPOSOpen, setIsPOSOpen] = useState(false);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [selectedSale, setSelectedSale] = useState<SaleReceipt | null>(null);
+  const salesQuery = useQuery({
+    queryKey: SALES_KEY,
+    queryFn: saleService.getSales,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
+  });
+  const productsQuery = useQuery({ queryKey: ["products"], queryFn: productService.getProducts });
+  const customersQuery = useQuery({
+    queryKey: ["sales", "customers"],
+    queryFn: saleService.getCustomers,
+  });
+  const warehousesQuery = useQuery({
+    queryKey: ["inventory", "warehouses"],
+    queryFn: saleService.getWarehouses,
+  });
+  const invalidate = async () => {
+    await Promise.all([
+      client.invalidateQueries({ queryKey: SALES_KEY }),
+      client.invalidateQueries({ queryKey: ["inventory", "stocks"] }),
+      client.invalidateQueries({ queryKey: ["inventory", "movements"] }),
+      client.invalidateQueries({ queryKey: ["products"] }),
+    ]);
+  };
+  const create = useMutation({
+    mutationFn: saleService.createSale,
+    onSuccess: async () => {
+      await invalidate();
+      setIsPOSOpen(false);
+    },
+  });
+  const createCustomer = useMutation({
+    mutationFn: saleService.createCustomer,
+    onSuccess: () => client.invalidateQueries({ queryKey: ["sales", "customers"] }),
+  });
+  const confirm = useMutation({ mutationFn: saleService.confirmSale, onSuccess: invalidate });
+  const dispatch = useMutation({ mutationFn: saleService.dispatchSale, onSuccess: invalidate });
+  const sales = salesQuery.data ?? EMPTY_SALES;
+  const filtered = useMemo(
+    () =>
+      sales.filter((sale) => {
+        const term = searchQuery.toLowerCase();
+        return (
+          (!term ||
+            sale.number.toLowerCase().includes(term) ||
+            sale.customerName.toLowerCase().includes(term)) &&
+          (statusFilter === "ALL" || sale.status === statusFilter)
+        );
+      }),
+    [sales, searchQuery, statusFilter],
+  );
+  return {
+    sales: filtered,
+    products: productsQuery.data ?? [],
+    customers: customersQuery.data ?? [],
+    warehouses: warehousesQuery.data ?? [],
+    isLoading: salesQuery.isLoading,
+    isRefreshing: salesQuery.isFetching && !salesQuery.isLoading,
+    searchQuery,
+    setSearchQuery,
+    statusFilter,
+    setStatusFilter,
+    metrics: saleService.calculateMetrics(sales),
+    isPOSOpen,
+    setIsPOSOpen,
+    isDetailOpen,
+    setIsDetailOpen,
+    selectedSale,
+    isSubmitting: create.isPending || confirm.isPending || dispatch.isPending,
+    refresh: () => salesQuery.refetch(),
+    handleOpenDetailModal: (sale: SaleReceipt) => {
+      setSelectedSale(sale);
+      setIsDetailOpen(true);
+    },
+    handleCreateSale: (input: CreateSaleInput) => create.mutateAsync(input),
+    handleCreateCustomer: (input: {
+      name: string;
+      document?: string;
+      phone?: string;
+      email?: string;
+    }) => createCustomer.mutateAsync(input),
+    handleConfirmSale: (id: string) => confirm.mutateAsync(id),
+    handleDispatchSale: (id: string) => dispatch.mutateAsync(id),
+  };
+};

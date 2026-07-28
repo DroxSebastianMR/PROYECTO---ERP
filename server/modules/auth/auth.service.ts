@@ -53,7 +53,24 @@ export const authService = {
     );
     return { user: safeUser, tokens };
   },
-  async logout(refreshToken: string) {
-    await authRepository.revokeSession(tokenService.hashRefreshToken(refreshToken));
+  async logout(refreshToken: string, userId: string) {
+    await authRepository.revokeSession(tokenService.hashRefreshToken(refreshToken), userId);
+  },
+  async refresh(refreshToken: string, ipAddress?: string, userAgent?: string) {
+    const refreshHash = tokenService.hashRefreshToken(refreshToken);
+    const session = await authRepository.findActiveSessionByRefreshHash(refreshHash);
+    if (!session || !session.user.isActive) throw new AuthError("Sesión inválida o expirada.", 401);
+
+    const user = toAuthenticatedUser(session.user);
+    const tokens = tokenService.createTokens(user);
+    await authRepository.revokeSession(refreshHash);
+    await authRepository.createSession(
+      user.id,
+      tokenService.hashRefreshToken(tokens.refreshToken),
+      new Date(Date.now() + env.REFRESH_TOKEN_DAYS * 86400000),
+      ipAddress,
+      userAgent,
+    );
+    return { user, tokens };
   },
 };

@@ -1,0 +1,43 @@
+ALTER TYPE "MovementType" ADD VALUE IF NOT EXISTS 'INITIAL';
+ALTER TYPE "MovementType" ADD VALUE IF NOT EXISTS 'PURCHASE_RECEIPT';
+ALTER TYPE "MovementType" ADD VALUE IF NOT EXISTS 'SALE_DISPATCH';
+ALTER TYPE "MovementType" ADD VALUE IF NOT EXISTS 'CUSTOMER_RETURN';
+ALTER TYPE "MovementType" ADD VALUE IF NOT EXISTS 'SUPPLIER_RETURN';
+ALTER TYPE "MovementType" ADD VALUE IF NOT EXISTS 'TRANSFER_OUT';
+ALTER TYPE "MovementType" ADD VALUE IF NOT EXISTS 'TRANSFER_IN';
+ALTER TYPE "MovementType" ADD VALUE IF NOT EXISTS 'POSITIVE_ADJUSTMENT';
+ALTER TYPE "MovementType" ADD VALUE IF NOT EXISTS 'NEGATIVE_ADJUSTMENT';
+ALTER TYPE "MovementType" ADD VALUE IF NOT EXISTS 'DAMAGED';
+ALTER TYPE "MovementType" ADD VALUE IF NOT EXISTS 'EXPIRED';
+CREATE TYPE "WarehouseType" AS ENUM ('MAIN', 'STORE', 'DEPOT', 'TEMPORARY');
+CREATE TYPE "InventoryCountStatus" AS ENUM ('DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED');
+
+ALTER TABLE "Warehouse" ADD COLUMN "code" TEXT, ADD COLUMN "type" "WarehouseType" NOT NULL DEFAULT 'MAIN', ADD COLUMN "isPrimary" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "InventoryStock" ADD COLUMN "reserved" DECIMAL(14,3) NOT NULL DEFAULT 0, ADD COLUMN "maximum" DECIMAL(14,3);
+ALTER TABLE "InventoryMovement" ADD COLUMN "quantityIn" DECIMAL(14,3) NOT NULL DEFAULT 0, ADD COLUMN "quantityOut" DECIMAL(14,3) NOT NULL DEFAULT 0, ADD COLUMN "previousStock" DECIMAL(14,3), ADD COLUMN "resultingStock" DECIMAL(14,3), ADD COLUMN "documentRef" TEXT, ADD COLUMN "reason" TEXT, ADD COLUMN "createdById" UUID, ADD COLUMN "batchId" UUID;
+
+CREATE TABLE "InventoryBatch" ("id" UUID NOT NULL, "productId" UUID NOT NULL, "warehouseId" UUID NOT NULL, "lotNumber" TEXT NOT NULL, "manufacturedAt" TIMESTAMP(3), "expiresAt" TIMESTAMP(3), "quantity" DECIMAL(14,3) NOT NULL DEFAULT 0, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" TIMESTAMP(3) NOT NULL, CONSTRAINT "InventoryBatch_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "InventoryTransfer" ("id" UUID NOT NULL, "companyId" UUID NOT NULL, "originWarehouseId" UUID NOT NULL, "destinationWarehouseId" UUID NOT NULL, "status" TEXT NOT NULL DEFAULT 'COMPLETED', "reference" TEXT, "notes" TEXT, "createdById" UUID, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT "InventoryTransfer_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "InventoryTransferItem" ("id" UUID NOT NULL, "transferId" UUID NOT NULL, "productId" UUID NOT NULL, "quantity" DECIMAL(14,3) NOT NULL, CONSTRAINT "InventoryTransferItem_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "InventoryCount" ("id" UUID NOT NULL, "companyId" UUID NOT NULL, "warehouseId" UUID NOT NULL, "status" "InventoryCountStatus" NOT NULL DEFAULT 'DRAFT', "notes" TEXT, "createdById" UUID, "approvedById" UUID, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "approvedAt" TIMESTAMP(3), CONSTRAINT "InventoryCount_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "InventoryCountLine" ("id" UUID NOT NULL, "countId" UUID NOT NULL, "productId" UUID NOT NULL, "warehouseId" UUID NOT NULL, "systemQuantity" DECIMAL(14,3) NOT NULL, "countedQuantity" DECIMAL(14,3) NOT NULL, "difference" DECIMAL(14,3) NOT NULL, "reason" TEXT, CONSTRAINT "InventoryCountLine_pkey" PRIMARY KEY ("id"));
+
+CREATE UNIQUE INDEX "Warehouse_companyId_code_key" ON "Warehouse"("companyId", "code");
+CREATE UNIQUE INDEX "InventoryBatch_productId_warehouseId_lotNumber_key" ON "InventoryBatch"("productId", "warehouseId", "lotNumber");
+CREATE INDEX "InventoryBatch_warehouseId_expiresAt_idx" ON "InventoryBatch"("warehouseId", "expiresAt");
+CREATE UNIQUE INDEX "InventoryTransfer_reference_key" ON "InventoryTransfer"("reference");
+CREATE UNIQUE INDEX "InventoryCountLine_countId_productId_key" ON "InventoryCountLine"("countId", "productId");
+ALTER TABLE "InventoryMovement" ADD CONSTRAINT "InventoryMovement_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "InventoryMovement" ADD CONSTRAINT "InventoryMovement_batchId_fkey" FOREIGN KEY ("batchId") REFERENCES "InventoryBatch"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "InventoryBatch" ADD CONSTRAINT "InventoryBatch_productId_fkey" FOREIGN KEY ("productId") REFERENCES "Product"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "InventoryBatch" ADD CONSTRAINT "InventoryBatch_warehouseId_fkey" FOREIGN KEY ("warehouseId") REFERENCES "Warehouse"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "InventoryTransfer" ADD CONSTRAINT "InventoryTransfer_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "InventoryTransfer" ADD CONSTRAINT "InventoryTransfer_originWarehouseId_fkey" FOREIGN KEY ("originWarehouseId") REFERENCES "Warehouse"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "InventoryTransfer" ADD CONSTRAINT "InventoryTransfer_destinationWarehouseId_fkey" FOREIGN KEY ("destinationWarehouseId") REFERENCES "Warehouse"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "InventoryTransferItem" ADD CONSTRAINT "InventoryTransferItem_transferId_fkey" FOREIGN KEY ("transferId") REFERENCES "InventoryTransfer"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "InventoryTransferItem" ADD CONSTRAINT "InventoryTransferItem_productId_fkey" FOREIGN KEY ("productId") REFERENCES "Product"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "InventoryCount" ADD CONSTRAINT "InventoryCount_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "InventoryCount" ADD CONSTRAINT "InventoryCount_warehouseId_fkey" FOREIGN KEY ("warehouseId") REFERENCES "Warehouse"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "InventoryCountLine" ADD CONSTRAINT "InventoryCountLine_countId_fkey" FOREIGN KEY ("countId") REFERENCES "InventoryCount"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "InventoryCountLine" ADD CONSTRAINT "InventoryCountLine_productId_fkey" FOREIGN KEY ("productId") REFERENCES "Product"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "InventoryCountLine" ADD CONSTRAINT "InventoryCountLine_warehouseId_fkey" FOREIGN KEY ("warehouseId") REFERENCES "Warehouse"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

@@ -11,4 +11,6 @@ export const env = {
   JWT_SECRET: process.env.JWT_SECRET!,
   ACCESS_TOKEN_TTL: process.env.AUTH_ACCESS_TOKEN_TTL ?? "15m",
   REFRESH_TOKEN_DAYS: Number(process.env.AUTH_REFRESH_TOKEN_DAYS ?? 30),
+  JWT_ISSUER: process.env.JWT_ISSUER ?? "districorp-erp-api",
+  JWT_AUDIENCE: process.env.JWT_AUDIENCE ?? "districorp-erp-web",
 };

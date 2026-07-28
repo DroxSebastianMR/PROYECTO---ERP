@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { AuthError, authService } from "./auth.service.js";
+import { requireAuthentication, type AuthenticatedRequest } from "./auth.middleware.js";
 
 const loginSchema = z.object({
   email: z.string().trim().email().max(254),
@@ -26,14 +27,28 @@ authRouter.post("/login", async (request, response, next) => {
     next(error);
   }
 });
-authRouter.post("/logout", async (request, response, next) => {
+authRouter.post("/logout", requireAuthentication, async (request, response, next) => {
   try {
     const { refreshToken } = logoutSchema.parse(request.body);
-    await authService.logout(refreshToken);
+    await authService.logout(refreshToken, (request as AuthenticatedRequest).auth!.sub);
     response.status(204).send();
   } catch (error) {
     if (error instanceof z.ZodError)
       return response.status(400).json({ message: "Sesión inválida." });
+    next(error);
+  }
+});
+authRouter.post("/refresh", async (request, response, next) => {
+  try {
+    const { refreshToken } = logoutSchema.parse(request.body);
+    response.json(
+      await authService.refresh(refreshToken, request.ip, request.get("user-agent")),
+    );
+  } catch (error) {
+    if (error instanceof z.ZodError)
+      return response.status(400).json({ message: "Sesión inválida." });
+    if (error instanceof AuthError)
+      return response.status(error.status).json({ message: error.message });
     next(error);
   }
 });
