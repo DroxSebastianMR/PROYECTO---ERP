@@ -17,11 +17,7 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
-    "db:seed:products": "tsx prisma/products-seed.ts",
     "db:seed:catalog": "tsx prisma/catalog-seed.ts",
-    "db:seed:inventory": "tsx prisma/inventory-seed.ts",
-    "db:seed:purchases": "tsx prisma/purchases-seed.ts",
-    "db:seed:sales": "tsx prisma/sales-seed.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {
