@@ -185,6 +185,7 @@ export const NewSaleForm = ({
       try {
         // If the response was interrupted after commit, retrying the same key returns
         // the already confirmed sale instead of creating a duplicate.
+        await new Promise((resolve) => window.setTimeout(resolve, 900));
         const sale = await onSubmit(saleInput);
         setCart([]);
         setCompletedSale(sale);

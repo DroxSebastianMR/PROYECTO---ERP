@@ -21,7 +21,9 @@ export const getAccessToken = () => accessToken;
 export const axiosInstance = axios.create({
   baseURL: env.API_URL,
   headers: { "Content-Type": "application/json" },
-  timeout: 10_000,
+  // Sales can include a transactional stock update over a remote database.
+  // Avoid reporting a false failure while the server is still committing it.
+  timeout: 45_000,
 });
 
 axiosInstance.interceptors.request.use((config) => {
