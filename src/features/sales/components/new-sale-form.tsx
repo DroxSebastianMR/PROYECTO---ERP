@@ -54,6 +54,7 @@ export const NewSaleForm = ({
   warehouses,
 }: NewSaleFormProps) => {
   const scannerRef = useRef<HTMLInputElement>(null);
+  const idempotencyKeyRef = useRef<string | null>(null);
   const [query, setQuery] = useState("");
   const [warehouseId, setWarehouseId] = useState("");
   const [customerId, setCustomerId] = useState("");
@@ -159,26 +160,39 @@ export const NewSaleForm = ({
     setIsConfirmOpen(true);
   };
   const processSale = async () => {
+    const saleInput: CreateSaleInput = {
+      customerId: customerId || undefined,
+      warehouseId: activeWarehouseId,
+      paymentMethod,
+      documentType,
+      idempotencyKey: idempotencyKeyRef.current ?? crypto.randomUUID(),
+      items: cart.map((line) => ({
+        productId: line.product.id,
+        quantity: line.quantity,
+        unitPrice: line.quantity >= (line.product.wholesaleMinQuantity ?? 10) && line.product.wholesalePrice
+          ? line.product.wholesalePrice
+          : line.product.salePrice,
+      })),
+    };
+    idempotencyKeyRef.current = saleInput.idempotencyKey;
     try {
-      const sale = await onSubmit({
-        customerId: customerId || undefined,
-        warehouseId: activeWarehouseId,
-        paymentMethod,
-        documentType,
-        items: cart.map((line) => ({
-          productId: line.product.id,
-          quantity: line.quantity,
-          unitPrice:
-            line.quantity >= (line.product.wholesaleMinQuantity ?? 10) && line.product.wholesalePrice
-              ? line.product.wholesalePrice
-              : line.product.salePrice,
-        })),
-      });
+      const sale = await onSubmit(saleInput);
       setCart([]);
       setCompletedSale(sale);
       setIsConfirmOpen(false);
+      idempotencyKeyRef.current = null;
     } catch (error) {
-      alert(error instanceof Error ? error.message : "No se pudo procesar la venta.");
+      try {
+        // If the response was interrupted after commit, retrying the same key returns
+        // the already confirmed sale instead of creating a duplicate.
+        const sale = await onSubmit(saleInput);
+        setCart([]);
+        setCompletedSale(sale);
+        setIsConfirmOpen(false);
+        idempotencyKeyRef.current = null;
+      } catch {
+        alert(error instanceof Error ? error.message : "No se pudo procesar la venta.");
+      }
     }
   };
 

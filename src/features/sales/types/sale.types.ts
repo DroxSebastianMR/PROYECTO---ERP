@@ -53,6 +53,7 @@ export interface CreateSaleInput {
   warehouseId: string;
   paymentMethod: SalePaymentMethod;
   documentType: SaleDocumentType;
+  idempotencyKey: string;
   dueAt?: string;
   items: Array<{ productId: string; quantity: number; unitPrice: number; discount?: number }>;
 }

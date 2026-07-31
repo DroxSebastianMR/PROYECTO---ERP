@@ -22,6 +22,7 @@ const saleSchema = z.object({
   warehouseId: uuid,
   paymentMethod: z.enum(["CASH", "BANK_TRANSFER", "CARD", "YAPE_PLIN", "CREDIT"]),
   documentType: z.literal("RECEIPT"),
+  idempotencyKey: z.string().uuid(),
   dueAt: z.coerce.date().optional(),
   items: z
     .array(

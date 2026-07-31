@@ -21,6 +21,7 @@ export type SaleInput = {
   warehouseId: string;
   paymentMethod: SalePaymentMethod;
   documentType: SaleDocumentType;
+  idempotencyKey: string;
   dueAt?: Date;
   items: Array<{ productId: string; quantity: number; unitPrice: number; discount?: number }>;
 };
@@ -82,6 +83,11 @@ export const salesService = {
     return prisma.customer.create({ data: { companyId, ...input } });
   },
   async create(companyId: string, userId: string, input: SaleInput) {
+    const existing = await prisma.sale.findFirst({
+      where: { companyId, idempotencyKey: input.idempotencyKey },
+      include: includeSale,
+    });
+    if (existing) return existing;
     const [warehouse, customer] = await Promise.all([
       prisma.warehouse.findFirst({ where: { id: input.warehouseId, companyId, isActive: true } }),
       input.customerId
@@ -121,6 +127,7 @@ export const salesService = {
             companyId,
             createdById: userId,
             number,
+            idempotencyKey: input.idempotencyKey,
             customerId: customer?.id,
             warehouseId: warehouse.id,
             paymentMethod: input.paymentMethod,

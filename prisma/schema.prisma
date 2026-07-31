@@ -464,6 +464,7 @@ model Sale {
   customerId  String?      @db.Uuid
   createdById String       @db.Uuid
   number      String
+  idempotencyKey String?
   status      SaleStatus   @default(DRAFT)
   warehouseId String?      @db.Uuid
   paymentMethod SalePaymentMethod @default(CASH)
@@ -486,6 +487,7 @@ model Sale {
   dispatches  SaleDispatch[]
   returns     SaleReturn[]
   @@unique([companyId, number])
+  @@unique([companyId, idempotencyKey])
   @@index([companyId, createdAt])
 }
 
