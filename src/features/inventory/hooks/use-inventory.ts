@@ -27,6 +27,8 @@ export const useInventory = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [warehouseFilter, setWarehouseFilter] = useState("ALL");
   const [stockLevelFilter, setStockLevelFilter] = useState<StockLevelFilter>("ALL");
+  const [stockPage, setStockPage] = useState(1);
+  const [movementPage, setMovementPage] = useState(1);
   const [isAdjustmentOpen, setIsAdjustmentOpen] = useState(false);
   const [selectedStockItem, setSelectedStockItem] = useState<WarehouseStockItem | null>(null);
   const refreshInventory = () => Promise.all([stocksQuery.refetch(), movementsQuery.refetch()]);
@@ -69,12 +71,19 @@ export const useInventory = () => {
       ),
     [allMovements, searchQuery, warehouseFilter],
   );
+  const stockPageCount = Math.max(1, Math.ceil(stocks.length / 10));
+  const movementPageCount = Math.max(1, Math.ceil(movements.length / 10));
+  const currentStockPage = Math.min(stockPage, stockPageCount);
+  const currentMovementPage = Math.min(movementPage, movementPageCount);
 
   return {
     activeTab,
     setActiveTab,
-    stocks,
-    movements,
+    stocks: stocks.slice((currentStockPage - 1) * 10, currentStockPage * 10),
+    movements: movements.slice((currentMovementPage - 1) * 10, currentMovementPage * 10),
+    pagination: activeTab === "stocks"
+      ? { page: currentStockPage, pageCount: stockPageCount, total: stocks.length, setPage: setStockPage }
+      : { page: currentMovementPage, pageCount: movementPageCount, total: movements.length, setPage: setMovementPage },
     isLoading: stocksQuery.isLoading || movementsQuery.isLoading,
     isRefreshing:
       (stocksQuery.isFetching || movementsQuery.isFetching) &&

@@ -67,14 +67,6 @@ export const ProductsPage = () => {
             Catálogo unificado de productos, precios y control de inventario ERP.
           </p>
         </div>
-        <button
-          onClick={() => void refresh()}
-          disabled={isRefreshing}
-          className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-60"
-        >
-          <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
-          Actualizar
-        </button>
       </header>
 
       {/* Error alert if any */}

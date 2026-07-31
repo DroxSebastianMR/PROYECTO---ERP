@@ -1,4 +1,4 @@
-import { RefreshCw, Warehouse, Search, RotateCcw } from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCw, Warehouse, Search, RotateCcw } from "lucide-react";
 import { useInventory } from "@/features/inventory/hooks/use-inventory";
 import { InventoryMetrics } from "@/features/inventory/components/inventory-metrics";
 import { InventoryStockTable } from "@/features/inventory/components/inventory-stock-table";
@@ -24,6 +24,7 @@ export const InventoryPage = () => {
     setStockLevelFilter,
     warehousesList,
     metrics,
+    pagination,
     // Modal
     isAdjustmentOpen,
     setIsAdjustmentOpen,
@@ -59,14 +60,6 @@ export const InventoryPage = () => {
             Control físico por almacenes, auditoría Kardex y ajustes de existencias.
           </p>
         </div>
-        <button
-          onClick={() => void refresh()}
-          disabled={isRefreshing}
-          className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-60"
-        >
-          <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
-          Actualizar
-        </button>
       </header>
 
       {/* Metrics */}
@@ -157,6 +150,7 @@ export const InventoryPage = () => {
         ) : (
           <InventoryMovementsTable movements={movements} />
         )}
+        <div className="mt-4 flex items-center justify-between text-sm text-slate-600"><span>Mostrando {activeTab === "stocks" ? stocks.length : movements.length} de {pagination.total}</span><div className="flex items-center gap-2"><Button variant="ghost" disabled={pagination.page === 1} onClick={() => pagination.setPage(pagination.page - 1)}><ChevronLeft className="h-4 w-4" /> Anterior</Button><span>{pagination.page} / {pagination.pageCount}</span><Button variant="ghost" disabled={pagination.page === pagination.pageCount} onClick={() => pagination.setPage(pagination.page + 1)}>Siguiente <ChevronRight className="h-4 w-4" /></Button></div></div>
       </section>
 
       {/* Adjustment Modal */}

@@ -413,6 +413,7 @@ const run = async () => {
       data: {
         companyId: company.id,
         sku,
+        barcode: `BC-${sku}`,
         name,
         description,
         brandId: brand.id,

@@ -4,7 +4,6 @@ import {
   Minus,
   Plus,
   ScanBarcode,
-  Search,
   ShoppingBasket,
   Printer,
   Trash2,
@@ -63,6 +62,7 @@ export const NewSaleForm = ({
   const [cart, setCart] = useState<CartLine[]>([]);
   const [customerOpen, setCustomerOpen] = useState(false);
   const [completedSale, setCompletedSale] = useState<SaleReceipt | null>(null);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [newCustomer, setNewCustomer] = useState({ name: "", document: "", phone: "", email: "" });
   const activeWarehouseId = warehouseId || warehouses[0]?.id || "";
   const warehouseName = warehouses.find((warehouse) => warehouse.id === activeWarehouseId)?.name;
@@ -146,7 +146,7 @@ export const NewSaleForm = ({
       alert(error instanceof Error ? error.message : "No se pudo registrar el cliente.");
     }
   };
-  const sell = async (event: FormEvent) => {
+  const requestSaleConfirmation = (event: FormEvent) => {
     event.preventDefault();
     if (!activeWarehouseId || !cart.length) {
       alert("Agrega productos disponibles para procesar la venta.");
@@ -156,6 +156,9 @@ export const NewSaleForm = ({
       alert("Selecciona un cliente para registrar una venta a crédito.");
       return;
     }
+    setIsConfirmOpen(true);
+  };
+  const processSale = async () => {
     try {
       const sale = await onSubmit({
         customerId: customerId || undefined,
@@ -173,6 +176,7 @@ export const NewSaleForm = ({
       });
       setCart([]);
       setCompletedSale(sale);
+      setIsConfirmOpen(false);
     } catch (error) {
       alert(error instanceof Error ? error.message : "No se pudo procesar la venta.");
     }
@@ -188,7 +192,7 @@ export const NewSaleForm = ({
           </div>
         </div>
       )}
-      <form onSubmit={sell} className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <form onSubmit={requestSaleConfirmation} className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <main className="space-y-6">
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_8px_24px_rgba(37,99,235,.04)]">
             <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -202,15 +206,6 @@ export const NewSaleForm = ({
                     Escanea un código o busca en el catálogo.
                   </p>
                 </div>
-              </div>
-              <div className="relative w-full sm:w-72">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                <Input
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Buscar por nombre..."
-                  className="pl-9"
-                />
               </div>
             </div>
             <div className="rounded-xl border-2 border-dashed border-blue-200 bg-blue-50/50 p-4">
@@ -474,6 +469,17 @@ export const NewSaleForm = ({
           </section>
         </aside>
       </form>
+      <Dialog isOpen={isConfirmOpen} onClose={() => setIsConfirmOpen(false)} title="Confirmar venta" description="Revisa el resumen antes de confirmar el cobro y descontar el stock." maxWidth="md">
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white p-5">
+            <div className="flex items-center justify-between border-b border-blue-100 pb-3"><span className="text-sm font-semibold text-slate-700">Ticket de venta</span><span className="rounded-full bg-blue-700 px-2.5 py-1 text-xs font-bold text-white">{cart.length} ítems</span></div>
+            <div className="max-h-48 space-y-2 overflow-y-auto py-3 text-sm">{cart.map((line) => <div key={line.product.id} className="flex justify-between gap-3"><span className="text-slate-700">{line.quantity} × {line.product.name}</span><strong>{money(line.quantity * (line.quantity >= (line.product.wholesaleMinQuantity ?? 10) && line.product.wholesalePrice ? line.product.wholesalePrice : line.product.salePrice))}</strong></div>)}</div>
+            <div className="flex items-center justify-between border-t border-blue-100 pt-3"><span className="font-semibold text-slate-700">Total a cobrar</span><strong className="text-2xl text-blue-700">{money(total)}</strong></div>
+          </div>
+          <p className="text-sm text-slate-600">Al confirmar, la venta quedará registrada y el stock se actualizará inmediatamente.</p>
+          <div className="flex justify-end gap-3"><Button type="button" variant="ghost" onClick={() => setIsConfirmOpen(false)}>Volver</Button><Button type="button" onClick={() => void processSale()} className="gap-2"><WalletCards className="h-4 w-4" /> Confirmar venta</Button></div>
+        </div>
+      </Dialog>
       <Dialog
         isOpen={Boolean(completedSale)}
         onClose={() => { setCompletedSale(null); onComplete(); }}
@@ -482,9 +488,14 @@ export const NewSaleForm = ({
         maxWidth="md"
       >
         <div className="space-y-5">
-          <div id="pos-ticket" className="rounded-xl border border-blue-100 bg-blue-50/50 p-4 text-sm">
-            <p className="font-bold text-blue-800">Ticket {completedSale?.number}</p>
-            <p className="mt-1 text-slate-600">Total cobrado: <strong>{completedSale ? money(completedSale.total) : ""}</strong></p>
+          <div id="pos-ticket" className="mx-auto w-72 rounded-lg border border-dashed border-slate-300 bg-white p-4 font-mono text-xs text-slate-700">
+            <p className="text-center text-base font-bold text-slate-900">DISTRICORP</p>
+            <p className="mt-1 text-center">TICKET {completedSale?.number}</p>
+            <div className="my-3 border-t border-dashed border-slate-300" />
+            {completedSale?.items.map((item) => <div key={item.id} className="mb-1 flex justify-between gap-2"><span>{item.quantity}x {item.productName}</span><span>{money(item.subtotal)}</span></div>)}
+            <div className="my-3 border-t border-dashed border-slate-300" />
+            <p className="flex justify-between text-sm font-bold"><span>TOTAL</span><span>{completedSale ? money(completedSale.total) : ""}</span></p>
+            <p className="mt-3 text-center text-[10px]">Gracias por su compra</p>
           </div>
           <p className="text-sm text-slate-600">¿Deseas imprimir el ticket de venta ahora?</p>
           <div className="flex justify-end gap-3">

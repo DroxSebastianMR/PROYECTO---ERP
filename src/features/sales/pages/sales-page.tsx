@@ -1,4 +1,4 @@
-import { RefreshCw, Tag, Search, Plus, RotateCcw } from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCw, Tag, Search, Plus, RotateCcw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { PATHS } from "@/app/router/constants/paths";
 import { useSales } from "@/features/sales/hooks/use-sales";
@@ -21,6 +21,7 @@ export const SalesPage = () => {
     statusFilter,
     setStatusFilter,
     metrics,
+    pagination,
     // Modals
     isDetailOpen,
     setIsDetailOpen,
@@ -56,14 +57,6 @@ export const SalesPage = () => {
             Punto de venta, emisión de comprobantes y cobranzas ERP.
           </p>
         </div>
-        <button
-          onClick={() => void refresh()}
-          disabled={isRefreshing}
-          className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-60"
-        >
-          <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
-          Actualizar
-        </button>
       </header>
 
       {/* Metrics */}
@@ -122,6 +115,7 @@ export const SalesPage = () => {
       {/* Sales Data Table */}
       <section className="mt-6">
         <SaleTable sales={sales} onView={handleOpenDetailModal} />
+        <div className="mt-4 flex items-center justify-between text-sm text-slate-600"><span>Mostrando {sales.length} de {pagination.total}</span><div className="flex items-center gap-2"><Button variant="ghost" disabled={pagination.page === 1} onClick={() => pagination.setPage(pagination.page - 1)}><ChevronLeft className="h-4 w-4" /> Anterior</Button><span>{pagination.page} / {pagination.pageCount}</span><Button variant="ghost" disabled={pagination.page === pagination.pageCount} onClick={() => pagination.setPage(pagination.page + 1)}>Siguiente <ChevronRight className="h-4 w-4" /></Button></div></div>
       </section>
 
       {/* Receipt Modal */}

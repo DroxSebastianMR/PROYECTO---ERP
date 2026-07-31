@@ -1,4 +1,4 @@
-import { RefreshCw, ShoppingCart, Search, Plus, RotateCcw } from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCw, ShoppingCart, Search, Plus, RotateCcw } from "lucide-react";
 import { usePurchases } from "@/features/purchases/hooks/use-purchases";
 import { PurchaseMetrics } from "@/features/purchases/components/purchase-metrics";
 import { PurchaseTable } from "@/features/purchases/components/purchase-table";
@@ -22,6 +22,7 @@ export const PurchasesPage = () => {
     statusFilter,
     setStatusFilter,
     metrics,
+    pagination,
     // Modals
     isFormOpen,
     setIsFormOpen,
@@ -124,6 +125,7 @@ export const PurchasesPage = () => {
       {/* Main Table */}
       <section className="mt-6">
         <PurchaseTable purchases={purchases} onView={handleOpenDetailModal} />
+        <div className="mt-4 flex items-center justify-between text-sm text-slate-600"><span>Mostrando {purchases.length} de {pagination.total}</span><div className="flex items-center gap-2"><Button variant="ghost" disabled={pagination.page === 1} onClick={() => pagination.setPage(pagination.page - 1)}><ChevronLeft className="h-4 w-4" /> Anterior</Button><span>{pagination.page} / {pagination.pageCount}</span><Button variant="ghost" disabled={pagination.page === pagination.pageCount} onClick={() => pagination.setPage(pagination.page + 1)}>Siguiente <ChevronRight className="h-4 w-4" /></Button></div></div>
       </section>
 
       {/* Form Modal */}

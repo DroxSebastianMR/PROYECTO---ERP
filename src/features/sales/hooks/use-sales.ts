@@ -10,6 +10,7 @@ export const useSales = () => {
   const client = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | SaleStatus>("ALL");
+  const [page, setPage] = useState(1);
   const [isPOSOpen, setIsPOSOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedSale, setSelectedSale] = useState<SaleReceipt | null>(null);
@@ -63,17 +64,21 @@ export const useSales = () => {
       }),
     [sales, searchQuery, statusFilter],
   );
+  const pageCount = Math.max(1, Math.ceil(filtered.length / 10));
+  const currentPage = Math.min(page, pageCount);
+  const paginatedSales = filtered.slice((currentPage - 1) * 10, currentPage * 10);
   return {
-    sales: filtered,
+    sales: paginatedSales,
+    pagination: { page: currentPage, pageCount, total: filtered.length, setPage },
     products: productsQuery.data ?? [],
     customers: customersQuery.data ?? [],
     warehouses: warehousesQuery.data ?? [],
     isLoading: salesQuery.isLoading,
     isRefreshing: salesQuery.isFetching && !salesQuery.isLoading,
     searchQuery,
-    setSearchQuery,
+    setSearchQuery: (value: string) => { setPage(1); setSearchQuery(value); },
     statusFilter,
-    setStatusFilter,
+    setStatusFilter: (value: "ALL" | SaleStatus) => { setPage(1); setStatusFilter(value); },
     metrics: saleService.calculateMetrics(sales),
     isPOSOpen,
     setIsPOSOpen,

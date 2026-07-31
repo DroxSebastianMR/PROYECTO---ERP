@@ -18,6 +18,7 @@ export const usePurchases = () => {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | PurchaseStatus>("ALL");
+  const [page, setPage] = useState(1);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedPurchase, setSelectedPurchase] = useState<PurchaseOrder | null>(null);
@@ -89,18 +90,21 @@ export const usePurchases = () => {
     setSelectedPurchase(purchase);
     setIsDetailOpen(true);
   };
+  const pageCount = Math.max(1, Math.ceil(filteredPurchases.length / 10));
+  const currentPage = Math.min(page, pageCount);
 
   return {
-    purchases: filteredPurchases,
+    purchases: filteredPurchases.slice((currentPage - 1) * 10, currentPage * 10),
+    pagination: { page: currentPage, pageCount, total: filteredPurchases.length, setPage },
     suppliers: suppliersQuery.data ?? [],
     warehouses: warehousesQuery.data ?? [],
     products: (productsQuery.data ?? []).filter((product) => product.isActive),
     isLoading: purchasesQuery.isLoading,
     isRefreshing: purchasesQuery.isFetching && !purchasesQuery.isLoading,
     searchQuery,
-    setSearchQuery,
+    setSearchQuery: (value: string) => { setPage(1); setSearchQuery(value); },
     statusFilter,
-    setStatusFilter,
+    setStatusFilter: (value: "ALL" | PurchaseStatus) => { setPage(1); setStatusFilter(value); },
     metrics: purchaseService.calculateMetrics(purchases),
     isFormOpen,
     setIsFormOpen,
