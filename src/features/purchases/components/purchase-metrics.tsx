@@ -16,13 +16,11 @@ export const PurchaseMetrics = ({ metrics }: PurchaseMetricsProps) => {
       {/* Metric 1: Compras Recepcionadas (S/) */}
       <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-[0_8px_20px_rgba(37,99,235,.03)]">
         <div>
-          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
             Total Compras Mes
           </p>
-          <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
-            {formattedTotal}
-          </p>
-          <p className="mt-1 text-xs text-emerald-600 font-medium">Ingresadas a almacén</p>
+          <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">{formattedTotal}</p>
+          <p className="mt-1 text-xs font-medium text-emerald-600">Ingresadas a almacén</p>
         </div>
         <div className="grid h-11 w-11 place-items-center rounded-lg bg-blue-50 text-blue-600">
           <ShoppingCart className="h-5 w-5" />
@@ -32,7 +30,7 @@ export const PurchaseMetrics = ({ metrics }: PurchaseMetricsProps) => {
       {/* Metric 2: Órdenes Pendientes */}
       <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-[0_8px_20px_rgba(37,99,235,.03)]">
         <div>
-          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
             Pendientes de Ingreso
           </p>
           <p className="mt-2 text-2xl font-bold tracking-tight text-amber-600">
@@ -48,9 +46,7 @@ export const PurchaseMetrics = ({ metrics }: PurchaseMetricsProps) => {
       {/* Metric 3: Órdenes Completadas */}
       <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-[0_8px_20px_rgba(37,99,235,.03)]">
         <div>
-          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-            Completadas
-          </p>
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Completadas</p>
           <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
             {metrics.receivedOrdersCount}
           </p>
@@ -64,7 +60,7 @@ export const PurchaseMetrics = ({ metrics }: PurchaseMetricsProps) => {
       {/* Metric 4: Proveedores */}
       <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-[0_8px_20px_rgba(37,99,235,.03)]">
         <div>
-          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
             Proveedores Activos
           </p>
           <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">

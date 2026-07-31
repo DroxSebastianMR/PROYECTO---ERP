@@ -13,8 +13,12 @@ export const InventoryStockTable = ({ stocks, onAdjust }: InventoryStockTablePro
     return (
       <div className="flex flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-12 text-center shadow-[0_8px_20px_rgba(37,99,235,.03)]">
         <Warehouse className="h-10 w-10 text-slate-300" />
-        <h3 className="mt-3 text-sm font-semibold text-slate-900">No hay existencias registradas</h3>
-        <p className="mt-1 text-xs text-slate-500">No se encontraron productos en el almacén seleccionado.</p>
+        <h3 className="mt-3 text-sm font-semibold text-slate-900">
+          No hay existencias registradas
+        </h3>
+        <p className="mt-1 text-xs text-slate-500">
+          No se encontraron productos en el almacén seleccionado.
+        </p>
       </div>
     );
   }
@@ -23,15 +27,29 @@ export const InventoryStockTable = ({ stocks, onAdjust }: InventoryStockTablePro
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_20px_rgba(37,99,235,.03)]">
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm text-slate-600">
-          <thead className="bg-slate-50/80 text-xs uppercase tracking-wider text-slate-500 border-b border-slate-200">
+          <thead className="border-b border-slate-200 bg-slate-50/80 text-xs uppercase tracking-wider text-slate-500">
             <tr>
-              <th scope="col" className="px-6 py-4 font-semibold">SKU</th>
-              <th scope="col" className="px-6 py-4 font-semibold">Producto</th>
-              <th scope="col" className="px-6 py-4 font-semibold">Almacén</th>
-              <th scope="col" className="px-6 py-4 font-semibold text-right">Cantidad</th>
-              <th scope="col" className="px-6 py-4 font-semibold text-right">Mínimo</th>
-              <th scope="col" className="px-6 py-4 font-semibold text-center">Estado</th>
-              <th scope="col" className="px-6 py-4 font-semibold text-right">Acción</th>
+              <th scope="col" className="px-6 py-4 font-semibold">
+                SKU
+              </th>
+              <th scope="col" className="px-6 py-4 font-semibold">
+                Producto
+              </th>
+              <th scope="col" className="px-6 py-4 font-semibold">
+                Almacén
+              </th>
+              <th scope="col" className="px-6 py-4 text-right font-semibold">
+                Cantidad
+              </th>
+              <th scope="col" className="px-6 py-4 text-right font-semibold">
+                Mínimo
+              </th>
+              <th scope="col" className="px-6 py-4 text-center font-semibold">
+                Estado
+              </th>
+              <th scope="col" className="px-6 py-4 text-right font-semibold">
+                Acción
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -41,22 +59,23 @@ export const InventoryStockTable = ({ stocks, onAdjust }: InventoryStockTablePro
 
               return (
                 <tr key={item.id} className="transition hover:bg-slate-50/80">
-                  <td className="px-6 py-4 font-mono font-medium text-slate-900 whitespace-nowrap">
-                    <span className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-700 font-semibold border border-slate-200/60">
+                  <td className="whitespace-nowrap px-6 py-4 font-mono font-medium text-slate-900">
+                    <span className="rounded border border-slate-200/60 bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
                       {item.sku}
                     </span>
                   </td>
                   <td className="px-6 py-4 font-semibold text-slate-900">{item.productName}</td>
-                  <td className="px-6 py-4 text-slate-700 font-medium whitespace-nowrap">
+                  <td className="whitespace-nowrap px-6 py-4 font-medium text-slate-700">
                     {item.warehouseName}
                   </td>
-                  <td className="px-6 py-4 text-right font-bold whitespace-nowrap text-slate-900">
-                    {item.quantity} <span className="text-xs font-normal text-slate-500">{item.unit}</span>
+                  <td className="whitespace-nowrap px-6 py-4 text-right font-bold text-slate-900">
+                    {item.quantity}{" "}
+                    <span className="text-xs font-normal text-slate-500">{item.unit}</span>
                   </td>
-                  <td className="px-6 py-4 text-right text-slate-500 whitespace-nowrap">
+                  <td className="whitespace-nowrap px-6 py-4 text-right text-slate-500">
                     {item.minimum} {item.unit}
                   </td>
-                  <td className="px-6 py-4 text-center whitespace-nowrap">
+                  <td className="whitespace-nowrap px-6 py-4 text-center">
                     {isOut ? (
                       <Badge variant="destructive">Agotado</Badge>
                     ) : isLow ? (
@@ -65,14 +84,14 @@ export const InventoryStockTable = ({ stocks, onAdjust }: InventoryStockTablePro
                       <Badge variant="success">Normal</Badge>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-right whitespace-nowrap">
+                  <td className="whitespace-nowrap px-6 py-4 text-right">
                     <Button
                       onClick={() => onAdjust(item)}
                       variant="ghost"
                       size="default"
-                      className="h-8 px-2.5 text-xs text-blue-600 hover:bg-blue-50 border border-blue-100"
+                      className="h-8 border border-blue-100 px-2.5 text-xs text-blue-600 hover:bg-blue-50"
                     >
-                      <SlidersHorizontal className="h-3.5 w-3.5 mr-1" /> Ajustar Stock
+                      <SlidersHorizontal className="mr-1 h-3.5 w-3.5" /> Ajustar Stock
                     </Button>
                   </td>
                 </tr>

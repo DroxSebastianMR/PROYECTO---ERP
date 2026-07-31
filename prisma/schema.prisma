@@ -113,6 +113,7 @@ model Company {
   productCategories ProductCategory[]
   productSubcategories ProductSubcategory[]
   productBrands ProductBrand[]
+  measurementUnits MeasurementUnit[]
   productPresentations ProductPresentation[]
   inventoryTransfers InventoryTransfer[]
   inventoryCounts InventoryCount[]
@@ -288,6 +289,20 @@ model ProductBrand {
   company     Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
   products    Product[]
   @@unique([companyId, name])
+}
+
+model MeasurementUnit {
+  id        String   @id @default(uuid()) @db.Uuid
+  companyId String   @db.Uuid
+  code      String
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  @@unique([companyId, code])
+  @@unique([companyId, name])
+  @@index([companyId, isActive])
 }
 
 model ProductPresentation {

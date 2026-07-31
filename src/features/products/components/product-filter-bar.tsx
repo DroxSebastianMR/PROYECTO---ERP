@@ -1,4 +1,5 @@
-import { Plus, Search, Filter, RotateCcw } from "lucide-react";
+import { Barcode, Plus, RotateCcw, ScanBarcode, Search } from "lucide-react";
+import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -17,14 +18,15 @@ export const ProductFilterBar = ({
   categories,
   onNewProduct,
 }: ProductFilterBarProps) => {
+  const scannerRef = useRef<HTMLInputElement>(null);
   const hasActiveFilters =
-    filters.search !== "" || filters.category !== "ALL" || filters.stockStatus !== "ALL";
+    filters.search !== "" || filters.category !== "ALL" || filters.status !== "ALL";
 
   const handleReset = () => {
     onFilterChange({
       search: "",
       category: "ALL",
-      stockStatus: "ALL",
+      status: "ALL",
     });
   };
 
@@ -43,6 +45,23 @@ export const ProductFilterBar = ({
           />
         </div>
 
+        <div className="relative w-full sm:w-72">
+          <Barcode className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-blue-600" />
+          <Input
+            ref={scannerRef}
+            placeholder="Pistolear código de barras"
+            value={filters.search}
+            onChange={(e) => onFilterChange({ ...filters, search: e.target.value })}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") event.preventDefault();
+            }}
+            className="border-blue-200 pl-9"
+          />
+          <button type="button" onClick={() => scannerRef.current?.focus()} className="absolute right-2 top-1/2 -translate-y-1/2 text-blue-600" title="Activar lector">
+            <ScanBarcode className="h-4 w-4" />
+          </button>
+        </div>
+
         {/* Category Filter */}
         <div className="w-full sm:w-48">
           <Select
@@ -58,16 +77,14 @@ export const ProductFilterBar = ({
           </Select>
         </div>
 
-        {/* Stock Status Filter */}
+        {/* Catalog status filter */}
         <div className="w-full sm:w-48">
           <Select
-            value={filters.stockStatus}
-            onChange={(e) => onFilterChange({ ...filters, stockStatus: e.target.value })}
+            value={filters.status}
+            onChange={(e) => onFilterChange({ ...filters, status: e.target.value as ProductFilterState["status"] })}
           >
             <option value="ALL">Todos los Estados</option>
-            <option value="IN_STOCK">En Stock</option>
-            <option value="LOW_STOCK">Stock Bajo</option>
-            <option value="OUT_OF_STOCK">Sin Stock</option>
+            <option value="ACTIVE">Activos</option>
             <option value="INACTIVE">Inactivos</option>
           </Select>
         </div>
@@ -80,7 +97,7 @@ export const ProductFilterBar = ({
             className="h-10 px-3 text-slate-600 hover:text-slate-900"
             title="Limpiar filtros"
           >
-            <RotateCcw className="h-4 w-4 mr-1.5" />
+            <RotateCcw className="mr-1.5 h-4 w-4" />
             Limpiar
           </Button>
         )}
@@ -88,7 +105,7 @@ export const ProductFilterBar = ({
 
       {/* Action button */}
       <div className="flex items-center gap-2">
-        <Button onClick={onNewProduct} className="gap-2 shadow-sm font-medium">
+        <Button onClick={onNewProduct} className="gap-2 font-medium shadow-sm">
           <Plus className="h-4 w-4" />
           Nuevo Producto
         </Button>

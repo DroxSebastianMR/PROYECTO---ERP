@@ -3,7 +3,11 @@ import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import type { WarehouseStockItem, StockAdjustmentInput, MovementType } from "@/features/inventory/types/inventory.types";
+import type {
+  WarehouseStockItem,
+  StockAdjustmentInput,
+  MovementType,
+} from "@/features/inventory/types/inventory.types";
 
 interface StockAdjustmentModalProps {
   isOpen: boolean;
@@ -52,15 +56,20 @@ export const StockAdjustmentModal = ({
       maxWidth="md"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="rounded-lg bg-slate-50 p-3 border border-slate-200/80 text-sm">
-          <div className="flex justify-between text-xs text-slate-500 font-medium">
+        <div className="rounded-lg border border-slate-200/80 bg-slate-50 p-3 text-sm">
+          <div className="flex justify-between text-xs font-medium text-slate-500">
             <span>SKU: {stockItem.sku}</span>
-            <span>Stock Actual: <strong>{stockItem.quantity} {stockItem.unit}</strong></span>
+            <span>
+              Stock Actual:{" "}
+              <strong>
+                {stockItem.quantity} {stockItem.unit}
+              </strong>
+            </span>
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
+          <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-700">
             Tipo de Movimiento
           </label>
           <Select value={type} onChange={(e) => setType(e.target.value as MovementType)}>
@@ -71,7 +80,7 @@ export const StockAdjustmentModal = ({
         </div>
 
         <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
+          <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-700">
             Cantidad ({stockItem.unit}) <span className="text-red-500">*</span>
           </label>
           <Input
@@ -85,7 +94,7 @@ export const StockAdjustmentModal = ({
         </div>
 
         <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
+          <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-700">
             Motivo / Referencia
           </label>
           <Input
@@ -95,7 +104,7 @@ export const StockAdjustmentModal = ({
           />
         </div>
 
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+        <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
           <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting}>
             Cancelar
           </Button>

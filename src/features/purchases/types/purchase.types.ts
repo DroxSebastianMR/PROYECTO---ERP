@@ -41,8 +41,14 @@ export interface CreatePurchaseInput {
   items: Array<{ productId: string; quantity: number; unitCost: number }>;
 }
 
-export interface SupplierOption { id: string; name: string; }
-export interface WarehouseOption { id: string; name: string; }
+export interface SupplierOption {
+  id: string;
+  name: string;
+}
+export interface WarehouseOption {
+  id: string;
+  name: string;
+}
 
 export interface PurchaseMetrics {
   totalMonthPurchases: number;

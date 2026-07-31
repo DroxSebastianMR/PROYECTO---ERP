@@ -25,7 +25,14 @@ export const QueryProvider = ({ children }: { children: ReactNode }) => {
   return (
     <PersistQueryClientProvider
       client={client}
-      persistOptions={{ persister, maxAge: 10 * 60_000, dehydrateOptions: { shouldDehydrateQuery: (query) => ["products", "inventory", "purchases", "sales"].includes(String(query.queryKey[0])) } }}
+      persistOptions={{
+        persister,
+        maxAge: 10 * 60_000,
+        dehydrateOptions: {
+          shouldDehydrateQuery: (query) =>
+            ["products", "inventory", "purchases", "sales"].includes(String(query.queryKey[0])),
+        },
+      }}
     >
       {children}
     </PersistQueryClientProvider>

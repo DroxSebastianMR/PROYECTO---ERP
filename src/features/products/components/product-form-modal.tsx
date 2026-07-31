@@ -7,6 +7,7 @@ import type {
   Product,
   CreateProductInput,
   UpdateProductInput,
+  MeasurementUnit,
 } from "@/features/products/types/product.types";
 
 interface ProductFormModalProps {
@@ -15,6 +16,8 @@ interface ProductFormModalProps {
   onSubmit: (data: CreateProductInput | UpdateProductInput) => Promise<void>;
   product?: Product | null;
   categories: string[];
+  measurementUnits: MeasurementUnit[];
+  onCreateMeasurementUnit: (input: { code: string; name: string }) => Promise<MeasurementUnit>;
   isSubmitting: boolean;
 }
 
@@ -24,6 +27,8 @@ export const ProductFormModal = ({
   onSubmit,
   product,
   categories,
+  measurementUnits,
+  onCreateMeasurementUnit,
   isSubmitting,
 }: ProductFormModalProps) => {
   const isEditing = Boolean(product);
@@ -39,6 +44,8 @@ export const ProductFormModal = ({
     salePrice: "",
     costPrice: "",
     wholesalePrice: "",
+    wholesaleMinQuantity: "10",
+    imageUrl: "",
     taxTreatment: "TAXED" as "TAXED" | "EXONERATED" | "UNAFFECTED",
     initialStock: "",
     minStock: "5",
@@ -47,6 +54,8 @@ export const ProductFormModal = ({
 
   const [customCategory, setCustomCategory] = useState("");
   const [useCustomCategory, setUseCustomCategory] = useState(false);
+  const [newUnit, setNewUnit] = useState({ code: "", name: "" });
+  const [showNewUnit, setShowNewUnit] = useState(false);
 
   useEffect(() => {
     if (product) {
@@ -61,6 +70,8 @@ export const ProductFormModal = ({
         salePrice: String(product.salePrice),
         costPrice: String(product.costPrice || ""),
         wholesalePrice: String(product.wholesalePrice || ""),
+        wholesaleMinQuantity: String(product.wholesaleMinQuantity || 10),
+        imageUrl: product.imageUrl || "",
         taxTreatment: product.taxTreatment || "TAXED",
         initialStock: String(product.totalStock),
         minStock: String(product.minStock),
@@ -79,6 +90,8 @@ export const ProductFormModal = ({
         salePrice: "",
         costPrice: "",
         wholesalePrice: "",
+        wholesaleMinQuantity: "10",
+        imageUrl: "",
         taxTreatment: "TAXED",
         initialStock: "0",
         minStock: "5",
@@ -92,8 +105,8 @@ export const ProductFormModal = ({
     e.preventDefault();
     const finalCategory = useCustomCategory ? customCategory.trim() : formData.category;
 
-    if (!formData.sku.trim() || !formData.name.trim() || !finalCategory) {
-      alert("Por favor completa los campos obligatorios: SKU, Nombre y Categoría.");
+    if (!formData.name.trim() || !finalCategory) {
+      alert("Por favor completa los campos obligatorios: Nombre y Categoría.");
       return;
     }
 
@@ -105,7 +118,7 @@ export const ProductFormModal = ({
 
     const payload: CreateProductInput | UpdateProductInput = {
       ...(product ? { id: product.id } : {}),
-      sku: formData.sku.trim(),
+      ...(product ? { sku: formData.sku } : {}),
       barcode: formData.barcode.trim() || undefined,
       name: formData.name.trim(),
       category: finalCategory,
@@ -115,6 +128,8 @@ export const ProductFormModal = ({
       salePrice: salePriceNum,
       costPrice: parseFloat(formData.costPrice) || 0,
       wholesalePrice: parseFloat(formData.wholesalePrice) || undefined,
+      wholesaleMinQuantity: parseFloat(formData.wholesaleMinQuantity) || undefined,
+      imageUrl: formData.imageUrl.trim() || undefined,
       taxTreatment: formData.taxTreatment,
       initialStock: parseFloat(formData.initialStock) || 0,
       minStock: parseFloat(formData.minStock) || 0,
@@ -140,20 +155,19 @@ export const ProductFormModal = ({
         <div className="grid gap-4 sm:grid-cols-2">
           {/* SKU */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-700">
               SKU / Código <span className="text-red-500">*</span>
             </label>
             <Input
-              placeholder="Ej. CEM-SOL-01"
+              placeholder="Se genera al guardar"
               value={formData.sku}
-              onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-              required
+              disabled
             />
           </div>
 
           {/* Nombre */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-700">
               Nombre del Producto <span className="text-red-500">*</span>
             </label>
             <Input
@@ -167,19 +181,49 @@ export const ProductFormModal = ({
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-700">Código de barras</label>
-            <Input placeholder="EAN / UPC (opcional)" value={formData.barcode} onChange={(e) => setFormData({ ...formData, barcode: e.target.value })} />
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-700">Precio mayorista (S/)</label>
+            <Input type="number" step="0.01" min="0" placeholder="0.00" value={formData.wholesalePrice} onChange={(e) => setFormData({ ...formData, wholesalePrice: e.target.value })} />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-700">Marca</label>
-            <Input placeholder="Ej. Coca-Cola" value={formData.brand} onChange={(e) => setFormData({ ...formData, brand: e.target.value })} />
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-700">Desde cuántas unidades aplica</label>
+            <Input type="number" min="1" step="1" value={formData.wholesaleMinQuantity} onChange={(e) => setFormData({ ...formData, wholesaleMinQuantity: e.target.value })} />
+            <p className="mt-1 text-xs text-slate-500">Ejemplo: desde 10 unidades se aplicará el precio mayorista.</p>
+          </div>
+        </div>
+
+        <div>
+          <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-700">Imagen del producto</label>
+          <Input type="url" placeholder="https://.../producto.jpg" value={formData.imageUrl} onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })} />
+          {formData.imageUrl && <img src={formData.imageUrl} alt="Vista previa del producto" className="mt-2 h-20 w-20 rounded-lg border border-slate-200 object-cover" onError={(event) => { event.currentTarget.style.display = "none"; }} />}
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-700">
+              Código de barras
+            </label>
+            <Input
+              placeholder="EAN / UPC (opcional)"
+              value={formData.barcode}
+              onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-700">
+              Marca
+            </label>
+            <Input
+              placeholder="Ej. Coca-Cola"
+              value={formData.brand}
+              onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+            />
           </div>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           {/* Categoría */}
           <div>
-            <div className="flex items-center justify-between mb-1">
+            <div className="mb-1 flex items-center justify-between">
               <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
                 Categoría <span className="text-red-500">*</span>
               </label>
@@ -218,31 +262,37 @@ export const ProductFormModal = ({
 
           {/* Unidad de Medida */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
-              Unidad de Medida
-            </label>
-            <Select
-              value={formData.unit}
-              onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-            >
-              <option value="UND">UND - Unidad</option>
-              <option value="BOL">BOL - Bolsa</option>
-              <option value="KG">KG - Kilogramo</option>
-              <option value="MTR">MTR - Metro</option>
-              <option value="LTR">LTR - Litro</option>
-              <option value="BAL">BAL - Balde / Galón</option>
-              <option value="ROL">ROL - Rollo</option>
-              <option value="MIL">MIL - Millar</option>
-              <option value="CAJ">CAJ - Caja</option>
-              <option value="SET">SET - Juego / Kit</option>
-            </Select>
+            <div className="mb-1 flex items-center justify-between">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">Unidad de medida</label>
+              <button type="button" onClick={() => setShowNewUnit(!showNewUnit)} className="text-xs text-blue-600 hover:underline">
+                {showNewUnit ? "Cancelar" : "+ Nueva unidad"}
+              </button>
+            </div>
+            {showNewUnit ? (
+              <div className="flex gap-2">
+                <Input placeholder="Código" value={newUnit.code} onChange={(e) => setNewUnit({ ...newUnit, code: e.target.value.toUpperCase() })} />
+                <Input placeholder="Nombre" value={newUnit.name} onChange={(e) => setNewUnit({ ...newUnit, name: e.target.value })} />
+                <Button type="button" variant="ghost" onClick={async () => {
+                  if (!newUnit.code.trim() || !newUnit.name.trim()) return;
+                  const unit = await onCreateMeasurementUnit(newUnit);
+                  setFormData({ ...formData, unit: unit.code });
+                  setNewUnit({ code: "", name: "" });
+                  setShowNewUnit(false);
+                }}>Crear</Button>
+              </div>
+            ) : (
+              <Select value={formData.unit} onChange={(e) => setFormData({ ...formData, unit: e.target.value })}>
+                <option value="UND">UND - Unidad</option>
+                {measurementUnits.map((unit) => <option key={unit.id} value={unit.code}>{unit.code} - {unit.name}</option>)}
+              </Select>
+            )}
           </div>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           {/* Precio de Venta */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-700">
               Precio Venta (S/) <span className="text-red-500">*</span>
             </label>
             <Input
@@ -258,7 +308,7 @@ export const ProductFormModal = ({
 
           {/* Precio de Costo */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-700">
               Costo Referencial (S/)
             </label>
             <Input
@@ -275,7 +325,7 @@ export const ProductFormModal = ({
         <div className="grid gap-4 sm:grid-cols-2">
           {/* Stock Inicial / Actual */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-700">
               {isEditing ? "Stock Total Actual" : "Stock Inicial"}
             </label>
             <Input
@@ -290,7 +340,7 @@ export const ProductFormModal = ({
 
           {/* Stock Mínimo */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-700">
               Stock Mínimo (Alerta)
             </label>
             <Input
@@ -306,7 +356,7 @@ export const ProductFormModal = ({
 
         {/* Descripción */}
         <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
+          <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-700">
             Descripción / Notas
           </label>
           <textarea
@@ -319,7 +369,7 @@ export const ProductFormModal = ({
         </div>
 
         {/* Action buttons */}
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+        <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
           <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting}>
             Cancelar
           </Button>

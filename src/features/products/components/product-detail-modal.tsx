@@ -43,10 +43,12 @@ export const ProductDetailModal = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-mono text-xs font-semibold text-slate-500">{product.sku}</span>
+                <span className="font-mono text-xs font-semibold text-slate-500">
+                  {product.sku}
+                </span>
                 <ProductStatusBadge product={product} />
               </div>
-              <h4 className="text-base font-bold text-slate-900 mt-0.5">{product.name}</h4>
+              <h4 className="mt-0.5 text-base font-bold text-slate-900">{product.name}</h4>
             </div>
           </div>
           <Button
@@ -64,7 +66,7 @@ export const ProductDetailModal = ({
         {/* Specifications grid */}
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="rounded-lg border border-slate-100 bg-white p-4">
-            <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+            <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
               <Tag className="h-3.5 w-3.5 text-blue-600" /> Categoría y Medida
             </div>
             <div className="space-y-2 text-sm">
@@ -86,7 +88,7 @@ export const ProductDetailModal = ({
           </div>
 
           <div className="rounded-lg border border-slate-100 bg-white p-4">
-            <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+            <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
               <DollarSign className="h-3.5 w-3.5 text-emerald-600" /> Precios y Margen
             </div>
             <div className="space-y-2 text-sm">
@@ -113,7 +115,7 @@ export const ProductDetailModal = ({
         {/* Description */}
         {product.description && (
           <div className="rounded-lg border border-slate-100 bg-white p-4">
-            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+            <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
               Descripción / Observaciones
             </div>
             <p className="text-sm text-slate-700">{product.description}</p>
@@ -121,13 +123,16 @@ export const ProductDetailModal = ({
         )}
 
         {/* Warehouse stock breakdown */}
-        <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
+        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
           <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-4 py-3">
             <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
               <Warehouse className="h-4 w-4 text-blue-600" /> Stock por Almacén
             </div>
             <span className="text-xs font-medium text-slate-500">
-              Total: <strong className="text-slate-900">{product.totalStock} {product.unit}</strong>
+              Total:{" "}
+              <strong className="text-slate-900">
+                {product.totalStock} {product.unit}
+              </strong>
             </span>
           </div>
 
@@ -137,7 +142,9 @@ export const ProductDetailModal = ({
                 <div key={stock.id} className="flex items-center justify-between px-4 py-3 text-sm">
                   <div>
                     <p className="font-medium text-slate-900">{stock.warehouseName}</p>
-                    <p className="text-xs text-slate-400">Nivel de alerta mínima: {stock.minimum}</p>
+                    <p className="text-xs text-slate-400">
+                      Nivel de alerta mínima: {stock.minimum}
+                    </p>
                   </div>
                   <div className="text-right">
                     <p className="font-bold text-slate-900">
@@ -163,7 +170,7 @@ export const ProductDetailModal = ({
         </div>
 
         {/* Timestamps footer */}
-        <div className="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-100">
+        <div className="flex items-center justify-between border-t border-slate-100 pt-2 text-xs text-slate-400">
           <div className="flex items-center gap-1">
             <Calendar className="h-3.5 w-3.5" /> Registrado:{" "}
             {new Date(product.createdAt).toLocaleDateString("es-PE")}

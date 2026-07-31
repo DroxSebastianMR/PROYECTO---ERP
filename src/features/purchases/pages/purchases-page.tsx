@@ -40,7 +40,7 @@ export const PurchasesPage = () => {
   if (isLoading) {
     return (
       <div className="mx-auto max-w-[1480px] p-5 sm:p-7">
-        <div className="flex h-64 items-center justify-center text-slate-500 text-sm">
+        <div className="flex h-64 items-center justify-center text-sm text-slate-500">
           <RefreshCw className="mr-2 h-4 w-4 animate-spin text-blue-600" />
           Cargando módulo de compras...
         </div>
@@ -53,7 +53,7 @@ export const PurchasesPage = () => {
       {/* Header */}
       <header className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-[30px] font-bold tracking-[-.045em] text-slate-900 flex items-center gap-3">
+          <h1 className="flex items-center gap-3 text-[30px] font-bold tracking-[-.045em] text-slate-900">
             <ShoppingCart className="h-8 w-8 text-blue-600" />
             Compras
           </h1>
@@ -64,7 +64,7 @@ export const PurchasesPage = () => {
         <button
           onClick={() => void refresh()}
           disabled={isRefreshing}
-          className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-60 transition shadow-sm"
+          className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-60"
         >
           <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
           Actualizar
@@ -110,12 +110,12 @@ export const PurchasesPage = () => {
               }}
               className="h-10 px-3 text-slate-600 hover:text-slate-900"
             >
-              <RotateCcw className="h-4 w-4 mr-1" /> Limpiar
+              <RotateCcw className="mr-1 h-4 w-4" /> Limpiar
             </Button>
           )}
         </div>
 
-        <Button onClick={() => setIsFormOpen(true)} className="gap-2 shadow-sm font-medium">
+        <Button onClick={() => setIsFormOpen(true)} className="gap-2 font-medium shadow-sm">
           <Plus className="h-4 w-4" />
           Nueva Compra
         </Button>

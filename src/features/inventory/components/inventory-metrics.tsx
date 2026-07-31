@@ -11,7 +11,7 @@ export const InventoryMetrics = ({ metrics }: InventoryMetricsProps) => {
       {/* Metric 1: Total Existencias */}
       <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-[0_8px_20px_rgba(37,99,235,.03)]">
         <div>
-          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
             Total Existencias
           </p>
           <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
@@ -27,7 +27,7 @@ export const InventoryMetrics = ({ metrics }: InventoryMetricsProps) => {
       {/* Metric 2: Almacenes Activos */}
       <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-[0_8px_20px_rgba(37,99,235,.03)]">
         <div>
-          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
             Almacenes Activos
           </p>
           <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
@@ -43,7 +43,7 @@ export const InventoryMetrics = ({ metrics }: InventoryMetricsProps) => {
       {/* Metric 3: Movimientos Kardex */}
       <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-[0_8px_20px_rgba(37,99,235,.03)]">
         <div>
-          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
             Movimientos Kardex
           </p>
           <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
@@ -59,11 +59,13 @@ export const InventoryMetrics = ({ metrics }: InventoryMetricsProps) => {
       {/* Metric 4: Stock Crítico */}
       <div
         className={`flex items-center justify-between rounded-xl border p-5 shadow-[0_8px_20px_rgba(37,99,235,.03)] ${
-          metrics.lowStockItemsCount > 0 ? "border-amber-200 bg-amber-50/30" : "border-slate-200 bg-white"
+          metrics.lowStockItemsCount > 0
+            ? "border-amber-200 bg-amber-50/30"
+            : "border-slate-200 bg-white"
         }`}
       >
         <div>
-          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
             Alertas de Stock
           </p>
           <p
@@ -77,7 +79,9 @@ export const InventoryMetrics = ({ metrics }: InventoryMetricsProps) => {
         </div>
         <div
           className={`grid h-11 w-11 place-items-center rounded-lg ${
-            metrics.lowStockItemsCount > 0 ? "bg-amber-100 text-amber-600" : "bg-slate-100 text-slate-600"
+            metrics.lowStockItemsCount > 0
+              ? "bg-amber-100 text-amber-600"
+              : "bg-slate-100 text-slate-600"
           }`}
         >
           <AlertTriangle className="h-5 w-5" />

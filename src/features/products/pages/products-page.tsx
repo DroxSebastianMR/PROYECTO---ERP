@@ -1,4 +1,4 @@
-import { RefreshCw, Package } from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCw, Package } from "lucide-react";
 import { useProducts } from "@/features/products/hooks/use-products";
 import { ProductMetricsSummary } from "@/features/products/components/product-metrics-summary";
 import { ProductFilterBar } from "@/features/products/components/product-filter-bar";
@@ -17,7 +17,9 @@ export const ProductsPage = () => {
     filters,
     setFilters,
     categories,
+    measurementUnits,
     metrics,
+    pagination,
     // Modals
     isFormOpen,
     setIsFormOpen,
@@ -36,6 +38,7 @@ export const ProductsPage = () => {
     handleOpenDetailModal,
     handleOpenDeleteModal,
     handleSaveProduct,
+    handleCreateMeasurementUnit,
     handleToggleStatus,
     handleDeleteProduct,
   } = useProducts();
@@ -43,7 +46,7 @@ export const ProductsPage = () => {
   if (isLoading) {
     return (
       <div className="mx-auto max-w-[1480px] p-5 sm:p-7">
-        <div className="flex h-64 items-center justify-center text-slate-500 text-sm">
+        <div className="flex h-64 items-center justify-center text-sm text-slate-500">
           <RefreshCw className="mr-2 h-4 w-4 animate-spin text-blue-600" />
           Cargando catálogo de productos...
         </div>
@@ -56,7 +59,7 @@ export const ProductsPage = () => {
       {/* Header */}
       <header className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-[30px] font-bold tracking-[-.045em] text-slate-900 flex items-center gap-3">
+          <h1 className="flex items-center gap-3 text-[30px] font-bold tracking-[-.045em] text-slate-900">
             <Package className="h-8 w-8 text-blue-600" />
             Productos
           </h1>
@@ -67,7 +70,7 @@ export const ProductsPage = () => {
         <button
           onClick={() => void refresh()}
           disabled={isRefreshing}
-          className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-60 transition shadow-sm"
+          className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-60"
         >
           <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
           Actualizar
@@ -76,7 +79,7 @@ export const ProductsPage = () => {
 
       {/* Error alert if any */}
       {error && (
-        <div className="mt-4 rounded-lg bg-red-50 p-4 border border-red-200 text-sm text-red-700">
+        <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           {error}
         </div>
       )}
@@ -94,6 +97,18 @@ export const ProductsPage = () => {
           categories={categories}
           onNewProduct={handleOpenCreateModal}
         />
+        <div className="mt-4 flex items-center justify-between text-sm text-slate-600">
+          <span>Mostrando {products.length} de {pagination.total} productos</span>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" disabled={pagination.page === 1} onClick={() => pagination.setPage(pagination.page - 1)}>
+              <ChevronLeft className="h-4 w-4" /> Anterior
+            </Button>
+            <span>Página {pagination.page} de {pagination.pageCount}</span>
+            <Button variant="ghost" disabled={pagination.page === pagination.pageCount} onClick={() => pagination.setPage(pagination.page + 1)}>
+              Siguiente <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </section>
 
       {/* Product Data Table */}
@@ -114,6 +129,8 @@ export const ProductsPage = () => {
         onSubmit={handleSaveProduct}
         product={editingProduct}
         categories={categories}
+        measurementUnits={measurementUnits}
+        onCreateMeasurementUnit={handleCreateMeasurementUnit}
         isSubmitting={isSubmitting}
       />
 
@@ -130,28 +147,25 @@ export const ProductsPage = () => {
         isOpen={isDeleteOpen}
         onClose={() => setIsDeleteOpen(false)}
         title="Eliminar Producto"
-        description="¿Estás seguro de que deseas eliminar este producto?"
+        description="El sistema conservará el historial operativo cuando sea necesario."
         maxWidth="md"
       >
         <div className="space-y-4">
           <p className="text-sm text-slate-600">
-            Esta acción eliminará de forma permanente el producto{" "}
-            <strong className="text-slate-900">{deletingProduct?.name}</strong> ({deletingProduct?.sku})
-            del catálogo ERP.
+            Si el producto no tiene operaciones, se eliminará permanentemente. Si tiene historial,
+            se desactivará y dejará de estar disponible en ventas y compras. Producto:{" "}
+            <strong className="text-slate-900">{deletingProduct?.name}</strong> (
+            {deletingProduct?.sku}) del catálogo ERP.
           </p>
           <div className="flex items-center justify-end gap-3 pt-2">
-            <Button
-              variant="ghost"
-              onClick={() => setIsDeleteOpen(false)}
-              disabled={isSubmitting}
-            >
+            <Button variant="ghost" onClick={() => setIsDeleteOpen(false)} disabled={isSubmitting}>
               Cancelar
             </Button>
             <Button
               variant="default"
               onClick={handleDeleteProduct}
               disabled={isSubmitting}
-              className="bg-rose-600 hover:bg-rose-700 text-white"
+              className="bg-rose-600 text-white hover:bg-rose-700"
             >
               {isSubmitting ? "Eliminando..." : "Sí, Eliminar"}
             </Button>

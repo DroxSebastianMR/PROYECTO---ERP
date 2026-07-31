@@ -71,7 +71,9 @@ export const purchaseService = {
     return warehouses.map((warehouse) => ({ id: warehouse.id, name: warehouse.name }));
   },
   async createPurchase(input: CreatePurchaseInput): Promise<PurchaseOrder> {
-    return mapPurchase(await httpClient<PurchaseApi>("/purchases", { method: "POST", body: JSON.stringify(input) }));
+    return mapPurchase(
+      await httpClient<PurchaseApi>("/purchases", { method: "POST", body: JSON.stringify(input) }),
+    );
   },
   async orderPurchase(id: string): Promise<PurchaseOrder> {
     return mapPurchase(await httpClient<PurchaseApi>(`/purchases/${id}/order`, { method: "POST" }));
@@ -79,7 +81,10 @@ export const purchaseService = {
   async receivePurchase(purchase: PurchaseOrder): Promise<void> {
     const lines = purchase.items
       .filter((item) => item.quantity > item.receivedQuantity && item.id)
-      .map((item) => ({ purchaseItemId: item.id!, receivedQuantity: item.quantity - item.receivedQuantity }));
+      .map((item) => ({
+        purchaseItemId: item.id!,
+        receivedQuantity: item.quantity - item.receivedQuantity,
+      }));
     if (!purchase.warehouseId || lines.length === 0) return;
     await httpClient(`/purchases/${purchase.id}/receipts`, {
       method: "POST",
@@ -89,10 +94,16 @@ export const purchaseService = {
   calculateMetrics(purchases: PurchaseOrder[]): PurchaseMetrics {
     return {
       totalMonthPurchases: purchases
-        .filter((purchase) => ["PARTIALLY_RECEIVED", "PENDING_PAYMENT", "PAID"].includes(purchase.status))
+        .filter((purchase) =>
+          ["PARTIALLY_RECEIVED", "PENDING_PAYMENT", "PAID"].includes(purchase.status),
+        )
         .reduce((total, purchase) => total + purchase.total, 0),
-      pendingOrdersCount: purchases.filter((purchase) => ["DRAFT", "ORDERED", "PARTIALLY_RECEIVED"].includes(purchase.status)).length,
-      receivedOrdersCount: purchases.filter((purchase) => ["PENDING_PAYMENT", "PAID"].includes(purchase.status)).length,
+      pendingOrdersCount: purchases.filter((purchase) =>
+        ["DRAFT", "ORDERED", "PARTIALLY_RECEIVED"].includes(purchase.status),
+      ).length,
+      receivedOrdersCount: purchases.filter((purchase) =>
+        ["PENDING_PAYMENT", "PAID"].includes(purchase.status),
+      ).length,
       suppliersCount: new Set(purchases.map((purchase) => purchase.supplierName)).size,
     };
   },

@@ -28,9 +28,18 @@ export const usePurchases = () => {
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
   });
-  const suppliersQuery = useQuery({ queryKey: SUPPLIERS_QUERY_KEY, queryFn: purchaseService.getSuppliers });
-  const warehousesQuery = useQuery({ queryKey: WAREHOUSES_QUERY_KEY, queryFn: purchaseService.getWarehouses });
-  const productsQuery = useQuery({ queryKey: PRODUCTS_QUERY_KEY, queryFn: productService.getProducts });
+  const suppliersQuery = useQuery({
+    queryKey: SUPPLIERS_QUERY_KEY,
+    queryFn: purchaseService.getSuppliers,
+  });
+  const warehousesQuery = useQuery({
+    queryKey: WAREHOUSES_QUERY_KEY,
+    queryFn: purchaseService.getWarehouses,
+  });
+  const productsQuery = useQuery({
+    queryKey: PRODUCTS_QUERY_KEY,
+    queryFn: productService.getProducts,
+  });
 
   const invalidatePurchaseData = async () => {
     await Promise.all([
@@ -48,7 +57,10 @@ export const usePurchases = () => {
       setIsFormOpen(false);
     },
   });
-  const orderMutation = useMutation({ mutationFn: purchaseService.orderPurchase, onSuccess: invalidatePurchaseData });
+  const orderMutation = useMutation({
+    mutationFn: purchaseService.orderPurchase,
+    onSuccess: invalidatePurchaseData,
+  });
   const receiptMutation = useMutation({
     mutationFn: purchaseService.receivePurchase,
     onSuccess: async () => {
@@ -60,11 +72,16 @@ export const usePurchases = () => {
 
   const purchases = purchasesQuery.data ?? EMPTY_PURCHASES;
   const filteredPurchases = useMemo(
-    () => purchases.filter((purchase) => {
-      const search = searchQuery.toLowerCase();
-      return (!search || purchase.number.toLowerCase().includes(search) || purchase.supplierName.toLowerCase().includes(search))
-        && (statusFilter === "ALL" || purchase.status === statusFilter);
-    }),
+    () =>
+      purchases.filter((purchase) => {
+        const search = searchQuery.toLowerCase();
+        return (
+          (!search ||
+            purchase.number.toLowerCase().includes(search) ||
+            purchase.supplierName.toLowerCase().includes(search)) &&
+          (statusFilter === "ALL" || purchase.status === statusFilter)
+        );
+      }),
     [purchases, searchQuery, statusFilter],
   );
 
@@ -77,7 +94,7 @@ export const usePurchases = () => {
     purchases: filteredPurchases,
     suppliers: suppliersQuery.data ?? [],
     warehouses: warehousesQuery.data ?? [],
-    products: productsQuery.data ?? [],
+    products: (productsQuery.data ?? []).filter((product) => product.isActive),
     isLoading: purchasesQuery.isLoading,
     isRefreshing: purchasesQuery.isFetching && !purchasesQuery.isLoading,
     searchQuery,

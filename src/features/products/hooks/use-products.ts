@@ -19,11 +19,16 @@ export const useProducts = () => {
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
   });
+  const measurementUnitsQuery = useQuery({
+    queryKey: ["products", "measurement-units"],
+    queryFn: productService.getMeasurementUnits,
+  });
   const [filters, setFilters] = useState<ProductFilterState>({
     search: "",
     category: "ALL",
-    stockStatus: "ALL",
+    status: "ALL",
   });
+  const [page, setPage] = useState(1);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -41,6 +46,10 @@ export const useProducts = () => {
       setEditingProduct(null);
     },
   });
+  const createMeasurementUnitMutation = useMutation({
+    mutationFn: productService.createMeasurementUnit,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["products", "measurement-units"] }),
+  });
   const statusMutation = useMutation({
     mutationFn: (product: Product) =>
       productService.toggleProductStatus(product.id, !product.isActive),
@@ -55,30 +64,24 @@ export const useProducts = () => {
     },
   });
   const allProducts = productsQuery.data ?? EMPTY_PRODUCTS;
-  const products = useMemo(
+  const filteredProducts = useMemo(
     () =>
       allProducts.filter((product) => {
         const matchSearch =
           !filters.search ||
-          [product.name, product.sku, product.category].some((value) =>
+          [product.name, product.sku, product.category, product.barcode ?? ""].some((value) =>
             value.toLowerCase().includes(filters.search.toLowerCase()),
           );
         const matchCategory = filters.category === "ALL" || product.category === filters.category;
-        const matchStatus =
-          filters.stockStatus === "ALL" ||
-          (filters.stockStatus === "INACTIVE" && !product.isActive) ||
-          (filters.stockStatus === "IN_STOCK" &&
-            product.isActive &&
-            product.totalStock > product.minStock) ||
-          (filters.stockStatus === "LOW_STOCK" &&
-            product.isActive &&
-            product.totalStock > 0 &&
-            product.totalStock <= product.minStock) ||
-          (filters.stockStatus === "OUT_OF_STOCK" && product.isActive && product.totalStock <= 0);
+        const matchStatus = filters.status === "ALL" || (filters.status === "ACTIVE" ? product.isActive : !product.isActive);
         return matchSearch && matchCategory && matchStatus;
       }),
     [allProducts, filters],
   );
+  const pageSize = 10;
+  const pageCount = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const products = filteredProducts.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return {
     products,
@@ -87,9 +90,14 @@ export const useProducts = () => {
     isRefreshing: productsQuery.isFetching && !productsQuery.isLoading,
     error: productsQuery.error instanceof Error ? productsQuery.error.message : null,
     filters,
-    setFilters,
+    setFilters: (next: ProductFilterState) => {
+      setPage(1);
+      setFilters(next);
+    },
     categories: [...new Set(allProducts.map((product) => product.category))].sort(),
-    metrics: productService.calculateMetrics(allProducts),
+    measurementUnits: measurementUnitsQuery.data ?? [],
+    metrics: productService.calculateMetrics(filteredProducts),
+    pagination: { page: currentPage, pageCount, total: filteredProducts.length, setPage },
     isFormOpen,
     setIsFormOpen,
     editingProduct,
@@ -120,6 +128,8 @@ export const useProducts = () => {
     handleSaveProduct: async (input: CreateProductInput | UpdateProductInput) => {
       await saveMutation.mutateAsync(input);
     },
+    handleCreateMeasurementUnit: (input: { code: string; name: string }) =>
+      createMeasurementUnitMutation.mutateAsync(input),
     handleToggleStatus: statusMutation.mutateAsync,
     handleDeleteProduct: () =>
       deletingProduct ? deleteMutation.mutateAsync(deletingProduct.id) : Promise.resolve(),

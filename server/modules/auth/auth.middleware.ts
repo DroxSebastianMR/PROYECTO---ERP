@@ -15,7 +15,8 @@ export const requireAuthentication = (request: Request, response: Response, next
     (request as AuthenticatedRequest).auth = tokenService.verifyAccessToken(token);
     next();
   } catch (error) {
-    const message = error instanceof jwt.TokenExpiredError ? "La sesión ha expirado." : "Token inválido.";
+    const message =
+      error instanceof jwt.TokenExpiredError ? "La sesión ha expirado." : "Token inválido.";
     return response.status(401).json({ message });
   }
 };

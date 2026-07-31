@@ -45,7 +45,7 @@ export const PurchaseDetailModal = ({
               <Truck className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-xs text-slate-500 font-medium">Estado de la Orden</p>
+              <p className="text-xs font-medium text-slate-500">Estado de la Orden</p>
               <div className="mt-0.5">
                 {isReceived ? (
                   <Badge variant="success">Recepcionado en Almacén</Badge>
@@ -57,19 +57,38 @@ export const PurchaseDetailModal = ({
           </div>
 
           <div className="flex gap-2">
-            {purchase.status === "DRAFT" && <Button onClick={() => void onOrder(purchase.id)} disabled={isSubmitting} variant="ghost" className="gap-2 border border-slate-200"><Send className="h-4 w-4" />Ordenar</Button>}
-            {canReceive && <Button onClick={() => void onReceive(purchase)} disabled={isSubmitting || purchase.status === "DRAFT"} className="gap-2 bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"><CheckCircle className="h-4 w-4" />{isSubmitting ? "Procesando..." : "Recepcionar"}</Button>}
+            {purchase.status === "DRAFT" && (
+              <Button
+                onClick={() => void onOrder(purchase.id)}
+                disabled={isSubmitting}
+                variant="ghost"
+                className="gap-2 border border-slate-200"
+              >
+                <Send className="h-4 w-4" />
+                Ordenar
+              </Button>
+            )}
+            {canReceive && (
+              <Button
+                onClick={() => void onReceive(purchase)}
+                disabled={isSubmitting || purchase.status === "DRAFT"}
+                className="gap-2 bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
+              >
+                <CheckCircle className="h-4 w-4" />
+                {isSubmitting ? "Procesando..." : "Recepcionar"}
+              </Button>
+            )}
           </div>
         </div>
 
         {/* Itemized Table */}
-        <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
-          <div className="border-b border-slate-100 bg-slate-50/70 px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+          <div className="flex items-center gap-1.5 border-b border-slate-100 bg-slate-50/70 px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-700">
             <FileText className="h-4 w-4 text-blue-600" /> Ítems Solicitados
           </div>
 
           <table className="w-full text-left text-sm text-slate-600">
-            <thead className="bg-slate-50/40 text-xs uppercase tracking-wider text-slate-500 border-b border-slate-100">
+            <thead className="border-b border-slate-100 bg-slate-50/40 text-xs uppercase tracking-wider text-slate-500">
               <tr>
                 <th className="px-4 py-2.5">SKU / Producto</th>
                 <th className="px-4 py-2.5 text-right">Cantidad</th>
@@ -81,7 +100,9 @@ export const PurchaseDetailModal = ({
               {purchase.items?.map((item) => (
                 <tr key={item.id || item.productId}>
                   <td className="px-4 py-3">
-                    <span className="font-mono text-xs text-slate-400 font-semibold mr-1.5">{item.sku}</span>
+                    <span className="mr-1.5 font-mono text-xs font-semibold text-slate-400">
+                      {item.sku}
+                    </span>
                     <span className="font-medium text-slate-900">{item.productName}</span>
                   </td>
                   <td className="px-4 py-3 text-right font-bold text-slate-900">
@@ -96,14 +117,14 @@ export const PurchaseDetailModal = ({
             </tbody>
           </table>
 
-          <div className="flex items-center justify-between bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 border-t border-slate-200">
+          <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900">
             <span>Total Orden de Compra:</span>
             <span className="text-base text-blue-700">{formatPrice(purchase.total)}</span>
           </div>
         </div>
 
         {/* Timestamps */}
-        <div className="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-100">
+        <div className="flex items-center justify-between border-t border-slate-100 pt-2 text-xs text-slate-400">
           <div className="flex items-center gap-1">
             <Calendar className="h-3.5 w-3.5" /> Fecha de emisión:{" "}
             {new Date(purchase.createdAt).toLocaleDateString("es-PE")}

@@ -21,13 +21,11 @@ export const SaleMetrics = ({ metrics }: SaleMetricsProps) => {
       {/* Metric 1: Ventas Acumuladas */}
       <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-[0_8px_20px_rgba(37,99,235,.03)]">
         <div>
-          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
             Ventas Totales
           </p>
-          <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
-            {formattedTotal}
-          </p>
-          <p className="mt-1 text-xs text-emerald-600 font-medium">Facturado y cobrado</p>
+          <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">{formattedTotal}</p>
+          <p className="mt-1 text-xs font-medium text-emerald-600">Facturado y cobrado</p>
         </div>
         <div className="grid h-11 w-11 place-items-center rounded-lg bg-blue-50 text-blue-600">
           <Tag className="h-5 w-5" />
@@ -37,7 +35,7 @@ export const SaleMetrics = ({ metrics }: SaleMetricsProps) => {
       {/* Metric 2: Comprobantes Emitidos */}
       <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-[0_8px_20px_rgba(37,99,235,.03)]">
         <div>
-          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
             Comprobantes
           </p>
           <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
@@ -53,12 +51,10 @@ export const SaleMetrics = ({ metrics }: SaleMetricsProps) => {
       {/* Metric 3: Ticket Promedio */}
       <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-[0_8px_20px_rgba(37,99,235,.03)]">
         <div>
-          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
             Ticket Promedio
           </p>
-          <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
-            {formattedAvg}
-          </p>
+          <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">{formattedAvg}</p>
           <p className="mt-1 text-xs text-slate-500">Monto medio por venta</p>
         </div>
         <div className="grid h-11 w-11 place-items-center rounded-lg bg-amber-50 text-amber-600">
@@ -69,7 +65,7 @@ export const SaleMetrics = ({ metrics }: SaleMetricsProps) => {
       {/* Metric 4: Tasa de Cobro */}
       <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-[0_8px_20px_rgba(37,99,235,.03)]">
         <div>
-          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
             Efectividad Cobros
           </p>
           <p className="mt-2 text-2xl font-bold tracking-tight text-emerald-600">

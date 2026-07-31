@@ -1,6 +1,6 @@
 export type ProductUnit = "UND" | "KG" | "MTR" | "LTR" | "BOL" | "CAJ" | "SET";
 
-export type StockStatus = "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK" | "INACTIVE";
+export type ProductStatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
 
 export interface StockByWarehouse {
   id: string;
@@ -18,6 +18,7 @@ export interface Product {
   barcode?: string | null;
   presentation?: string | null;
   wholesalePrice?: number;
+  wholesaleMinQuantity?: number;
   taxTreatment?: "TAXED" | "EXONERATED" | "UNAFFECTED";
   imageUrl?: string | null;
   unit: ProductUnit | string;
@@ -33,7 +34,7 @@ export interface Product {
 }
 
 export interface CreateProductInput {
-  sku: string;
+  sku?: string;
   name: string;
   category: string;
   brand?: string;
@@ -45,6 +46,7 @@ export interface CreateProductInput {
   initialStock?: number;
   minStock?: number;
   wholesalePrice?: number;
+  wholesaleMinQuantity?: number;
   taxTreatment?: "TAXED" | "EXONERATED" | "UNAFFECTED";
   imageUrl?: string;
   presentations?: ProductPresentationInput[];
@@ -68,12 +70,19 @@ export interface UpdateProductInput extends Partial<CreateProductInput> {
 export interface ProductFilterState {
   search: string;
   category: string;
-  stockStatus: string; // 'ALL' | 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' | 'INACTIVE'
+  status: ProductStatusFilter;
 }
 
 export interface ProductMetrics {
   totalProducts: number;
-  totalInventoryValue: number;
   totalCategories: number;
-  lowStockAlerts: number;
+  activeProducts: number;
+  inactiveProducts: number;
+}
+
+export interface MeasurementUnit {
+  id: string;
+  code: string;
+  name: string;
+  isActive: boolean;
 }

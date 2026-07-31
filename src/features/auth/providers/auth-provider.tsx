@@ -15,6 +15,7 @@ import {
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthenticatedUser | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [isSessionPromptOpen, setIsSessionPromptOpen] = useState(false);
 
   const logout = useCallback(async () => {
     const storedSession = authStorageService.get();
@@ -68,6 +69,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     void restoreSession();
   }, []);
 
+  const keepSessionAlive = useCallback(async () => {
+    const storedSession = authStorageService.get();
+    if (!storedSession) return;
+    try {
+      const response = await authService.refreshToken(storedSession.session.refreshToken);
+      authStorageService.save({ user: response.user, refreshToken: response.tokens.refreshToken }, storedSession.storage);
+      setAccessToken(response.tokens.accessToken);
+      setUser(response.user);
+      setIsSessionPromptOpen(false);
+    } catch {
+      // Do not force logout on a transient network failure; the user can retry.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    const timer = window.setInterval(() => setIsSessionPromptOpen(true), 12 * 60 * 1000);
+    return () => window.clearInterval(timer);
+  }, [user]);
+
   useEffect(() => {
     const synchronizeLogout = (event: StorageEvent) => {
       if (event.key === AUTH_SESSION_STORAGE_KEY && event.newValue === null) {
@@ -84,5 +105,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     [isInitializing, login, logout, user],
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      {isSessionPromptOpen && (
+        <div className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/25 backdrop-blur-sm">
+          <div className="w-[min(92vw,380px)] rounded-2xl border border-blue-100 bg-white p-6 shadow-2xl">
+            <p className="text-lg font-bold text-slate-900">¿Sigues ahí?</p>
+            <p className="mt-2 text-sm text-slate-600">Mantén tu sesión activa para continuar trabajando sin interrupciones.</p>
+            <button type="button" onClick={() => void keepSessionAlive()} className="mt-5 w-full rounded-lg bg-blue-700 px-4 py-2.5 font-semibold text-white hover:bg-blue-800">Sí, sigo aquí</button>
+          </div>
+        </div>
+      )}
+    </AuthContext.Provider>
+  );
 };

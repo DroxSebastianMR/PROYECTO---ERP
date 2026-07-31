@@ -13,7 +13,7 @@ type PresentationInput = {
 };
 
 export type ProductInput = {
-  sku: string;
+  sku?: string;
   barcode?: string | null;
   name: string;
   categoryId?: string | null;
@@ -25,6 +25,7 @@ export type ProductInput = {
   purchasePrice?: number | null;
   salePrice: number;
   wholesalePrice?: number | null;
+  wholesaleMinQuantity?: number | null;
   taxTreatment: TaxTreatment;
   imageUrl?: string | null;
   description?: string | null;
@@ -32,7 +33,10 @@ export type ProductInput = {
 };
 
 export class ProductCatalogError extends Error {
-  constructor(message: string, public readonly status = 400) {
+  constructor(
+    message: string,
+    public readonly status = 400,
+  ) {
     super(message);
   }
 }
@@ -45,6 +49,27 @@ const productInclude = {
 } satisfies Prisma.ProductInclude;
 
 const normalized = (value?: string | null) => value?.trim() || null;
+const skuPrefix = (categoryName: string) =>
+  categoryName
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z]/g, "")
+    .toUpperCase()
+    .slice(0, 3)
+    .padEnd(3, "PRD");
+
+const nextSku = async (companyId: string, categoryName: string) => {
+  const prefix = skuPrefix(categoryName);
+  const products = await prisma.product.findMany({
+    where: { companyId, sku: { startsWith: prefix } },
+    select: { sku: true },
+  });
+  const next = products.reduce((maximum, product) => {
+    const suffix = Number(product.sku.slice(prefix.length));
+    return Number.isInteger(suffix) ? Math.max(maximum, suffix) : maximum;
+  }, 0) + 1;
+  return `${prefix}${String(next).padStart(3, "0")}`;
+};
 
 const ensureBarcodeAvailable = async (
   companyId: string,
@@ -53,10 +78,13 @@ const ensureBarcodeAvailable = async (
 ) => {
   if (!barcode) return;
   const [product, presentation] = await Promise.all([
-    prisma.product.findFirst({ where: { companyId, barcode, ...(productId ? { id: { not: productId } } : {}) } }),
+    prisma.product.findFirst({
+      where: { companyId, barcode, ...(productId ? { id: { not: productId } } : {}) },
+    }),
     prisma.productPresentation.findFirst({ where: { companyId, barcode } }),
   ]);
-  if (product || presentation) throw new ProductCatalogError("El código de barras ya está registrado.", 409);
+  if (product || presentation)
+    throw new ProductCatalogError("El código de barras ya está registrado.", 409);
 };
 
 const resolveClassification = async (
@@ -75,7 +103,8 @@ const resolveClassification = async (
           create: { companyId, name: normalized(categoryName)! },
         })
       : null;
-  if (categoryId && !category) throw new ProductCatalogError("La categoría seleccionada no existe.", 404);
+  if (categoryId && !category)
+    throw new ProductCatalogError("La categoría seleccionada no existe.", 404);
 
   const brand = brandId
     ? await prisma.productBrand.findFirst({ where: { id: brandId, companyId } })
@@ -87,7 +116,11 @@ const resolveClassification = async (
         })
       : null;
   if (brandId && !brand) throw new ProductCatalogError("La marca seleccionada no existe.", 404);
-  return { categoryId: category?.id ?? null, brandId: brand?.id ?? null };
+  return {
+    categoryId: category?.id ?? null,
+    brandId: brand?.id ?? null,
+    categoryName: category?.name ?? "PRD",
+  };
 };
 
 const validatePresentations = async (
@@ -100,7 +133,8 @@ const validatePresentations = async (
     const name = item.name.trim().toLowerCase();
     if (names.has(name)) throw new ProductCatalogError("No se pueden repetir presentaciones.");
     names.add(name);
-    if (item.unitsPerBase <= 0) throw new ProductCatalogError("La equivalencia debe ser mayor a cero.");
+    if (item.unitsPerBase <= 0)
+      throw new ProductCatalogError("La equivalencia debe ser mayor a cero.");
     if (item.barcode) await ensureBarcodeAvailable(companyId, item.barcode.trim(), productId);
   }
 };
@@ -112,7 +146,13 @@ export const productsService = {
         companyId,
         ...(isActive === undefined ? {} : { isActive }),
         ...(search
-          ? { OR: [{ name: { contains: search, mode: "insensitive" } }, { sku: { contains: search, mode: "insensitive" } }, { barcode: { contains: search, mode: "insensitive" } }] }
+          ? {
+              OR: [
+                { name: { contains: search, mode: "insensitive" } },
+                { sku: { contains: search, mode: "insensitive" } },
+                { barcode: { contains: search, mode: "insensitive" } },
+              ],
+            }
           : {}),
       },
       include: productInclude,
@@ -125,12 +165,16 @@ export const productsService = {
   },
 
   async create(companyId: string, input: ProductInput) {
-    const sku = input.sku.trim().toUpperCase();
-    const duplicateSku = await prisma.product.findFirst({ where: { companyId, sku } });
-    if (duplicateSku) throw new ProductCatalogError("El SKU ya está registrado.", 409);
     await ensureBarcodeAvailable(companyId, normalized(input.barcode));
     await validatePresentations(companyId, input.presentations);
-    const classification = await resolveClassification(companyId, input.categoryId, input.categoryName, input.brandId, input.brandName);
+    const { categoryName, ...classification } = await resolveClassification(
+      companyId,
+      input.categoryId,
+      input.categoryName,
+      input.brandId,
+      input.brandName,
+    );
+    const sku = await nextSku(companyId, categoryName);
 
     return prisma.product.create({
       data: {
@@ -144,11 +188,19 @@ export const productsService = {
         purchasePrice: input.purchasePrice,
         salePrice: input.salePrice,
         wholesalePrice: input.wholesalePrice,
+        wholesaleMinQuantity: input.wholesaleMinQuantity,
         taxTreatment: input.taxTreatment,
         imageUrl: normalized(input.imageUrl),
         description: normalized(input.description),
         presentations: input.presentations?.length
-          ? { create: input.presentations.map((item) => ({ ...item, companyId, name: item.name.trim(), barcode: normalized(item.barcode) })) }
+          ? {
+              create: input.presentations.map((item) => ({
+                ...item,
+                companyId,
+                name: item.name.trim(),
+                barcode: normalized(item.barcode),
+              })),
+            }
           : undefined,
       },
       include: productInclude,
@@ -158,23 +210,47 @@ export const productsService = {
   async update(companyId: string, id: string, input: ProductInput) {
     const existing = await this.getById(companyId, id);
     if (!existing) throw new ProductCatalogError("Producto no encontrado.", 404);
-    const sku = input.sku.trim().toUpperCase();
-    const duplicateSku = await prisma.product.findFirst({ where: { companyId, sku, id: { not: id } } });
-    if (duplicateSku) throw new ProductCatalogError("El SKU ya está registrado.", 409);
     await ensureBarcodeAvailable(companyId, normalized(input.barcode), id);
     await validatePresentations(companyId, input.presentations, id);
-    const classification = await resolveClassification(companyId, input.categoryId, input.categoryName, input.brandId, input.brandName);
+    const { categoryName: _categoryName, ...classification } = await resolveClassification(
+      companyId,
+      input.categoryId,
+      input.categoryName,
+      input.brandId,
+      input.brandName,
+    );
 
     return prisma.$transaction(async (transaction) => {
-      if (input.presentations) await transaction.productPresentation.deleteMany({ where: { productId: id } });
+      if (input.presentations)
+        await transaction.productPresentation.deleteMany({ where: { productId: id } });
       return transaction.product.update({
         where: { id },
         data: {
-          sku, barcode: normalized(input.barcode), name: input.name.trim(), ...classification,
-          unit: input.unit, presentation: normalized(input.presentation), purchasePrice: input.purchasePrice,
-          salePrice: input.salePrice, wholesalePrice: input.wholesalePrice, taxTreatment: input.taxTreatment,
-          imageUrl: normalized(input.imageUrl), description: normalized(input.description),
-          ...(input.presentations ? { presentations: { create: input.presentations.map((item) => ({ ...item, companyId, name: item.name.trim(), barcode: normalized(item.barcode) })) } } : {}),
+          sku: existing.sku,
+          barcode: normalized(input.barcode),
+          name: input.name.trim(),
+          ...classification,
+          unit: input.unit,
+          presentation: normalized(input.presentation),
+          purchasePrice: input.purchasePrice,
+          salePrice: input.salePrice,
+          wholesalePrice: input.wholesalePrice,
+          wholesaleMinQuantity: input.wholesaleMinQuantity,
+          taxTreatment: input.taxTreatment,
+          imageUrl: normalized(input.imageUrl),
+          description: normalized(input.description),
+          ...(input.presentations
+            ? {
+                presentations: {
+                  create: input.presentations.map((item) => ({
+                    ...item,
+                    companyId,
+                    name: item.name.trim(),
+                    barcode: normalized(item.barcode),
+                  })),
+                },
+              }
+            : {}),
         },
         include: productInclude,
       });
@@ -190,18 +266,48 @@ export const productsService = {
   async remove(companyId: string, id: string) {
     const product = await this.getById(companyId, id);
     if (!product) throw new ProductCatalogError("Producto no encontrado.", 404);
-    const usage = await prisma.product.findFirst({ where: { id, OR: [{ saleItems: { some: {} } }, { purchaseItems: { some: {} } }, { movements: { some: {} } }] } });
-    if (usage) throw new ProductCatalogError("No se puede eliminar un producto con historial. Desactívalo en su lugar.", 409);
+    const usage = await prisma.product.findFirst({
+      where: {
+        id,
+        OR: [
+          { saleItems: { some: {} } },
+          { purchaseItems: { some: {} } },
+          { movements: { some: {} } },
+        ],
+      },
+    });
+    if (usage)
+      return prisma.product.update({
+        where: { id },
+        data: { isActive: false },
+        include: productInclude,
+      });
     await prisma.product.delete({ where: { id } });
+    return null;
   },
 
   async history(companyId: string, id: string) {
     const product = await this.getById(companyId, id);
     if (!product) throw new ProductCatalogError("Producto no encontrado.", 404);
     const [purchases, sales, movements] = await Promise.all([
-      prisma.purchaseItem.findMany({ where: { productId: id }, include: { purchase: true }, orderBy: { purchase: { createdAt: "desc" } }, take: 50 }),
-      prisma.saleItem.findMany({ where: { productId: id }, include: { sale: true }, orderBy: { sale: { createdAt: "desc" } }, take: 50 }),
-      prisma.inventoryMovement.findMany({ where: { productId: id }, include: { warehouse: true }, orderBy: { createdAt: "desc" }, take: 100 }),
+      prisma.purchaseItem.findMany({
+        where: { productId: id },
+        include: { purchase: true },
+        orderBy: { purchase: { createdAt: "desc" } },
+        take: 50,
+      }),
+      prisma.saleItem.findMany({
+        where: { productId: id },
+        include: { sale: true },
+        orderBy: { sale: { createdAt: "desc" } },
+        take: 50,
+      }),
+      prisma.inventoryMovement.findMany({
+        where: { productId: id },
+        include: { warehouse: true },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+      }),
     ]);
     return { purchases, sales, movements };
   },
@@ -210,12 +316,25 @@ export const productsService = {
     return prisma.productCategory.findMany({ where: { companyId }, orderBy: { name: "asc" } });
   },
   createCategory(companyId: string, name: string, description?: string) {
-    return prisma.productCategory.create({ data: { companyId, name: name.trim(), description: normalized(description) } });
+    return prisma.productCategory.create({
+      data: { companyId, name: name.trim(), description: normalized(description) },
+    });
   },
   listBrands(companyId: string) {
     return prisma.productBrand.findMany({ where: { companyId }, orderBy: { name: "asc" } });
   },
   createBrand(companyId: string, name: string) {
     return prisma.productBrand.create({ data: { companyId, name: name.trim() } });
+  },
+  listMeasurementUnits(companyId: string) {
+    return prisma.measurementUnit.findMany({
+      where: { companyId, isActive: true },
+      orderBy: { code: "asc" },
+    });
+  },
+  createMeasurementUnit(companyId: string, code: string, name: string) {
+    return prisma.measurementUnit.create({
+      data: { companyId, code: code.trim().toUpperCase(), name: name.trim() },
+    });
   },
 };

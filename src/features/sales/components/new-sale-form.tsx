@@ -6,6 +6,7 @@ import {
   ScanBarcode,
   Search,
   ShoppingBasket,
+  Printer,
   Trash2,
   UserRound,
   WalletCards,
@@ -21,12 +22,14 @@ import type {
   SaleDocumentType,
   SalePaymentMethod,
   WarehouseOption,
+  SaleReceipt,
 } from "@/features/sales/types/sale.types";
 
 type CartLine = { product: Product; quantity: number };
 interface NewSaleFormProps {
   onCancel: () => void;
-  onSubmit: (data: CreateSaleInput) => Promise<unknown>;
+  onSubmit: (data: CreateSaleInput) => Promise<SaleReceipt>;
+  onComplete: () => void;
   onCreateCustomer: (data: {
     name: string;
     document?: string;
@@ -44,6 +47,7 @@ const money = (value: number) =>
 export const NewSaleForm = ({
   onCancel,
   onSubmit,
+  onComplete,
   onCreateCustomer,
   isSubmitting,
   products,
@@ -55,9 +59,10 @@ export const NewSaleForm = ({
   const [warehouseId, setWarehouseId] = useState("");
   const [customerId, setCustomerId] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<SalePaymentMethod>("CASH");
-  const [documentType, setDocumentType] = useState<SaleDocumentType>("RECEIPT");
+  const documentType: SaleDocumentType = "RECEIPT";
   const [cart, setCart] = useState<CartLine[]>([]);
   const [customerOpen, setCustomerOpen] = useState(false);
+  const [completedSale, setCompletedSale] = useState<SaleReceipt | null>(null);
   const [newCustomer, setNewCustomer] = useState({ name: "", document: "", phone: "", email: "" });
   const activeWarehouseId = warehouseId || warehouses[0]?.id || "";
   const warehouseName = warehouses.find((warehouse) => warehouse.id === activeWarehouseId)?.name;
@@ -125,7 +130,7 @@ export const NewSaleForm = ({
     (sum, line) =>
       sum +
       line.quantity *
-        (line.quantity >= 12 && line.product.wholesalePrice
+        (line.quantity >= (line.product.wholesaleMinQuantity ?? 10) && line.product.wholesalePrice
           ? line.product.wholesalePrice
           : line.product.salePrice),
     0,
@@ -152,7 +157,7 @@ export const NewSaleForm = ({
       return;
     }
     try {
-      await onSubmit({
+      const sale = await onSubmit({
         customerId: customerId || undefined,
         warehouseId: activeWarehouseId,
         paymentMethod,
@@ -161,12 +166,13 @@ export const NewSaleForm = ({
           productId: line.product.id,
           quantity: line.quantity,
           unitPrice:
-            line.quantity >= 12 && line.product.wholesalePrice
+            line.quantity >= (line.product.wholesaleMinQuantity ?? 10) && line.product.wholesalePrice
               ? line.product.wholesalePrice
               : line.product.salePrice,
         })),
       });
       setCart([]);
+      setCompletedSale(sale);
     } catch (error) {
       alert(error instanceof Error ? error.message : "No se pudo procesar la venta.");
     }
@@ -174,6 +180,14 @@ export const NewSaleForm = ({
 
   return (
     <>
+      {isSubmitting && (
+        <div className="fixed inset-0 z-[90] grid place-items-center bg-slate-950/25 backdrop-blur-[1px]">
+          <div className="flex items-center gap-3 rounded-2xl border border-blue-100 bg-white px-6 py-5 shadow-2xl">
+            <span className="h-5 w-5 animate-spin rounded-full border-2 border-blue-200 border-t-blue-600" />
+            <div><p className="font-semibold text-slate-900">Confirmando venta</p><p className="text-xs text-slate-500">Guardando y descontando existencias…</p></div>
+          </div>
+        </div>
+      )}
       <form onSubmit={sell} className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <main className="space-y-6">
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_8px_24px_rgba(37,99,235,.04)]">
@@ -244,7 +258,7 @@ export const NewSaleForm = ({
                 {visibleProducts.length} disponibles
               </span>
             </div>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {visibleProducts.map((product) => {
                 const stock = available(product);
                 const low = stock > 0 && stock <= product.minStock;
@@ -263,12 +277,17 @@ export const NewSaleForm = ({
                         {stock <= 0 ? "SIN STOCK" : low ? "BAJO STOCK" : "DISPONIBLE"}
                       </span>
                     </div>
-                    <h3 className="mt-4 text-base font-bold leading-snug text-slate-900">
-                      {product.name}
-                    </h3>
-                    <p className="mt-1 text-xs text-slate-500">
-                      {product.brand} · {product.presentation ?? product.unit}
-                    </p>
+                    <div className="mt-4 flex items-start gap-3">
+                      <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-slate-100 bg-blue-50 text-xs font-bold text-blue-600">
+                        {product.imageUrl ? (
+                          <img src={product.imageUrl} alt={product.name} className="h-full w-full object-cover" />
+                        ) : product.name.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="text-base font-bold leading-snug text-slate-900">{product.name}</h3>
+                        <p className="mt-1 text-xs text-slate-500">{product.brand} · {product.presentation ?? product.unit}</p>
+                      </div>
+                    </div>
                     <div className="mt-auto flex items-end justify-between border-t border-slate-100 pt-4">
                       <div>
                         <span className="text-xs text-blue-700">S/ </span>
@@ -349,20 +368,14 @@ export const NewSaleForm = ({
                   <option value="CREDIT">Crédito</option>
                 </Select>
               </div>
-              <Select
-                value={documentType}
-                onChange={(event) => setDocumentType(event.target.value as SaleDocumentType)}
-              >
-                <option value="RECEIPT">Boleta de venta</option>
-                <option value="INVOICE">Factura</option>
-              </Select>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">Ticket de venta</div>
             </div>
             <div className="flex-1 overflow-y-auto p-3">
               {cart.length ? (
                 <div className="space-y-2">
                   {cart.map((line) => {
                     const price =
-                      line.quantity >= 12 && line.product.wholesalePrice
+                      line.quantity >= (line.product.wholesaleMinQuantity ?? 10) && line.product.wholesalePrice
                         ? line.product.wholesalePrice
                         : line.product.salePrice;
                     return (
@@ -461,6 +474,27 @@ export const NewSaleForm = ({
           </section>
         </aside>
       </form>
+      <Dialog
+        isOpen={Boolean(completedSale)}
+        onClose={() => { setCompletedSale(null); onComplete(); }}
+        title="Venta confirmada"
+        description="La venta fue guardada y el stock se actualizó correctamente."
+        maxWidth="md"
+      >
+        <div className="space-y-5">
+          <div id="pos-ticket" className="rounded-xl border border-blue-100 bg-blue-50/50 p-4 text-sm">
+            <p className="font-bold text-blue-800">Ticket {completedSale?.number}</p>
+            <p className="mt-1 text-slate-600">Total cobrado: <strong>{completedSale ? money(completedSale.total) : ""}</strong></p>
+          </div>
+          <p className="text-sm text-slate-600">¿Deseas imprimir el ticket de venta ahora?</p>
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="ghost" onClick={() => { setCompletedSale(null); onComplete(); }}>No imprimir</Button>
+            <Button type="button" className="gap-2" onClick={() => { window.print(); setCompletedSale(null); onComplete(); }}>
+              <Printer className="h-4 w-4" /> Imprimir ticket
+            </Button>
+          </div>
+        </div>
+      </Dialog>
       <Dialog
         isOpen={customerOpen}
         onClose={() => setCustomerOpen(false)}

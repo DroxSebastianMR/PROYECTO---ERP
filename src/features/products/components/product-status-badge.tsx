@@ -10,13 +10,5 @@ export const ProductStatusBadge = ({ product }: ProductStatusBadgeProps) => {
     return <Badge variant="secondary">Inactivo</Badge>;
   }
 
-  if (product.totalStock === 0) {
-    return <Badge variant="destructive">Sin Stock</Badge>;
-  }
-
-  if (product.totalStock <= product.minStock) {
-    return <Badge variant="warning">Stock Bajo</Badge>;
-  }
-
-  return <Badge variant="success">Disponible</Badge>;
+  return <Badge variant="success">Activo</Badge>;
 };

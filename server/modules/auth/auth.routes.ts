@@ -41,9 +41,7 @@ authRouter.post("/logout", requireAuthentication, async (request, response, next
 authRouter.post("/refresh", async (request, response, next) => {
   try {
     const { refreshToken } = logoutSchema.parse(request.body);
-    response.json(
-      await authService.refresh(refreshToken, request.ip, request.get("user-agent")),
-    );
+    response.json(await authService.refresh(refreshToken, request.ip, request.get("user-agent")));
   } catch (error) {
     if (error instanceof z.ZodError)
       return response.status(400).json({ message: "Sesión inválida." });

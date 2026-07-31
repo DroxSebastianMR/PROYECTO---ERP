@@ -63,12 +63,17 @@ export const Dialog = ({
       <div
         className={cn(
           page
-            ? "relative mx-auto w-full max-w-[1180px] animate-in fade-in-0 duration-200"
-            : "relative z-50 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl animate-in zoom-in-95 duration-200",
+            ? "animate-in fade-in-0 relative mx-auto w-full max-w-[1180px] duration-200"
+            : "animate-in zoom-in-95 relative z-50 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl duration-200",
           !page && maxWidthClasses[maxWidth],
         )}
       >
-        <div className={cn("flex items-center justify-between", page ? "px-1 pb-6 pt-1" : "border-b border-slate-100 px-6 py-4")}>
+        <div
+          className={cn(
+            "flex items-center justify-between",
+            page ? "px-1 pb-6 pt-1" : "border-b border-slate-100 px-6 py-4",
+          )}
+        >
           <div>
             <h3 className="text-lg font-semibold tracking-tight text-slate-900">{title}</h3>
             {description && <p className="mt-0.5 text-xs text-slate-500">{description}</p>}
@@ -80,9 +85,7 @@ export const Dialog = ({
             <X className="h-4 w-4" />
           </button>
         </div>
-        <div className={cn(page ? "pb-12" : "max-h-[80vh] overflow-y-auto p-6")}>
-          {children}
-        </div>
+        <div className={cn(page ? "pb-12" : "max-h-[80vh] overflow-y-auto p-6")}>{children}</div>
       </div>
     </div>
   );

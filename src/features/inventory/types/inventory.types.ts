@@ -1,4 +1,18 @@
-export type MovementType = "IN" | "OUT" | "ADJUSTMENT" | "INITIAL" | "PURCHASE_RECEIPT" | "SALE_DISPATCH" | "CUSTOMER_RETURN" | "SUPPLIER_RETURN" | "TRANSFER_OUT" | "TRANSFER_IN" | "POSITIVE_ADJUSTMENT" | "NEGATIVE_ADJUSTMENT" | "DAMAGED" | "EXPIRED";
+export type MovementType =
+  | "IN"
+  | "OUT"
+  | "ADJUSTMENT"
+  | "INITIAL"
+  | "PURCHASE_RECEIPT"
+  | "SALE_DISPATCH"
+  | "CUSTOMER_RETURN"
+  | "SUPPLIER_RETURN"
+  | "TRANSFER_OUT"
+  | "TRANSFER_IN"
+  | "POSITIVE_ADJUSTMENT"
+  | "NEGATIVE_ADJUSTMENT"
+  | "DAMAGED"
+  | "EXPIRED";
 
 export interface WarehouseStockItem {
   id: string;

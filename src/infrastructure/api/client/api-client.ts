@@ -9,12 +9,14 @@ const request = <TResponse, TBody>(
   body?: TBody,
   config?: AxiosRequestConfig,
 ) =>
-  axiosInstance.request<TResponse>({
-    ...config,
-    method,
-    url: path,
-    data: body,
-  }).then(({ data }) => data);
+  axiosInstance
+    .request<TResponse>({
+      ...config,
+      method,
+      url: path,
+      data: body,
+    })
+    .then(({ data }) => data);
 
 /** Typed adapter over the centralized Axios instance. */
 export const apiClient = {

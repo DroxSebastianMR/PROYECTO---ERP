@@ -19,10 +19,8 @@ export const NewSalePage = () => {
       <div className="mx-auto max-w-[1180px]">
         <NewSaleForm
           onCancel={() => navigate(PATHS.APP.SALES)}
-          onSubmit={async (input) => {
-            await handleCreateSale(input);
-            navigate(PATHS.APP.SALES);
-          }}
+          onSubmit={handleCreateSale}
+          onComplete={() => navigate(PATHS.APP.SALES)}
           onCreateCustomer={handleCreateCustomer}
           isSubmitting={isSubmitting}
           products={products}
