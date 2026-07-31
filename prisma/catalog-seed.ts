@@ -2,322 +2,47 @@ import "dotenv/config";
 import { MovementType, PrismaClient, TaxTreatment, WarehouseType } from "@prisma/client";
 
 const prisma = new PrismaClient();
-type Item = [
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-  number,
-  number,
-  number,
-  number,
-  number,
-  number,
-];
-const items: Item[] = [
-  [
-    "GAS001",
-    "Coca-Cola 500 ml",
-    "Bebida gaseosa sabor cola en botella descartable de 500 ml",
-    "Coca-Cola",
-    "Gaseosas",
-    "Botella",
-    "500 ml",
-    2.2,
-    3.5,
-    3.2,
-    12,
-    120,
-    20,
-  ],
-  [
-    "GAS002",
-    "Inca Kola 500 ml",
-    "Bebida gaseosa sabor cola en botella descartable de 500 ml",
-    "Inca Kola",
-    "Gaseosas",
-    "Botella",
-    "500 ml",
-    2.2,
-    3.5,
-    3.2,
-    12,
-    100,
-    20,
-  ],
-  [
-    "GAS003",
-    "Sprite 500 ml",
-    "Bebida gaseosa en botella descartable de 500 ml",
-    "Sprite",
-    "Gaseosas",
-    "Botella",
-    "500 ml",
-    2.1,
-    3.4,
-    3.1,
-    12,
-    80,
-    15,
-  ],
-  [
-    "GAS004",
-    "Fanta Naranja 500 ml",
-    "Bebida gaseosa sabor naranja en botella descartable de 500 ml",
-    "Fanta",
-    "Gaseosas",
-    "Botella",
-    "500 ml",
-    2.1,
-    3.4,
-    3.1,
-    12,
-    90,
-    15,
-  ],
-  [
-    "CER001",
-    "Pilsen 620 ml",
-    "Bebida cerveza en botella de vidrio 620 ml",
-    "Pilsen",
-    "Cerveza",
-    "Botella",
-    "620 ml",
-    5.8,
-    7.5,
-    7,
-    12,
-    60,
-    12,
-  ],
-  [
-    "CER002",
-    "Cristal 620 ml",
-    "Bebida cerveza en botella de vidrio 620 ml",
-    "Cristal",
-    "Cerveza",
-    "Botella",
-    "620 ml",
-    5.8,
-    7.5,
-    7,
-    12,
-    60,
-    12,
-  ],
-  [
-    "CER003",
-    "Cusqueña Dorada 330 ml",
-    "Bebida cerveza en botella de vidrio 330 ml",
-    "Cusqueña",
-    "Cerveza",
-    "Botella",
-    "330 ml",
-    3.8,
-    5.5,
-    5,
-    24,
-    96,
-    24,
-  ],
-  [
-    "ENE001",
-    "Red Bull 250 ml",
-    "Bebida energizante en lata de 250 ml",
-    "Red Bull",
-    "Energizantes",
-    "Lata",
-    "250 ml",
-    5.5,
-    8.5,
-    8,
-    24,
-    72,
-    12,
-  ],
-  [
-    "ENE002",
-    "Volt 300 ml",
-    "Bebida energizante en lata de 300 ml",
-    "Volt",
-    "Energizantes",
-    "Lata",
-    "300 ml",
-    2.8,
-    4.5,
-    4.2,
-    24,
-    100,
-    20,
-  ],
-  [
-    "ENE003",
-    "Monster 473 ml",
-    "Bebida energizante en lata de 473 ml",
-    "Monster",
-    "Energizantes",
-    "Lata",
-    "473 ml",
-    6.5,
-    9.5,
-    9,
-    12,
-    48,
-    10,
-  ],
-  [
-    "AGU001",
-    "Cielo 625 ml",
-    "Bebida agua sin gas en botella descartable de 625 ml",
-    "Cielo",
-    "Agua",
-    "Botella",
-    "625 ml",
-    1.2,
-    2,
-    1.8,
-    24,
-    120,
-    24,
-  ],
-  [
-    "AGU002",
-    "San Luis 625 ml",
-    "Bebida agua sin gas en botella descartable de 625 ml",
-    "San Luis",
-    "Agua",
-    "Botella",
-    "625 ml",
-    1.2,
-    2,
-    1.8,
-    24,
-    120,
-    24,
-  ],
-  [
-    "JUG001",
-    "Frugos 1 L",
-    "Bebida jugo sabor fruta en caja descartable de 1 L",
-    "Frugos",
-    "Jugos",
-    "Caja",
-    "1 L",
-    3.8,
-    5.5,
-    5,
-    12,
-    50,
-    10,
-  ],
-  [
-    "JUG002",
-    "Pulp 450 ml",
-    "Bebida jugo sabor fruta en botella descartable de 450 ml",
-    "Pulp",
-    "Jugos",
-    "Botella",
-    "450 ml",
-    2.4,
-    3.8,
-    3.5,
-    12,
-    70,
-    15,
-  ],
-  [
-    "TE001",
-    "Fuze Tea Limón 500 ml",
-    "Bebida té sabor limón en botella descartable de 500 ml",
-    "Fuze Tea",
-    "Té",
-    "Botella",
-    "500 ml",
-    2.5,
-    4,
-    3.7,
-    12,
-    60,
-    12,
-  ],
-  [
-    "ISO001",
-    "Sporade 500 ml",
-    "Bebida isotónica en botella descartable de 500 ml",
-    "Sporade",
-    "Isotónicas",
-    "Botella",
-    "500 ml",
-    2.3,
-    3.8,
-    3.5,
-    12,
-    80,
-    15,
-  ],
-  [
-    "ISO002",
-    "Gatorade 500 ml",
-    "Bebida isotónica en botella descartable de 500 ml",
-    "Gatorade",
-    "Isotónicas",
-    "Botella",
-    "500 ml",
-    3.2,
-    5,
-    4.7,
-    12,
-    80,
-    15,
-  ],
-  [
-    "MAL001",
-    "Maltin Power 330 ml",
-    "Bebida malta en lata descartable de 330 ml",
-    "Maltin",
-    "Malta",
-    "Lata",
-    "330 ml",
-    2,
-    3.5,
-    3.2,
-    24,
-    90,
-    20,
-  ],
-  [
-    "BEB001",
-    "Guaraná 500 ml",
-    "Bebida refrescante sabor guaraná en botella descartable de 500 ml",
-    "Guaraná",
-    "Refrescos",
-    "Botella",
-    "500 ml",
-    2.2,
-    3.6,
-    3.3,
-    12,
-    70,
-    15,
-  ],
-  [
-    "BEB002",
-    "Concordia Piña 500 ml",
-    "Bebida refrescante sabor piña en botella descartable de 500 ml",
-    "Concordia",
-    "Refrescos",
-    "Botella",
-    "500 ml",
-    2,
-    3.3,
-    3,
-    12,
-    70,
-    15,
-  ],
+
+type CatalogItem = {
+  sku: string;
+  category: string;
+  subcategory: string;
+  name: string;
+  description: string;
+  brand: string;
+  presentation: string;
+  unit: string;
+  content: string;
+  purchasePrice: number;
+  retailPrice: number;
+  wholesalePrice: number;
+  wholesaleMinQuantity: number;
+  initialStock: number;
+  minimumStock: number;
+  imageUrl: string;
+};
+
+const items: CatalogItem[] = [
+  { sku: "GAS001", category: "Gaseosas", subcategory: "Cola", name: "Coca-Cola 500 ml", description: "Bebida gaseosa sabor cola en botella descartable de 500 ml", brand: "Coca-Cola", presentation: "Botella", unit: "UND", content: "500 ml", purchasePrice: 2.2, retailPrice: 3.5, wholesalePrice: 3.2, wholesaleMinQuantity: 12, initialStock: 120, minimumStock: 20, imageUrl: "https://www.popeyes.com.pe/media/catalog/product/2/1/2146464550.png?optimize=medium&bg-color=255,255,255&fit=bounds&height=700&width=700&canvas=700:700&format=jpeg" },
+  { sku: "GAS002", category: "Gaseosas", subcategory: "Amarilla", name: "Inca Kola 500 ml", description: "Bebida gaseosa amarilla en botella descartable de 500 ml", brand: "Inca Kola", presentation: "Botella", unit: "UND", content: "500 ml", purchasePrice: 2.2, retailPrice: 3.5, wholesalePrice: 3.2, wholesaleMinQuantity: 12, initialStock: 100, minimumStock: 20, imageUrl: "https://www.popeyes.com.pe/media/catalog/product/2/1/2146464545.png?optimize=medium&bg-color=255,255,255&fit=bounds&height=700&width=700&canvas=700:700&format=jpeg" },
+  { sku: "GAS003", category: "Gaseosas", subcategory: "Lima-limón", name: "Sprite 500 ml", description: "Bebida gaseosa sabor lima-limón en botella descartable de 500 ml", brand: "Sprite", presentation: "Botella", unit: "UND", content: "500 ml", purchasePrice: 2.1, retailPrice: 3.4, wholesalePrice: 3.1, wholesaleMinQuantity: 12, initialStock: 80, minimumStock: 15, imageUrl: "https://www.bembos.com.pe/media/catalog/product/2/1/2146466383.png?optimize=medium&bg-color=255,255,255&fit=bounds&height=700&width=700&canvas=700:700&format=jpeg" },
+  { sku: "GAS004", category: "Gaseosas", subcategory: "Naranja", name: "Fanta Naranja 500 ml", description: "Bebida gaseosa sabor naranja en botella descartable de 500 ml", brand: "Fanta", presentation: "Botella", unit: "UND", content: "500 ml", purchasePrice: 2.1, retailPrice: 3.4, wholesalePrice: 3.1, wholesaleMinQuantity: 12, initialStock: 90, minimumStock: 15, imageUrl: "https://plazavea.vteximg.com.br/arquivos/ids/34817793-418-418/382595.jpg" },
+  { sku: "CER001", category: "Cervezas", subcategory: "Lager", name: "Pilsen 620 ml", description: "Cerveza lager en botella de vidrio de 620 ml", brand: "Pilsen", presentation: "Botella", unit: "UND", content: "620 ml", purchasePrice: 5.8, retailPrice: 7.5, wholesalePrice: 7, wholesaleMinQuantity: 12, initialStock: 60, minimumStock: 12, imageUrl: "https://hablacausa.com.pe/wp-content/uploads/2025/03/cerveza-pilsen-bt-x-630-ml.jpg" },
+  { sku: "CER002", category: "Cervezas", subcategory: "Lager", name: "Cristal 620 ml", description: "Cerveza lager en botella de vidrio de 620 ml", brand: "Cristal", presentation: "Botella", unit: "UND", content: "620 ml", purchasePrice: 5.8, retailPrice: 7.5, wholesalePrice: 7, wholesaleMinQuantity: 12, initialStock: 60, minimumStock: 12, imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSXJ5cmxqRr4V4SSbZUkrID2e3e5IFgqgyxEdRVAZE_gFPM_PiYnnUeq7OJ&s=10" },
+  { sku: "CER003", category: "Cervezas", subcategory: "Dorada", name: "Cusqueña Dorada 330 ml", description: "Cerveza dorada en botella de vidrio de 330 ml", brand: "Cusqueña", presentation: "Botella", unit: "UND", content: "330 ml", purchasePrice: 3.8, retailPrice: 5.5, wholesalePrice: 5, wholesaleMinQuantity: 24, initialStock: 96, minimumStock: 24, imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT6OAHGu2SqA9mTSVPJfD0WxKxzy0PUGzPDRowGWJmuNzy2lHtF5tPRmvFW&s=10" },
+  { sku: "ENE001", category: "Energizantes", subcategory: "Tradicional", name: "Red Bull 250 ml", description: "Bebida energizante en lata de 250 ml", brand: "Red Bull", presentation: "Lata", unit: "UND", content: "250 ml", purchasePrice: 5.5, retailPrice: 8.5, wholesalePrice: 8, wholesaleMinQuantity: 24, initialStock: 72, minimumStock: 12, imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRYqxUjnLep5g-0rXr5rYB3OWK_4JCmIg45ZoAKSuTGhw&s=10" },
+  { sku: "ENE002", category: "Energizantes", subcategory: "Tradicional", name: "Volt 300 ml", description: "Bebida energizante en lata de 300 ml", brand: "Volt", presentation: "Lata", unit: "UND", content: "300 ml", purchasePrice: 2.8, retailPrice: 4.5, wholesalePrice: 4.2, wholesaleMinQuantity: 24, initialStock: 100, minimumStock: 20, imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTSKxZv2TvHgOOhtoWW9Zlswx7rXah8dnN983d-seRkwQ&s=10" },
+  { sku: "ENE003", category: "Energizantes", subcategory: "Tradicional", name: "Monster 473 ml", description: "Bebida energizante en lata de 473 ml", brand: "Monster", presentation: "Lata", unit: "UND", content: "473 ml", purchasePrice: 6.5, retailPrice: 9.5, wholesalePrice: 9, wholesaleMinQuantity: 12, initialStock: 48, minimumStock: 10, imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ9SBnCsrGgR_YyXLWxDSBYDT2NyJPH5CAklqH8ClZEIg&s=10" },
+  { sku: "AGU001", category: "Aguas", subcategory: "Sin gas", name: "Cielo 625 ml", description: "Agua de mesa sin gas en botella descartable de 625 ml", brand: "Cielo", presentation: "Botella", unit: "UND", content: "625 ml", purchasePrice: 1.2, retailPrice: 2, wholesalePrice: 1.8, wholesaleMinQuantity: 24, initialStock: 120, minimumStock: 24, imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQgVEuypbU_ioLDzNS_UkUWlTeCOYvBv4T2DovBm2djyw&s=10" },
+  { sku: "AGU002", category: "Aguas", subcategory: "Sin gas", name: "San Luis 625 ml", description: "Agua de mesa sin gas en botella descartable de 625 ml", brand: "San Luis", presentation: "Botella", unit: "UND", content: "625 ml", purchasePrice: 1.2, retailPrice: 2, wholesalePrice: 1.8, wholesaleMinQuantity: 24, initialStock: 120, minimumStock: 24, imageUrl: "https://www.bembos.com.pe/media/catalog/product/2/1/2146469608_1.png?optimize=medium&bg-color=255,255,255&fit=bounds&height=700&width=700&canvas=700:700&format=jpeg" },
+  { sku: "JUG001", category: "Jugos", subcategory: "Néctares", name: "Frugos 1 L", description: "Néctar de fruta en envase de cartón descartable de 1 L", brand: "Frugos", presentation: "Caja", unit: "UND", content: "1 L", purchasePrice: 3.8, retailPrice: 5.5, wholesalePrice: 5, wholesaleMinQuantity: 12, initialStock: 50, minimumStock: 10, imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQxPXzdjWNJW1hQK4Mc2KJyBRdxPQeMBHk0CkyuuhjXTA&s=10" },
+  { sku: "JUG002", category: "Jugos", subcategory: "Néctares", name: "Pulp 450 ml", description: "Néctar de fruta en botella descartable de 450 ml", brand: "Pulp", presentation: "Botella", unit: "UND", content: "450 ml", purchasePrice: 2.4, retailPrice: 3.8, wholesalePrice: 3.5, wholesaleMinQuantity: 12, initialStock: 70, minimumStock: 15, imageUrl: "https://abattz.com/productoswebp/231298.webp" },
+  { sku: "TE001", category: "Tés", subcategory: "Té helado", name: "Fuze Tea Limón 500 ml", description: "Bebida de té sabor limón en botella descartable de 500 ml", brand: "Fuze Tea", presentation: "Botella", unit: "UND", content: "500 ml", purchasePrice: 2.5, retailPrice: 4, wholesalePrice: 3.7, wholesaleMinQuantity: 12, initialStock: 60, minimumStock: 12, imageUrl: "https://www.coca-cola.com/content/dam/onexp/es/es/fuzetea/productospages/limon500ml.jpg" },
+  { sku: "ISO001", category: "Rehidratantes", subcategory: "Isotónicas", name: "Sporade 500 ml", description: "Bebida rehidratante isotónica en botella descartable de 500 ml", brand: "Sporade", presentation: "Botella", unit: "UND", content: "500 ml", purchasePrice: 2.3, retailPrice: 3.8, wholesalePrice: 3.5, wholesaleMinQuantity: 12, initialStock: 80, minimumStock: 15, imageUrl: "https://oechsle.vteximg.com.br/arquivos/ids/1350551-1000-1000/image-5c00452922784beab76b0a3495d0b386.jpg?v=637494715750930000" },
+  { sku: "ISO002", category: "Rehidratantes", subcategory: "Isotónicas", name: "Gatorade 500 ml", description: "Bebida rehidratante isotónica en botella descartable de 500 ml", brand: "Gatorade", presentation: "Botella", unit: "UND", content: "500 ml", purchasePrice: 3.2, retailPrice: 5, wholesalePrice: 4.7, wholesaleMinQuantity: 12, initialStock: 80, minimumStock: 15, imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR_Q_KkEOg_-S2Ruufkh95p-0zJeepZp7P8IsDiAvjRo27TXyonmRILn88&s=10" },
+  { sku: "MAL001", category: "Maltas", subcategory: "Bebida de malta", name: "Maltín Power 330 ml", description: "Bebida de malta en lata descartable de 330 ml", brand: "Maltín Power", presentation: "Lata", unit: "UND", content: "330 ml", purchasePrice: 2, retailPrice: 3.5, wholesalePrice: 3.2, wholesaleMinQuantity: 24, initialStock: 90, minimumStock: 20, imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQFCgUNRPdXHSHlOxHw1-fT-mfU86znagg0UWl27lHiLQ&s=10" },
+  { sku: "BEB001", category: "Refrescos", subcategory: "Guaraná", name: "Guaraná 500 ml", description: "Bebida refrescante sabor guaraná en botella descartable de 500 ml", brand: "Guaraná", presentation: "Botella", unit: "UND", content: "500 ml", purchasePrice: 2.2, retailPrice: 3.6, wholesalePrice: 3.3, wholesaleMinQuantity: 12, initialStock: 70, minimumStock: 15, imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQtE5azOoo47JO4oUPgqEiUg8IqFltc37uTr-2P4nRq7A&s=10" },
+  { sku: "BEB002", category: "Refrescos", subcategory: "Piña", name: "Concordia Piña 500 ml", description: "Bebida refrescante sabor piña en botella descartable de 500 ml", brand: "Concordia", presentation: "Botella", unit: "UND", content: "500 ml", purchasePrice: 2, retailPrice: 3.3, wholesalePrice: 3, wholesaleMinQuantity: 12, initialStock: 70, minimumStock: 15, imageUrl: "https://aceleralastatic.nyc3.cdn.digitaloceanspaces.com/files/uploads/1499/1596824007-145-concordia-pina-500-jpg.jpg" },
 ];
 
 const run = async () => {
@@ -325,147 +50,111 @@ const run = async () => {
     ? await prisma.company.findUnique({ where: { taxId: process.env.SEED_COMPANY_TAX_ID } })
     : await prisma.company.findFirst();
   if (!company) throw new Error("No existe empresa. Ejecuta primero db:seed.");
+
   const user = await prisma.user.findFirst({ where: { companyId: company.id, isActive: true } });
   if (!user) throw new Error("No existe un usuario activo.");
-  await prisma.$transaction(
-    async (tx) => {
-      await tx.supplierPayment.deleteMany({
-        where: { payable: { purchase: { companyId: company.id } } },
-      });
-      await tx.accountsPayable.deleteMany({ where: { purchase: { companyId: company.id } } });
-      await tx.purchaseReceiptLine.deleteMany({
-        where: { receipt: { purchase: { companyId: company.id } } },
-      });
-      await tx.purchaseReceipt.deleteMany({ where: { purchase: { companyId: company.id } } });
-      await tx.purchaseDocument.deleteMany({ where: { purchase: { companyId: company.id } } });
-      await tx.purchaseItem.deleteMany({ where: { purchase: { companyId: company.id } } });
-      await tx.purchase.deleteMany({ where: { companyId: company.id } });
-      await tx.saleReturnLine.deleteMany({
-        where: { saleReturn: { sale: { companyId: company.id } } },
-      });
-      await tx.saleReturn.deleteMany({ where: { sale: { companyId: company.id } } });
-      await tx.saleDispatch.deleteMany({ where: { sale: { companyId: company.id } } });
-      await tx.salePayment.deleteMany({ where: { sale: { companyId: company.id } } });
-      await tx.saleDocument.deleteMany({ where: { sale: { companyId: company.id } } });
-      await tx.saleItem.deleteMany({ where: { sale: { companyId: company.id } } });
-      await tx.sale.deleteMany({ where: { companyId: company.id } });
-      await tx.inventoryCountLine.deleteMany({ where: { count: { companyId: company.id } } });
-      await tx.inventoryCount.deleteMany({ where: { companyId: company.id } });
-      await tx.inventoryTransferItem.deleteMany({ where: { transfer: { companyId: company.id } } });
-      await tx.inventoryTransfer.deleteMany({ where: { companyId: company.id } });
-      await tx.inventoryMovement.deleteMany({ where: { warehouse: { companyId: company.id } } });
-      await tx.inventoryBatch.deleteMany({ where: { warehouse: { companyId: company.id } } });
-      await tx.inventoryStock.deleteMany({ where: { warehouse: { companyId: company.id } } });
-      await tx.productPresentation.deleteMany({ where: { companyId: company.id } });
-      await tx.product.deleteMany({ where: { companyId: company.id } });
-      await tx.productSubcategory.deleteMany({ where: { companyId: company.id } });
-      await tx.productCategory.deleteMany({ where: { companyId: company.id } });
-      await tx.productBrand.deleteMany({ where: { companyId: company.id } });
-      await tx.supplier.deleteMany({ where: { companyId: company.id } });
-      await tx.customer.deleteMany({ where: { companyId: company.id } });
-    },
-    { timeout: 30_000 },
-  );
-  const category = await prisma.productCategory.create({
-    data: {
-      companyId: company.id,
-      name: "Bebidas",
-      description: "Catálogo de bebidas para venta minorista y mayorista.",
-    },
+
+  await prisma.$transaction(async (tx) => {
+    await tx.supplierPayment.deleteMany({ where: { payable: { purchase: { companyId: company.id } } } });
+    await tx.accountsPayable.deleteMany({ where: { purchase: { companyId: company.id } } });
+    await tx.purchaseReceiptLine.deleteMany({ where: { receipt: { purchase: { companyId: company.id } } } });
+    await tx.purchaseReceipt.deleteMany({ where: { purchase: { companyId: company.id } } });
+    await tx.purchaseDocument.deleteMany({ where: { purchase: { companyId: company.id } } });
+    await tx.purchaseItem.deleteMany({ where: { purchase: { companyId: company.id } } });
+    await tx.purchase.deleteMany({ where: { companyId: company.id } });
+    await tx.saleReturnLine.deleteMany({ where: { saleReturn: { sale: { companyId: company.id } } } });
+    await tx.saleReturn.deleteMany({ where: { sale: { companyId: company.id } } });
+    await tx.saleDispatch.deleteMany({ where: { sale: { companyId: company.id } } });
+    await tx.salePayment.deleteMany({ where: { sale: { companyId: company.id } } });
+    await tx.saleDocument.deleteMany({ where: { sale: { companyId: company.id } } });
+    await tx.saleItem.deleteMany({ where: { sale: { companyId: company.id } } });
+    await tx.sale.deleteMany({ where: { companyId: company.id } });
+    await tx.inventoryCountLine.deleteMany({ where: { count: { companyId: company.id } } });
+    await tx.inventoryCount.deleteMany({ where: { companyId: company.id } });
+    await tx.inventoryTransferItem.deleteMany({ where: { transfer: { companyId: company.id } } });
+    await tx.inventoryTransfer.deleteMany({ where: { companyId: company.id } });
+    await tx.inventoryMovement.deleteMany({ where: { warehouse: { companyId: company.id } } });
+    await tx.inventoryBatch.deleteMany({ where: { warehouse: { companyId: company.id } } });
+    await tx.inventoryStock.deleteMany({ where: { warehouse: { companyId: company.id } } });
+    await tx.productPresentation.deleteMany({ where: { companyId: company.id } });
+    await tx.product.deleteMany({ where: { companyId: company.id } });
+    await tx.productSubcategory.deleteMany({ where: { companyId: company.id } });
+    await tx.productCategory.deleteMany({ where: { companyId: company.id } });
+    await tx.productBrand.deleteMany({ where: { companyId: company.id } });
+  }, { timeout: 30_000 });
+
+  await prisma.measurementUnit.upsert({
+    where: { companyId_code: { companyId: company.id, code: "UND" } },
+    update: { name: "Unidad", isActive: true },
+    create: { companyId: company.id, code: "UND", name: "Unidad" },
   });
+
   const warehouse = await prisma.warehouse.upsert({
     where: { companyId_name: { companyId: company.id, name: "Almacén Principal" } },
     update: { code: "ALM-PRINCIPAL", type: WarehouseType.MAIN, isPrimary: true, isActive: true },
-    create: {
-      companyId: company.id,
-      name: "Almacén Principal",
-      code: "ALM-PRINCIPAL",
-      type: WarehouseType.MAIN,
-      isPrimary: true,
-    },
+    create: { companyId: company.id, name: "Almacén Principal", code: "ALM-PRINCIPAL", type: WarehouseType.MAIN, isPrimary: true },
   });
-  for (const [
-    sku,
-    name,
-    description,
-    brandName,
-    subcategoryName,
-    presentation,
-    content,
-    purchasePrice,
-    salePrice,
-    wholesalePrice,
-    wholesaleMinQuantity,
-    initialStock,
-    minimum,
-  ] of items) {
-    const subcategory = await prisma.productSubcategory.upsert({
-      where: { categoryId_name: { categoryId: category.id, name: subcategoryName } },
+
+  for (const item of items) {
+    const category = await prisma.productCategory.upsert({
+      where: { companyId_name: { companyId: company.id, name: item.category } },
       update: { isActive: true },
-      create: { companyId: company.id, categoryId: category.id, name: subcategoryName },
+      create: { companyId: company.id, name: item.category, description: `Catálogo de ${item.category.toLowerCase()}.` },
+    });
+    const subcategory = await prisma.productSubcategory.upsert({
+      where: { categoryId_name: { categoryId: category.id, name: item.subcategory } },
+      update: { isActive: true },
+      create: { companyId: company.id, categoryId: category.id, name: item.subcategory },
     });
     const brand = await prisma.productBrand.upsert({
-      where: { companyId_name: { companyId: company.id, name: brandName } },
+      where: { companyId_name: { companyId: company.id, name: item.brand } },
       update: { isActive: true },
-      create: { companyId: company.id, name: brandName },
+      create: { companyId: company.id, name: item.brand },
     });
     const product = await prisma.product.create({
       data: {
         companyId: company.id,
-        sku,
-        barcode: `BC-${sku}`,
-        name,
-        description,
+        sku: item.sku,
+        barcode: `BC-${item.sku}`,
+        name: item.name,
+        description: item.description,
         brandId: brand.id,
         categoryId: category.id,
         subcategoryId: subcategory.id,
-        unit: "UND",
-        presentation: `${presentation} · ${content}`,
-        purchasePrice,
-        salePrice,
-        wholesalePrice,
-        wholesaleMinQuantity,
+        unit: item.unit,
+        presentation: `${item.presentation} · ${item.content}`,
+        purchasePrice: item.purchasePrice,
+        salePrice: item.retailPrice,
+        wholesalePrice: item.wholesalePrice,
+        wholesaleMinQuantity: item.wholesaleMinQuantity,
         sellRetail: true,
         sellWholesale: true,
         taxTreatment: TaxTreatment.TAXED,
-        imageUrl: sku.startsWith("CER")
-          ? "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=320&q=80"
-          : sku.startsWith("ENE")
-            ? "https://images.unsplash.com/photo-1622543925917-763c34d1a86e?auto=format&fit=crop&w=320&q=80"
-            : sku.startsWith("AGU")
-              ? "https://images.unsplash.com/photo-1564419320461-6870880221ad?auto=format&fit=crop&w=320&q=80"
-              : "https://images.unsplash.com/photo-1629203851122-3726ecdf080e?auto=format&fit=crop&w=320&q=80",
+        imageUrl: item.imageUrl,
       },
     });
-    await prisma.inventoryStock.create({
-      data: {
-        productId: product.id,
-        warehouseId: warehouse.id,
-        quantity: initialStock,
-        reserved: 0,
-        minimum,
-        maximum: initialStock * 2,
-      },
-    });
+    await prisma.inventoryStock.create({ data: { productId: product.id, warehouseId: warehouse.id, quantity: item.initialStock, reserved: 0, minimum: item.minimumStock, maximum: item.initialStock * 2 } });
     await prisma.inventoryMovement.create({
       data: {
         productId: product.id,
         warehouseId: warehouse.id,
         type: MovementType.INITIAL,
-        quantity: initialStock,
-        quantityIn: initialStock,
+        quantity: item.initialStock,
+        quantityIn: item.initialStock,
         quantityOut: 0,
         previousStock: 0,
-        resultingStock: initialStock,
+        resultingStock: item.initialStock,
         documentRef: "INV-INICIAL-2026",
         reason: "Carga inicial de catálogo de bebidas",
-        reference: "Seed catálogo bebidas",
+        reference: "Seed de catálogo bebidas",
         createdById: user.id,
       },
     });
   }
-  console.log(`Catálogo cargado: ${items.length} productos, stock inicial y 9 subcategorías.`);
+
+  console.log(`Catálogo cargado: ${items.length} productos, ${new Set(items.map((item) => item.category)).size} categorías y stock inicial.`);
 };
+
 run()
   .catch((error: unknown) => {
     console.error(error);
