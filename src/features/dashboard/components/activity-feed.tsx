@@ -11,7 +11,7 @@ type ActivityFeedProps = { activities: Activity[]; showAll: boolean; onToggle: (
 export const ActivityFeed = ({ activities, showAll, onToggle }: ActivityFeedProps) => {
   const visibleActivities = showAll ? activities : activities.slice(0, 3);
   return (
-    <article className="rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_10px_24px_rgba(37,99,235,.035)]">
+    <article className="h-full min-w-0 rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_10px_24px_rgba(37,99,235,.035)] sm:p-6">
       <h2 className="text-lg font-semibold">Actividad Reciente</h2>
       <div className="mt-7 space-y-6">
         {visibleActivities.map((activity, index) => {

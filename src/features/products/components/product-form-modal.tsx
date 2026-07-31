@@ -151,8 +151,12 @@ export const ProductFormModal = ({
       }
       maxWidth="xl"
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid gap-4 sm:grid-cols-2">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="flex items-center justify-between rounded-xl border border-blue-100 bg-gradient-to-r from-blue-50 to-white px-4 py-3">
+          <div><p className="text-sm font-bold text-blue-800">Información comercial</p><p className="mt-0.5 text-xs text-slate-500">Completa los campos esenciales para el catálogo.</p></div>
+          <span className="rounded-full bg-blue-600 px-2.5 py-1 text-xs font-bold text-white">{isEditing ? "Edición" : "Nuevo"}</span>
+        </div>
+        <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4"><p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">Precios y condiciones</p><div className="grid gap-4 sm:grid-cols-2">
           {/* SKU */}
           <div>
             <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-700">
@@ -177,7 +181,7 @@ export const ProductFormModal = ({
               required
             />
           </div>
-        </div>
+        </div></div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>

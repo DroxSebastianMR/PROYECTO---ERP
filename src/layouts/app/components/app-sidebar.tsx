@@ -35,7 +35,12 @@ const navigation = [
   ["Configuración", Cog],
 ] as const;
 
-export const AppSidebar = () => {
+interface AppSidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export const AppSidebar = ({ isOpen = false, onClose }: AppSidebarProps) => {
   const { logout } = useAuth();
   const navigate = useNavigate();
 
@@ -45,7 +50,12 @@ export const AppSidebar = () => {
   };
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-40 hidden w-[256px] flex-col border-r border-slate-200 bg-white lg:flex">
+    <aside
+      className={cn(
+        "fixed inset-y-0 left-0 z-50 flex w-[280px] max-w-[85vw] -translate-x-full flex-col border-r border-slate-200 bg-white transition-transform duration-300 ease-out lg:w-[256px] lg:max-w-none lg:translate-x-0",
+        isOpen && "translate-x-0 shadow-2xl",
+      )}
+    >
       <div className="px-6 pb-4 pt-6">
         <div className="mb-6 flex items-center gap-3">
           <div className="grid h-10 w-10 place-items-center rounded-lg bg-blue-600 text-blue-100">
@@ -60,6 +70,7 @@ export const AppSidebar = () => {
         </div>
         <Link
           to={PATHS.APP.NEW_SALE}
+          onClick={onClose}
           className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-blue-700 text-sm font-medium text-white shadow-sm transition hover:bg-blue-800"
         >
           <Plus className="h-[18px] w-[18px]" /> + Nueva Venta
@@ -71,6 +82,7 @@ export const AppSidebar = () => {
             <NavLink
               key={label}
               to={path}
+              onClick={onClose}
               className={({ isActive }) =>
                 cn(
                   "flex h-11 items-center gap-3.5 rounded-lg px-4 text-sm font-medium text-slate-600 transition hover:bg-slate-100",
@@ -99,7 +111,10 @@ export const AppSidebar = () => {
         </button>
         <button
           type="button"
-          onClick={handleLogout}
+          onClick={() => {
+            onClose?.();
+            handleLogout();
+          }}
           className="flex h-10 w-full items-center gap-4 rounded-lg px-4 text-sm text-slate-600 hover:bg-slate-100"
         >
           <LogOut className="h-5 w-5" />

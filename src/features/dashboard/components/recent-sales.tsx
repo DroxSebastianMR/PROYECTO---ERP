@@ -10,11 +10,11 @@ export const RecentSales = ({ sales, showAll, onToggle }: RecentSalesProps) => {
   const visibleSales = showAll ? sales : sales.slice(0, 3);
   return (
     <article className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-[0_10px_24px_rgba(37,99,235,.035)]">
-      <div className="flex items-center justify-between px-6 py-5">
+      <div className="flex items-center justify-between gap-3 px-4 py-4 sm:px-6 sm:py-5">
         <h2 className="text-lg font-semibold">Últimas Ventas</h2>
         <button
           onClick={onToggle}
-          className="text-sm font-medium text-blue-700 hover:text-blue-800"
+          className="shrink-0 text-sm font-medium text-blue-700 hover:text-blue-800"
         >
           {showAll ? "Ver menos" : "Ver todas"}
         </button>

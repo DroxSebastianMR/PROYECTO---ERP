@@ -35,7 +35,7 @@ export const SalesPage = () => {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-[1480px] p-5 sm:p-7">
+      <div className="mx-auto max-w-[1480px] p-4 sm:p-6 lg:p-7">
         <div className="flex h-64 items-center justify-center text-sm text-slate-500">
           <RefreshCw className="mr-2 h-4 w-4 animate-spin text-blue-600" />
           Cargando módulo de ventas...
@@ -45,11 +45,11 @@ export const SalesPage = () => {
   }
 
   return (
-    <div className="mx-auto max-w-[1480px] p-5 sm:p-7">
+    <div className="mx-auto max-w-[1480px] p-4 sm:p-6 lg:p-7">
       {/* Header */}
       <header className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="flex items-center gap-3 text-[30px] font-bold tracking-[-.045em] text-slate-900">
+          <h1 className="flex items-center gap-2.5 text-2xl font-bold tracking-[-.045em] text-slate-900 sm:gap-3 sm:text-[30px]">
             <Tag className="h-8 w-8 text-blue-600" />
             Ventas
           </h1>
@@ -115,7 +115,7 @@ export const SalesPage = () => {
       {/* Sales Data Table */}
       <section className="mt-6">
         <SaleTable sales={sales} onView={handleOpenDetailModal} />
-        <div className="mt-4 flex items-center justify-between text-sm text-slate-600"><span>Mostrando {sales.length} de {pagination.total}</span><div className="flex items-center gap-2"><Button variant="ghost" disabled={pagination.page === 1} onClick={() => pagination.setPage(pagination.page - 1)}><ChevronLeft className="h-4 w-4" /> Anterior</Button><span>{pagination.page} / {pagination.pageCount}</span><Button variant="ghost" disabled={pagination.page === pagination.pageCount} onClick={() => pagination.setPage(pagination.page + 1)}>Siguiente <ChevronRight className="h-4 w-4" /></Button></div></div>
+        <div className="mt-4 flex flex-col gap-3 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between"><span>Mostrando {sales.length} de {pagination.total}</span><div className="flex items-center gap-1.5 self-end sm:gap-2 sm:self-auto"><Button variant="ghost" disabled={pagination.page === 1} onClick={() => pagination.setPage(pagination.page - 1)}><ChevronLeft className="h-4 w-4" /> Anterior</Button><span className="whitespace-nowrap">{pagination.page} / {pagination.pageCount}</span><Button variant="ghost" disabled={pagination.page === pagination.pageCount} onClick={() => pagination.setPage(pagination.page + 1)}>Siguiente <ChevronRight className="h-4 w-4" /></Button></div></div>
       </section>
 
       {/* Receipt Modal */}

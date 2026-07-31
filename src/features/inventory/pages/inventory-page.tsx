@@ -38,7 +38,7 @@ export const InventoryPage = () => {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-[1480px] p-5 sm:p-7">
+      <div className="mx-auto max-w-[1480px] p-4 sm:p-6 lg:p-7">
         <div className="flex h-64 items-center justify-center text-sm text-slate-500">
           <RefreshCw className="mr-2 h-4 w-4 animate-spin text-blue-600" />
           Cargando inventario de la empresa...
@@ -48,11 +48,11 @@ export const InventoryPage = () => {
   }
 
   return (
-    <div className="mx-auto max-w-[1480px] p-5 sm:p-7">
+    <div className="mx-auto max-w-[1480px] p-4 sm:p-6 lg:p-7">
       {/* Header */}
       <header className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="flex items-center gap-3 text-[30px] font-bold tracking-[-.045em] text-slate-900">
+          <h1 className="flex items-center gap-2.5 text-2xl font-bold tracking-[-.045em] text-slate-900 sm:gap-3 sm:text-[30px]">
             <Warehouse className="h-8 w-8 text-blue-600" />
             Inventario
           </h1>
@@ -70,10 +70,10 @@ export const InventoryPage = () => {
       {/* Tabs and Filters */}
       <section className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         {/* Tabs */}
-        <div className="flex items-center rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
+        <div className="flex w-full items-center overflow-x-auto rounded-lg border border-slate-200 bg-white p-1 shadow-sm sm:w-auto">
           <button
             onClick={() => setActiveTab("stocks")}
-            className={`rounded-md px-4 py-2 text-sm font-semibold transition-colors ${
+            className={`shrink-0 whitespace-nowrap rounded-md px-4 py-2 text-sm font-semibold transition-colors ${
               activeTab === "stocks"
                 ? "bg-blue-600 text-white"
                 : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
@@ -83,7 +83,7 @@ export const InventoryPage = () => {
           </button>
           <button
             onClick={() => setActiveTab("movements")}
-            className={`rounded-md px-4 py-2 text-sm font-semibold transition-colors ${
+            className={`shrink-0 whitespace-nowrap rounded-md px-4 py-2 text-sm font-semibold transition-colors ${
               activeTab === "movements"
                 ? "bg-blue-600 text-white"
                 : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
@@ -118,7 +118,10 @@ export const InventoryPage = () => {
 
           {activeTab === "stocks" && (
             <div className="w-full sm:w-44">
-              <Select value={stockLevelFilter} onChange={(e) => setStockLevelFilter(e.target.value as typeof stockLevelFilter)}>
+              <Select
+                value={stockLevelFilter}
+                onChange={(e) => setStockLevelFilter(e.target.value as typeof stockLevelFilter)}
+              >
                 <option value="ALL">Todo el stock</option>
                 <option value="IN_STOCK">Con stock</option>
                 <option value="LOW_STOCK">Stock bajo</option>
@@ -150,7 +153,31 @@ export const InventoryPage = () => {
         ) : (
           <InventoryMovementsTable movements={movements} />
         )}
-        <div className="mt-4 flex items-center justify-between text-sm text-slate-600"><span>Mostrando {activeTab === "stocks" ? stocks.length : movements.length} de {pagination.total}</span><div className="flex items-center gap-2"><Button variant="ghost" disabled={pagination.page === 1} onClick={() => pagination.setPage(pagination.page - 1)}><ChevronLeft className="h-4 w-4" /> Anterior</Button><span>{pagination.page} / {pagination.pageCount}</span><Button variant="ghost" disabled={pagination.page === pagination.pageCount} onClick={() => pagination.setPage(pagination.page + 1)}>Siguiente <ChevronRight className="h-4 w-4" /></Button></div></div>
+        <div className="mt-4 flex flex-col gap-3 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+          <span>
+            Mostrando {activeTab === "stocks" ? stocks.length : movements.length} de{" "}
+            {pagination.total}
+          </span>
+          <div className="flex items-center gap-1.5 self-end sm:gap-2 sm:self-auto">
+            <Button
+              variant="ghost"
+              disabled={pagination.page === 1}
+              onClick={() => pagination.setPage(pagination.page - 1)}
+            >
+              <ChevronLeft className="h-4 w-4" /> Anterior
+            </Button>
+            <span>
+              {pagination.page} / {pagination.pageCount}
+            </span>
+            <Button
+              variant="ghost"
+              disabled={pagination.page === pagination.pageCount}
+              onClick={() => pagination.setPage(pagination.page + 1)}
+            >
+              Siguiente <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </section>
 
       {/* Adjustment Modal */}

@@ -4,7 +4,11 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useNotifications } from "@/features/notifications/hooks/use-notifications";
 
-export const AppHeader = () => {
+interface AppHeaderProps {
+  onMenuClick: () => void;
+}
+
+export const AppHeader = ({ onMenuClick }: AppHeaderProps) => {
   const { user } = useAuth();
   const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
   const [open, setOpen] = useState(false);
@@ -16,8 +20,13 @@ export const AppHeader = () => {
       .join("")
       .toUpperCase() ?? "US";
   return (
-    <header className="fixed inset-x-0 top-0 z-30 flex h-[60px] items-center justify-between border-b border-slate-200 bg-white/90 px-5 backdrop-blur lg:left-[256px] lg:px-8">
-      <button className="mr-3 text-slate-600 lg:hidden">
+    <header className="fixed inset-x-0 top-0 z-30 flex h-[60px] items-center justify-between border-b border-slate-200 bg-white/90 px-3 backdrop-blur sm:px-5 lg:left-[256px] lg:px-8">
+      <button
+        type="button"
+        onClick={onMenuClick}
+        aria-label="Abrir menú de navegación"
+        className="mr-3 rounded-lg p-1.5 text-slate-600 transition hover:bg-slate-100 lg:hidden"
+      >
         <Menu />
       </button>
       <div className="relative hidden w-[260px] sm:block">
@@ -42,7 +51,7 @@ export const AppHeader = () => {
           )}
         </button>
         {open && (
-          <div className="absolute right-5 top-[54px] z-50 w-[360px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl sm:right-8">
+          <div className="fixed left-3 right-3 top-[68px] z-50 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl sm:absolute sm:left-auto sm:right-8 sm:top-[54px] sm:w-[360px]">
             <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
               <div>
                 <p className="font-semibold text-slate-900">Notificaciones</p>
@@ -59,7 +68,7 @@ export const AppHeader = () => {
                 Marcar leídas
               </button>
             </div>
-            <div className="max-h-[360px] overflow-y-auto">
+            <div className="max-h-[min(360px,calc(100vh-160px))] overflow-y-auto">
               {notifications.length ? (
                 notifications.map((item) => (
                   <Link

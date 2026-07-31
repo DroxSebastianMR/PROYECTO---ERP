@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { SaleProcessingOverlay } from "@/features/sales/components/sale-processing-overlay";
 import type { Product } from "@/features/products/types/product.types";
 import type {
   CreateSaleInput,
@@ -199,14 +200,7 @@ export const NewSaleForm = ({
 
   return (
     <>
-      {isSubmitting && (
-        <div className="fixed inset-0 z-[90] grid place-items-center bg-slate-950/25 backdrop-blur-[1px]">
-          <div className="flex items-center gap-3 rounded-2xl border border-blue-100 bg-white px-6 py-5 shadow-2xl">
-            <span className="h-5 w-5 animate-spin rounded-full border-2 border-blue-200 border-t-blue-600" />
-            <div><p className="font-semibold text-slate-900">Confirmando venta</p><p className="text-xs text-slate-500">Guardando y descontando existencias…</p></div>
-          </div>
-        </div>
-      )}
+      <SaleProcessingOverlay isOpen={isSubmitting} />
       <form onSubmit={requestSaleConfirmation} className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <main className="space-y-6">
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_8px_24px_rgba(37,99,235,.04)]">
