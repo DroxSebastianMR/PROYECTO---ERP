@@ -39,8 +39,12 @@ export const useSales = () => {
   };
   const create = useMutation({
     mutationFn: saleService.createSale,
-    onSuccess: async () => {
-      await invalidate();
+    onSuccess: () => {
+      // La venta ya fue confirmada por la API. La sincronización es secundaria y
+      // nunca debe impedir mostrar el ticket o finalizar el flujo del POS.
+      void invalidate().catch(() => {
+        // React Query volverá a sincronizar en su siguiente ciclo.
+      });
       setIsPOSOpen(false);
     },
   });
