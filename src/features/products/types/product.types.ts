@@ -84,6 +84,7 @@ export interface ProductMetrics {
 export interface MeasurementUnit {
   id: string;
   code: string;
+  abbreviation?: string | null;
   name: string;
   isActive: boolean;
 }

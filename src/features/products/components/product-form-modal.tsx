@@ -672,8 +672,8 @@ export const ProductFormModal = ({
                     <option value="CAJ">CAJ - Caja</option>
                     <option value="SET">SET - Juego / Kit</option>
                     {measurementUnits.map((unit) => (
-                      <option key={unit.id} value={unit.code}>
-                        {unit.code} - {unit.name}
+                      <option key={unit.id} value={unit.abbreviation ?? unit.code}>
+                        {unit.abbreviation ?? unit.code} - {unit.name}
                       </option>
                     ))}
                   </Select>

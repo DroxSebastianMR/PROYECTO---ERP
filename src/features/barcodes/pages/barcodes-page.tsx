@@ -7,14 +7,159 @@ import { barcodeService } from "@/features/barcodes/services/barcode.service";
 import { useBarcodes } from "@/features/barcodes/hooks/use-barcodes";
 import type { BarcodeFormat } from "@/features/barcodes/types/barcode.types";
 
-export const BarcodesPage = () => {
+export const BarcodesPage = ({ embedded = false }: { embedded?: boolean }) => {
   const data = useBarcodes();
   const [code, setCode] = useState("");
   const [preview, setPreview] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const selected = data.products.find((product) => product.id === data.productId);
-  useEffect(() => { if (!code) return setPreview(null); void barcodeService.render(code, data.format).then(setPreview); }, [code, data.format]);
-  const generate = async () => { try { if (!data.productId || !selected) throw new Error("Selecciona un producto."); const generated = data.format === "CODE128" ? { code: selected.sku, format: data.format } : await data.generate(data.format); setCode(generated.code); await data.create({ productId: data.productId, code: generated.code, format: data.format, isPrimary: true }); setMessage("Código generado y vinculado al SKU."); } catch (error) { setMessage(error instanceof Error ? error.message : "No se pudo generar."); } };
-  const printAll = async () => { const labels = await Promise.all(data.barcodes.map(async (item) => ({ ...item, image: await barcodeService.render(item.code, item.format) }))); const w = window.open("", "_blank"); if (!w) return; w.document.write(`<style>@page{margin:8mm}body{font:12px Arial}.grid{display:grid;grid-template-columns:1fr 1fr;gap:8mm}.label{border:1px dashed #cbd5e1;padding:5mm;text-align:center;break-inside:avoid}.label img{max-width:100%;height:42px}.sku{font:bold 11px monospace}</style><div class="grid">${labels.map((x) => `<div class="label"><b>${x.product.name}</b><div class="sku">${x.product.sku}</div><img src="${x.image}"/><div>${x.code}</div></div>`).join("")}</div>`); w.document.close(); w.onload = () => w.print(); };
-  return <div className="mx-auto max-w-[1480px] p-4 sm:p-6 lg:p-7"><header className="flex flex-col gap-4 sm:flex-row sm:justify-between"><div><h1 className="flex items-center gap-3 text-2xl font-bold text-slate-900 sm:text-[30px]"><Barcode className="h-8 w-8 text-blue-600" /> Códigos de barras</h1><p className="mt-1 text-slate-600">Generación automática vinculada al SKU del producto.</p></div><Button variant="ghost" onClick={() => void printAll()} className="gap-2 border border-slate-200"><Printer className="h-4 w-4" /> Imprimir etiquetas</Button></header><section className="mt-6 grid gap-6 xl:grid-cols-[1fr_380px]"><div><div className="rounded-xl border border-slate-200 bg-white p-4"><div className="relative"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"/><Input value={data.search} onChange={(e) => data.setSearch(e.target.value)} className="pl-9" placeholder="Buscar por SKU, producto o código..."/></div></div><div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white"><table className="w-full text-left text-sm"><thead className="bg-slate-50 text-xs uppercase text-slate-500"><tr><th className="px-5 py-3">Código</th><th className="px-5 py-3">Producto / SKU</th><th className="px-5 py-3">Formato</th><th className="px-5 py-3">Estado</th></tr></thead><tbody className="divide-y">{data.barcodes.map((item) => <tr key={item.id}><td className="px-5 py-4 font-mono font-semibold">{item.code}</td><td className="px-5 py-4"><b>{item.product.name}</b><p className="font-mono text-xs text-slate-400">{item.product.sku}</p></td><td className="px-5 py-4">{item.format}</td><td className="px-5 py-4">{item.isPrimary && <span className="inline-flex gap-1 text-amber-700"><Star className="h-4 w-4 fill-amber-400"/>Principal</span>}</td></tr>)}</tbody></table></div></div><aside className="rounded-xl border border-blue-100 bg-white p-5"><h2 className="font-bold text-slate-900">Generar para producto</h2><p className="mt-1 text-sm text-slate-500">No se ingresan códigos manualmente.</p><div className="mt-5 space-y-4"><Select value={data.productId} onChange={(e) => { data.setProductId(e.target.value); setCode(""); }}><option value="">Selecciona un producto</option>{data.products.map((p) => <option key={p.id} value={p.id}>{p.sku} — {p.name}</option>)}</Select>{selected && <div className="rounded-lg bg-blue-50 p-3"><span className="text-xs text-blue-600">SKU vinculado</span><p className="font-mono font-bold text-blue-900">{selected.sku}</p></div>}<Select value={data.format} onChange={(e) => data.setFormat(e.target.value as BarcodeFormat)}><option value="CODE128">CODE128</option><option value="EAN13">EAN-13</option></Select><Button onClick={() => void generate()} disabled={!data.productId || data.isSaving} className="w-full gap-2"><Barcode className="h-4 w-4"/>Generar código</Button>{preview && <img src={preview} className="mx-auto max-w-full"/>}{message && <p className="text-sm text-slate-600">{message}</p>}</div></aside></section></div>;
+  useEffect(() => {
+    if (!code) return setPreview(null);
+    void barcodeService.render(code, data.format).then(setPreview);
+  }, [code, data.format]);
+  const generate = async () => {
+    try {
+      if (!data.productId || !selected) throw new Error("Selecciona un producto.");
+      const generated =
+        data.format === "CODE128"
+          ? { code: selected.sku, format: data.format }
+          : await data.generate(data.format);
+      setCode(generated.code);
+      await data.create({
+        productId: data.productId,
+        code: generated.code,
+        format: data.format,
+        isPrimary: true,
+      });
+      setMessage("Código generado y vinculado al SKU.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "No se pudo generar.");
+    }
+  };
+  const printAll = async () => {
+    const labels = await Promise.all(
+      data.barcodes.map(async (item) => ({
+        ...item,
+        image: await barcodeService.render(item.code, item.format),
+      })),
+    );
+    const w = window.open("", "_blank");
+    if (!w) return;
+    w.document.write(
+      `<style>@page{margin:8mm}body{font:12px Arial}.grid{display:grid;grid-template-columns:1fr 1fr;gap:8mm}.label{border:1px dashed #cbd5e1;padding:5mm;text-align:center;break-inside:avoid}.label img{max-width:100%;height:42px}.sku{font:bold 11px monospace}</style><div class="grid">${labels.map((x) => `<div class="label"><b>${x.product.name}</b><div class="sku">${x.product.sku}</div><img src="${x.image}"/><div>${x.code}</div></div>`).join("")}</div>`,
+    );
+    w.document.close();
+    w.onload = () => w.print();
+  };
+  return (
+    <div className={embedded ? "" : "mx-auto max-w-[1480px] p-4 sm:p-6 lg:p-7"}>
+      <header className="flex flex-col gap-4 sm:flex-row sm:justify-between">
+        <div>
+          <h1 className="flex items-center gap-3 text-2xl font-bold text-slate-900 sm:text-[30px]">
+            <Barcode className="h-8 w-8 text-blue-600" /> Códigos de barras
+          </h1>
+          <p className="mt-1 text-slate-600">
+            Generación automática vinculada al SKU del producto.
+          </p>
+        </div>
+        <Button
+          variant="ghost"
+          onClick={() => void printAll()}
+          className="gap-2 border border-slate-200"
+        >
+          <Printer className="h-4 w-4" /> Imprimir etiquetas
+        </Button>
+      </header>
+      <section className="mt-6 grid gap-6 xl:grid-cols-[1fr_380px]">
+        <div>
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Input
+                value={data.search}
+                onChange={(e) => data.setSearch(e.target.value)}
+                className="pl-9"
+                placeholder="Buscar por SKU, producto o código..."
+              />
+            </div>
+          </div>
+          <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                <tr>
+                  <th className="px-5 py-3">Código</th>
+                  <th className="px-5 py-3">Producto / SKU</th>
+                  <th className="px-5 py-3">Formato</th>
+                  <th className="px-5 py-3">Estado</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {data.barcodes.map((item) => (
+                  <tr key={item.id}>
+                    <td className="px-5 py-4 font-mono font-semibold">{item.code}</td>
+                    <td className="px-5 py-4">
+                      <b>{item.product.name}</b>
+                      <p className="font-mono text-xs text-slate-400">{item.product.sku}</p>
+                    </td>
+                    <td className="px-5 py-4">{item.format}</td>
+                    <td className="px-5 py-4">
+                      {item.isPrimary && (
+                        <span className="inline-flex gap-1 text-amber-700">
+                          <Star className="h-4 w-4 fill-amber-400" />
+                          Principal
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <aside className="rounded-xl border border-blue-100 bg-white p-5">
+          <h2 className="font-bold text-slate-900">Generar para producto</h2>
+          <p className="mt-1 text-sm text-slate-500">No se ingresan códigos manualmente.</p>
+          <div className="mt-5 space-y-4">
+            <Select
+              value={data.productId}
+              onChange={(e) => {
+                data.setProductId(e.target.value);
+                setCode("");
+              }}
+            >
+              <option value="">Selecciona un producto</option>
+              {data.products.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.sku} — {p.name}
+                </option>
+              ))}
+            </Select>
+            {selected && (
+              <div className="rounded-lg bg-blue-50 p-3">
+                <span className="text-xs text-blue-600">SKU vinculado</span>
+                <p className="font-mono font-bold text-blue-900">{selected.sku}</p>
+              </div>
+            )}
+            <Select
+              value={data.format}
+              onChange={(e) => data.setFormat(e.target.value as BarcodeFormat)}
+            >
+              <option value="CODE128">CODE128</option>
+              <option value="EAN13">EAN-13</option>
+            </Select>
+            <Button
+              onClick={() => void generate()}
+              disabled={!data.productId || data.isSaving}
+              className="w-full gap-2"
+            >
+              <Barcode className="h-4 w-4" />
+              Generar código
+            </Button>
+            {preview && <img src={preview} className="mx-auto max-w-full" />}
+            {message && <p className="text-sm text-slate-600">{message}</p>}
+          </div>
+        </aside>
+      </section>
+    </div>
+  );
 };

@@ -50,6 +50,13 @@ const productInclude = {
 } satisfies Prisma.ProductInclude;
 
 const normalized = (value?: string | null) => value?.trim() || null;
+const nextMasterCode = async (companyId: string, type: "CAT" | "UM") => {
+  const values = type === "CAT"
+    ? await prisma.productCategory.findMany({ where: { companyId }, select: { code: true } })
+    : await prisma.measurementUnit.findMany({ where: { companyId }, select: { code: true } });
+  const next = values.reduce((max, item) => Math.max(max, Number(item.code?.replace(/\D/g, "")) || 0), 0) + 1;
+  return `${type}${String(next).padStart(3, "0")}`;
+};
 const skuPrefix = (categoryName: string) =>
   categoryName
     .normalize("NFD")
@@ -101,7 +108,7 @@ const resolveClassification = async (
       ? await prisma.productCategory.upsert({
           where: { companyId_name: { companyId, name: normalized(categoryName)! } },
           update: { isActive: true },
-          create: { companyId, name: normalized(categoryName)! },
+          create: { companyId, code: await nextMasterCode(companyId, "CAT"), name: normalized(categoryName)! },
         })
       : null;
   if (categoryId && !category)
@@ -316,12 +323,14 @@ export const productsService = {
   listCategories(companyId: string) {
     return prisma.productCategory.findMany({ where: { companyId }, orderBy: { name: "asc" } });
   },
-  createCategory(companyId: string, name: string, description?: string) {
+  async createCategory(companyId: string, name: string, description?: string) {
     return prisma.productCategory.create({
-      data: { companyId, name: name.trim(), description: normalized(description) },
+      data: { companyId, code: await nextMasterCode(companyId, "CAT"), name: name.trim(), description: normalized(description) },
     });
   },
-  updateCategory(companyId: string, id: string, input: { name?: string; isActive?: boolean }) {
+  async updateCategory(companyId: string, id: string, input: { name?: string; isActive?: boolean }) {
+    const category = await prisma.productCategory.findFirst({ where: { id, companyId } });
+    if (!category) throw new ProductCatalogError("Categoría no encontrada.", 404);
     return prisma.productCategory.update({ where: { id }, data: { ...(input.name ? { name: input.name.trim() } : {}), ...(input.isActive === undefined ? {} : { isActive: input.isActive }) } });
   },
   listBrands(companyId: string) {
@@ -336,12 +345,14 @@ export const productsService = {
       orderBy: { code: "asc" },
     });
   },
-  createMeasurementUnit(companyId: string, code: string, name: string) {
+  async createMeasurementUnit(companyId: string, code: string, name: string) {
     return prisma.measurementUnit.create({
-      data: { companyId, code: code.trim().toUpperCase(), name: name.trim() },
+      data: { companyId, code: await nextMasterCode(companyId, "UM"), abbreviation: code.trim().toUpperCase(), name: name.trim() },
     });
   },
-  updateMeasurementUnit(companyId: string, id: string, input: { code?: string; name?: string; isActive?: boolean }) {
-    return prisma.measurementUnit.update({ where: { id }, data: { ...(input.code ? { code: input.code.trim().toUpperCase() } : {}), ...(input.name ? { name: input.name.trim() } : {}), ...(input.isActive === undefined ? {} : { isActive: input.isActive }) } });
+  async updateMeasurementUnit(companyId: string, id: string, input: { code?: string; name?: string; isActive?: boolean }) {
+    const unit = await prisma.measurementUnit.findFirst({ where: { id, companyId } });
+    if (!unit) throw new ProductCatalogError("Unidad de medida no encontrada.", 404);
+    return prisma.measurementUnit.update({ where: { id }, data: { ...(input.code ? { abbreviation: input.code.trim().toUpperCase() } : {}), ...(input.name ? { name: input.name.trim() } : {}), ...(input.isActive === undefined ? {} : { isActive: input.isActive }) } });
   },
 };

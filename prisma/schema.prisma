@@ -297,6 +297,7 @@ model ProductBarcode {
 model ProductCategory {
   id          String    @id @default(uuid()) @db.Uuid
   companyId   String    @db.Uuid
+  code        String?
   name        String
   description String?
   isActive    Boolean   @default(true)
@@ -306,6 +307,7 @@ model ProductCategory {
   products    Product[]
   subcategories ProductSubcategory[]
   @@unique([companyId, name])
+  @@unique([companyId, code])
 }
 
 model ProductSubcategory {
@@ -339,6 +341,7 @@ model MeasurementUnit {
   id        String   @id @default(uuid()) @db.Uuid
   companyId String   @db.Uuid
   code      String
+  abbreviation String?
   name      String
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
