@@ -15,6 +15,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { SaleProcessingOverlay } from "@/features/sales/components/sale-processing-overlay";
+import { SaleTicket } from "@/features/sales/components/sale-ticket";
 import { CustomerFormModal } from "@/features/customers/components/customer-form-modal";
 import type { Product } from "@/features/products/types/product.types";
 import type { CreateCustomerInput, DocumentType } from "@/features/customers/types/customer.types";
@@ -548,15 +549,7 @@ export const NewSaleForm = ({
         maxWidth="md"
       >
         <div className="space-y-5">
-          <div id="pos-ticket" className="mx-auto w-72 rounded-lg border border-dashed border-slate-300 bg-white p-4 font-mono text-xs text-slate-700">
-            <p className="text-center text-base font-bold text-slate-900">DISTRICORP</p>
-            <p className="mt-1 text-center">TICKET {completedSale?.number}</p>
-            <div className="my-3 border-t border-dashed border-slate-300" />
-            {completedSale?.items.map((item) => <div key={item.id} className="mb-1 flex justify-between gap-2"><span>{item.quantity}x {item.productName}</span><span>{money(item.subtotal)}</span></div>)}
-            <div className="my-3 border-t border-dashed border-slate-300" />
-            <p className="flex justify-between text-sm font-bold"><span>TOTAL</span><span>{completedSale ? money(completedSale.total) : ""}</span></p>
-            <p className="mt-3 text-center text-[10px]">Gracias por su compra</p>
-          </div>
+          {completedSale && <SaleTicket sale={completedSale} />}
           <p className="text-sm text-slate-600">¿Deseas imprimir el ticket de venta ahora?</p>
           <div className="flex justify-end gap-3">
             <Button type="button" variant="ghost" onClick={() => { setCompletedSale(null); onComplete(); }}>No imprimir</Button>
