@@ -60,8 +60,8 @@ export const BarcodesPage = ({ embedded = false }: { embedded?: boolean }) => {
   };
 
   return <div className={embedded ? "" : "mx-auto max-w-[1480px] p-4 sm:p-6 lg:p-7"}>
-    <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-      <div><h1 className="flex items-center gap-3 text-2xl font-bold text-slate-900 sm:text-[30px]"><Barcode className="h-8 w-8 text-blue-600" /> Códigos de barras</h1><p className="mt-1 text-slate-600">Selecciona las etiquetas que deseas imprimir. Cada código está vinculado al SKU del producto.</p></div>
+    <header className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      <div className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-blue-50 text-blue-600"><Barcode className="h-5 w-5" /></span><div><h2 className="text-base font-bold text-slate-900">Impresión de etiquetas</h2><p className="mt-0.5 text-sm text-slate-500">Selecciona los códigos vinculados a los SKU que deseas imprimir.</p></div></div>
       <Button onClick={() => void printSelected()} disabled={!selectedBarcodes.length} className="gap-2"><Printer className="h-4 w-4" /> Imprimir {selectedBarcodes.length ? `${selectedBarcodes.length} seleccionado${selectedBarcodes.length === 1 ? "" : "s"}` : "seleccionados"}</Button>
     </header>
 

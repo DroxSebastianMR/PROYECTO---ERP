@@ -1,4 +1,4 @@
-import { CheckCircle, Printer } from "lucide-react";
+import { CheckCircle, Printer, ReceiptText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { SaleSummaryCard } from "@/features/sales/components/sale-summary-card";
@@ -18,7 +18,7 @@ export const SaleDetailModal = ({ isOpen, onClose, sale, onConfirm, isSubmitting
   if (!sale) return null;
 
   return (
-    <Dialog isOpen={isOpen} onClose={onClose} title={`Resumen de venta ${sale.number}`} description="Detalle comercial de la venta registrada." maxWidth="xl">
+    <Dialog isOpen={isOpen} onClose={onClose} title={`Resumen de venta ${sale.number}`} description="Detalle comercial de la venta registrada." maxWidth="xl" headerClassName="relative overflow-hidden border-b-0 bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 px-6 py-5" titleClassName="text-white" descriptionClassName="text-blue-100" headerIcon={<span className="grid h-10 w-10 place-items-center rounded-xl border border-white/20 bg-white/10 text-blue-100"><ReceiptText className="h-5 w-5" /></span>}>
       <div className="space-y-6">
         <SaleSummaryCard sale={sale} />
         <div className="hidden"><SaleTicket sale={sale} /></div>
