@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { SaleProcessingOverlay } from "@/features/sales/components/sale-processing-overlay";
 import { SaleTicket } from "@/features/sales/components/sale-ticket";
+import { printSaleTicket } from "@/features/sales/services/sale-ticket-print.service";
 import { CustomerFormModal } from "@/features/customers/components/customer-form-modal";
 import type { Product } from "@/features/products/types/product.types";
 import type { CreateCustomerInput, DocumentType } from "@/features/customers/types/customer.types";
@@ -553,7 +554,7 @@ export const NewSaleForm = ({
           <p className="text-sm text-slate-600">¿Deseas imprimir el ticket de venta ahora?</p>
           <div className="flex justify-end gap-3">
             <Button type="button" variant="ghost" onClick={() => { setCompletedSale(null); onComplete(); }}>No imprimir</Button>
-            <Button type="button" className="gap-2" onClick={() => { window.print(); setCompletedSale(null); onComplete(); }}>
+            <Button type="button" className="gap-2" onClick={() => { printSaleTicket(); setCompletedSale(null); onComplete(); }}>
               <Printer className="h-4 w-4" /> Imprimir ticket
             </Button>
           </div>
