@@ -135,6 +135,7 @@ export const NewSaleForm = ({
 }: NewSaleFormProps) => {
   const scannerRef = useRef<HTMLInputElement>(null);
   const idempotencyKeyRef = useRef<string | null>(null);
+  const scanBufferRef = useRef({ value: "", lastKeyAt: 0 });
   const [query, setQuery] = useState("");
   const [customerId, setCustomerId] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<SalePaymentMethod>("CASH");
@@ -188,8 +189,8 @@ export const NewSaleForm = ({
     setQuery("");
     scannerRef.current?.focus();
   };
-  const handleScanner = () => {
-    const code = query.trim().toLowerCase();
+  const handleScanner = (rawCode = query) => {
+    const code = rawCode.trim().toLowerCase();
     const product = products.find(
       (entry) =>
         entry.isActive && [entry.barcode, entry.sku].some((value) => value?.toLowerCase() === code),
@@ -197,6 +198,27 @@ export const NewSaleForm = ({
     if (product) addProduct(product);
     else if (code) alert("No se encontró un producto activo con ese código.");
   };
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.altKey || event.metaKey || event.target === scannerRef.current) return;
+      const target = event.target as HTMLElement | null;
+      if (target?.tagName === "TEXTAREA" || target?.isContentEditable) return;
+      const now = Date.now();
+      if (event.key === "Enter") {
+        const scanned = scanBufferRef.current.value;
+        const isScannerRead = scanned.length >= 3 && now - scanBufferRef.current.lastKeyAt < 180;
+        scanBufferRef.current = { value: "", lastKeyAt: 0 };
+        if (isScannerRead) { event.preventDefault(); handleScanner(scanned); }
+        return;
+      }
+      if (event.key.length === 1) {
+        const previous = scanBufferRef.current;
+        scanBufferRef.current = { value: now - previous.lastKeyAt > 180 ? event.key : `${previous.value}${event.key}`, lastKeyAt: now };
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [products, warehouseName]);
   const setQuantity = (product: Product, quantity: number) =>
     setCart((current) =>
       current.map((line) =>
@@ -312,7 +334,7 @@ export const NewSaleForm = ({
                   className="gap-2 bg-blue-700 text-white hover:bg-blue-800"
                 >
                   <ScanBarcode className="h-4 w-4" />
-                  Activar lector
+                  Lector automático
                 </Button>
               </div>
               <p className="mt-2 text-[11px] text-blue-700">
