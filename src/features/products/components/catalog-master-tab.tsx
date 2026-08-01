@@ -50,7 +50,6 @@ export const CatalogMasterTab = ({ type }: { type: MasterType }) => {
   });
 
   const closeForm = () => {
-    if (save.isPending) return;
     setIsFormOpen(false);
     setEditingItem(null);
     setName("");
