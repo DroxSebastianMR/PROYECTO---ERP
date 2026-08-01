@@ -1,4 +1,7 @@
-import { ChevronLeft, ChevronRight, RefreshCw, Package } from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCw, Package, Layers, Ruler, Barcode } from "lucide-react";
+import { useState } from "react";
+import { BarcodesPage } from "@/features/barcodes/pages";
+import { CatalogMasterTab } from "@/features/products/components/catalog-master-tab";
 import { useProducts } from "@/features/products/hooks/use-products";
 import { ProductMetricsSummary } from "@/features/products/components/product-metrics-summary";
 import { ProductFilterBar } from "@/features/products/components/product-filter-bar";
@@ -9,6 +12,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
 export const ProductsPage = () => {
+  const [activeTab, setActiveTab] = useState<"products" | "categories" | "units" | "barcodes">("products");
   const {
     products,
     isLoading,
@@ -54,6 +58,8 @@ export const ProductsPage = () => {
     );
   }
 
+  const tabs = [{ id: "products", label: "Productos", icon: Package }, { id: "categories", label: "Categorías", icon: Layers }, { id: "units", label: "Unidad de medida", icon: Ruler }, { id: "barcodes", label: "Códigos de barras", icon: Barcode }] as const;
+  if (activeTab !== "products") return <div className="mx-auto max-w-[1480px] p-4 sm:p-6 lg:p-7"><header><h1 className="flex items-center gap-2.5 text-2xl font-bold text-slate-900 sm:text-[30px]"><Package className="h-8 w-8 text-blue-600" />Productos</h1><p className="mt-1 text-[15px] text-slate-600">Catálogo unificado de productos, precios y control de inventario ERP.</p></header><nav className="mt-6 flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1.5">{tabs.map(({ id, label, icon: Icon }) => <button key={id} onClick={() => setActiveTab(id)} className={`flex shrink-0 items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold ${activeTab === id ? "bg-blue-600 text-white" : "text-slate-600"}`}><Icon className="h-4 w-4" />{label}</button>)}</nav>{activeTab === "barcodes" ? <div className="mt-6"><BarcodesPage /></div> : <CatalogMasterTab type={activeTab === "categories" ? "categories" : "measurement-units"} />}</div>;
   return (
     <div className="mx-auto max-w-[1480px] p-4 sm:p-6 lg:p-7">
       {/* Header */}
@@ -68,6 +74,7 @@ export const ProductsPage = () => {
           </p>
         </div>
       </header>
+      <nav className="mt-6 flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1.5">{tabs.map(({ id, label, icon: Icon }) => <button key={id} onClick={() => setActiveTab(id)} className={`flex shrink-0 items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold ${activeTab === id ? "bg-blue-600 text-white" : "text-slate-600"}`}><Icon className="h-4 w-4" />{label}</button>)}</nav>
 
       {/* Error alert if any */}
       {error && (

@@ -321,6 +321,9 @@ export const productsService = {
       data: { companyId, name: name.trim(), description: normalized(description) },
     });
   },
+  updateCategory(companyId: string, id: string, input: { name?: string; isActive?: boolean }) {
+    return prisma.productCategory.update({ where: { id }, data: { ...(input.name ? { name: input.name.trim() } : {}), ...(input.isActive === undefined ? {} : { isActive: input.isActive }) } });
+  },
   listBrands(companyId: string) {
     return prisma.productBrand.findMany({ where: { companyId }, orderBy: { name: "asc" } });
   },
@@ -329,7 +332,7 @@ export const productsService = {
   },
   listMeasurementUnits(companyId: string) {
     return prisma.measurementUnit.findMany({
-      where: { companyId, isActive: true },
+      where: { companyId },
       orderBy: { code: "asc" },
     });
   },
@@ -337,5 +340,8 @@ export const productsService = {
     return prisma.measurementUnit.create({
       data: { companyId, code: code.trim().toUpperCase(), name: name.trim() },
     });
+  },
+  updateMeasurementUnit(companyId: string, id: string, input: { code?: string; name?: string; isActive?: boolean }) {
+    return prisma.measurementUnit.update({ where: { id }, data: { ...(input.code ? { code: input.code.trim().toUpperCase() } : {}), ...(input.name ? { name: input.name.trim() } : {}), ...(input.isActive === undefined ? {} : { isActive: input.isActive }) } });
   },
 };

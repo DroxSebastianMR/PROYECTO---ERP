@@ -28,7 +28,6 @@ const navigation = [
   ["Compras", ShoppingCart, PATHS.APP.PURCHASES],
   ["Ventas", Tag, PATHS.APP.SALES],
   ["Clientes", Users, PATHS.APP.CUSTOMERS],
-  ["Códigos de barras", Barcode, PATHS.APP.BARCODES],
   ["Caja", CreditCard],
   ["Comprobantes", ClipboardList],
   ["SUNAT", Landmark],

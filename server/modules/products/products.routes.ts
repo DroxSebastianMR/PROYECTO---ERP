@@ -78,6 +78,7 @@ productsRouter.post("/categories", async (request, response, next) => {
     sendError(error, response, next);
   }
 });
+productsRouter.patch("/categories/:id", async (request, response, next) => { try { const body = z.object({ name: z.string().trim().min(1).max(100).optional(), isActive: z.boolean().optional() }).parse(request.body); response.json(await productsService.updateCategory(companyId(request as AuthenticatedRequest), idSchema.parse(request.params.id), body)); } catch (error) { sendError(error, response, next); } });
 productsRouter.get("/measurement-units", async (request, response, next) => {
   try {
     response.json(await productsService.listMeasurementUnits(companyId(request as AuthenticatedRequest)));
@@ -99,6 +100,7 @@ productsRouter.post("/measurement-units", async (request, response, next) => {
     sendError(error, response, next);
   }
 });
+productsRouter.patch("/measurement-units/:id", async (request, response, next) => { try { const body = z.object({ code: z.string().trim().min(1).max(20).optional(), name: z.string().trim().min(1).max(100).optional(), isActive: z.boolean().optional() }).parse(request.body); response.json(await productsService.updateMeasurementUnit(companyId(request as AuthenticatedRequest), idSchema.parse(request.params.id), body)); } catch (error) { sendError(error, response, next); } });
 productsRouter.get("/brands", async (request, response, next) => {
   try {
     response.json(await productsService.listBrands(companyId(request as AuthenticatedRequest)));
