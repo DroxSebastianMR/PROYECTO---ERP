@@ -92,6 +92,8 @@ export const ProductFormModal = ({
   const isSaving = isSubmitting || isUploadingImage;
 
   useEffect(() => {
+    if (!isOpen) return;
+
     clearPendingImage();
     if (product) {
       setFormData({
@@ -140,7 +142,12 @@ export const ProductFormModal = ({
     }
     setActiveStep(1);
     setShowUrlInput(false);
-  }, [product, categories, isOpen]);
+  // React Query puede actualizar el catálogo de categorías mientras el modal
+  // permanece abierto. No se debe reiniciar el flujo ni descartar los valores
+  // que el usuario ya ingresó por una actualización de datos de fondo.
+  // La inicialización corresponde únicamente a una nueva apertura o a cambiar
+  // el producto que se está editando.
+  }, [isOpen, product?.id]);
 
   // Image Drag & Drop Handlers
   const handleFile = (file: File) => {
