@@ -1,5 +1,6 @@
 import { receiptBranding } from "@/features/sales/config/receipt-branding";
 import type { SalePaymentMethod, SaleReceipt } from "@/features/sales/types/sale.types";
+import nortivaLogo from "@/assets/img/logo.png";
 
 interface SaleTicketProps {
   sale: SaleReceipt;
@@ -43,9 +44,9 @@ export const SaleTicket = ({ sale }: SaleTicketProps) => {
       id="printable-sale-ticket"
       className="mx-auto w-[80mm] bg-white px-4 py-5 font-mono text-[11px] leading-[1.35] text-slate-950"
     >
-      <header className="text-center">
+      <header className="ticket-header text-center">
         <img
-          src={receiptBranding.logoUrl}
+          src={nortivaLogo}
           alt="Logo Nortiva"
           className="mx-auto mb-2 h-20 w-auto max-w-[190px] object-contain"
         />
@@ -59,11 +60,11 @@ export const SaleTicket = ({ sale }: SaleTicketProps) => {
 
       <Separator />
       <p className="text-center font-bold">TICKET: {ticketNumber(sale.number)}</p>
-      <div className="mt-1 flex justify-between gap-2">
+      <div className="ticket-meta mt-1 flex justify-between gap-2">
         <span>FECHA: {formatDate(sale.createdAt)}</span>
         <span>HORA: {formatTime(sale.createdAt)}</span>
       </div>
-      <div className="flex justify-between gap-2">
+      <div className="ticket-meta flex justify-between gap-2">
         <span>VENDEDOR: {sale.createdBy?.toUpperCase() || "ADMIN"}</span>
         <span>CAJA: {receiptBranding.cashier}</span>
       </div>
@@ -73,13 +74,13 @@ export const SaleTicket = ({ sale }: SaleTicketProps) => {
       <p>DOCUMENTO: {customerDocument}</p>
 
       <Separator />
-      <div className="grid grid-cols-[28px_minmax(0,1fr)_48px_54px] gap-1 font-bold">
+      <div className="ticket-item-row ticket-item-heading grid grid-cols-[28px_minmax(0,1fr)_48px_54px] gap-1 font-bold">
         <span>CANT.</span><span>DESCRIPCIÓN</span><span className="text-right">P/U</span><span className="text-right">TOTAL</span>
       </div>
       <Separator />
       <div className="space-y-1.5">
         {sale.items.map((item) => (
-          <div key={item.id} className="grid grid-cols-[28px_minmax(0,1fr)_48px_54px] gap-1">
+          <div key={item.id} className="ticket-item-row grid grid-cols-[28px_minmax(0,1fr)_48px_54px] gap-1">
             <span>{item.quantity}</span>
             <span className="break-words">{item.productName}</span>
             <span className="text-right">{item.unitPrice.toFixed(2)}</span>
@@ -112,10 +113,10 @@ export const SaleTicket = ({ sale }: SaleTicketProps) => {
   );
 };
 
-const Separator = () => <div className="my-2 border-t border-dashed border-slate-700" />;
+const Separator = () => <div className="ticket-separator my-2 border-t border-dashed border-slate-700" />;
 
 const TotalsRow = ({ label, value, emphasized = false }: { label: string; value: string; emphasized?: boolean }) => (
-  <p className={`flex justify-between ${emphasized ? "mt-1 text-sm font-bold" : ""}`}>
+  <p className={`ticket-total-row flex justify-between ${emphasized ? "mt-1 text-sm font-bold" : ""}`}>
     <span>{label}</span><span>{value}</span>
   </p>
 );

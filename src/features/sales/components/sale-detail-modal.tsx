@@ -26,8 +26,8 @@ export const SaleDetailModal = ({
     <Dialog
       isOpen={isOpen}
       onClose={onClose}
-      title={`Ticket de venta ${sale.number}`}
-      description="Vista e impresión del comprobante de la venta."
+      title={`Resumen de venta ${sale.number}`}
+      description="Detalle del comprobante y emisión de ticket térmico."
       maxWidth="md"
     >
       <div className="space-y-6">

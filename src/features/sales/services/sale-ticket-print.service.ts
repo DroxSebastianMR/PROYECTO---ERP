@@ -3,8 +3,19 @@ const printDocumentStyles = `
   * { box-sizing: border-box; }
   html, body { width: 80mm; margin: 0; padding: 0; background: #fff; }
   body { color: #020617; font-family: "Courier New", monospace; }
-  #printable-sale-ticket { width: 80mm; min-height: 0; margin: 0; padding: 3mm 4mm; }
-  img { display: block; max-width: 190px; }
+  #printable-sale-ticket { width: 80mm; min-height: 0; margin: 0; padding: 3mm 4mm; font-size: 11px; line-height: 1.35; }
+  #printable-sale-ticket p { margin: 0; }
+  #printable-sale-ticket .ticket-header { text-align: center; }
+  #printable-sale-ticket .ticket-header img { display: block; width: auto; height: 20mm; max-width: 56mm; margin: 0 auto 2mm; object-fit: contain; }
+  #printable-sale-ticket .ticket-separator { margin: 2.5mm 0; border: 0; border-top: 1px dashed #334155; }
+  #printable-sale-ticket .ticket-meta,
+  #printable-sale-ticket .ticket-total-row { display: flex; justify-content: space-between; gap: 2mm; }
+  #printable-sale-ticket .ticket-item-row { display: grid; grid-template-columns: 8mm minmax(0, 1fr) 13mm 15mm; gap: 1mm; align-items: start; }
+  #printable-sale-ticket .ticket-item-row span:nth-child(3),
+  #printable-sale-ticket .ticket-item-row span:nth-child(4) { text-align: right; }
+  #printable-sale-ticket .ticket-item-heading { font-weight: 700; }
+  #printable-sale-ticket .ticket-item-row + .ticket-item-row { margin-top: 1.5mm; }
+  #printable-sale-ticket footer { padding-top: 1mm; text-align: center; font-weight: 700; }
 `;
 
 export const printSaleTicket = (ticketId = "printable-sale-ticket") => {
