@@ -5,9 +5,10 @@ import type { SaleReceipt } from "@/features/sales/types/sale.types";
 interface SaleTableProps {
   sales: SaleReceipt[];
   onView: (sale: SaleReceipt) => void;
+  onPrint: (sale: SaleReceipt) => void;
 }
 
-export const SaleTable = ({ sales, onView }: SaleTableProps) => {
+export const SaleTable = ({ sales, onView, onPrint }: SaleTableProps) => {
   const formatPrice = (val: number) =>
     new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" }).format(val);
 
@@ -98,7 +99,7 @@ export const SaleTable = ({ sales, onView }: SaleTableProps) => {
                   <td className="whitespace-nowrap px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-1">
                       <button
-                        onClick={() => onView(sale)}
+                        onClick={() => onPrint(sale)}
                         className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-blue-50 hover:text-blue-600"
                         title="Ver comprobante"
                       >

@@ -5,6 +5,8 @@ import { useSales } from "@/features/sales/hooks/use-sales";
 import { SaleMetrics } from "@/features/sales/components/sale-metrics";
 import { SaleTable } from "@/features/sales/components/sale-table";
 import { SaleDetailModal } from "@/features/sales/components/sale-detail-modal";
+import { SaleTicket } from "@/features/sales/components/sale-ticket";
+import { printSaleTicket } from "@/features/sales/services/sale-ticket-print.service";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -114,7 +116,14 @@ export const SalesPage = () => {
 
       {/* Sales Data Table */}
       <section className="mt-6">
-        <SaleTable sales={sales} onView={handleOpenDetailModal} />
+        <SaleTable
+          sales={sales}
+          onView={handleOpenDetailModal}
+          onPrint={(sale) => printSaleTicket(`sale-ticket-${sale.id}`)}
+        />
+        <div className="hidden" aria-hidden="true">
+          {sales.map((sale) => <SaleTicket key={sale.id} sale={sale} id={`sale-ticket-${sale.id}`} />)}
+        </div>
         <div className="mt-4 flex flex-col gap-3 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between"><span>Mostrando {sales.length} de {pagination.total}</span><div className="flex items-center gap-1.5 self-end sm:gap-2 sm:self-auto"><Button variant="ghost" disabled={pagination.page === 1} onClick={() => pagination.setPage(pagination.page - 1)}><ChevronLeft className="h-4 w-4" /> Anterior</Button><span className="whitespace-nowrap">{pagination.page} / {pagination.pageCount}</span><Button variant="ghost" disabled={pagination.page === pagination.pageCount} onClick={() => pagination.setPage(pagination.page + 1)}>Siguiente <ChevronRight className="h-4 w-4" /></Button></div></div>
       </section>
 

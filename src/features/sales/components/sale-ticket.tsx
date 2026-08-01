@@ -4,6 +4,7 @@ import nortivaLogo from "@/assets/img/logo.png";
 
 interface SaleTicketProps {
   sale: SaleReceipt;
+  id?: string;
 }
 
 const money = (value: number) =>
@@ -34,14 +35,14 @@ const formatTime = (date: string) =>
     new Date(date),
   );
 
-export const SaleTicket = ({ sale }: SaleTicketProps) => {
+export const SaleTicket = ({ sale, id = "printable-sale-ticket" }: SaleTicketProps) => {
   const discount = sale.items.reduce((total, item) => total + item.discount * item.quantity, 0);
   const customerName = sale.customerName === "Cliente contado" ? "PÚBLICO GENERAL" : sale.customerName;
   const customerDocument = sale.customerDocument || "SIN DOCUMENTO";
 
   return (
     <article
-      id="printable-sale-ticket"
+      id={id}
       className="mx-auto w-[80mm] bg-white px-4 py-5 font-mono text-[11px] leading-[1.35] text-slate-950"
     >
       <header className="ticket-header text-center">
