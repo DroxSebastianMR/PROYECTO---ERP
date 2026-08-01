@@ -1,4 +1,4 @@
-import { Check, ChevronDown, Filter } from "lucide-react";
+import { Check, ChevronDown, Filter, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 interface CategoryMultiSelectProps {
@@ -13,6 +13,7 @@ export const CategoryMultiSelect = ({
   onChange,
 }: CategoryMultiSelectProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -30,6 +31,9 @@ export const CategoryMultiSelect = ({
         : [...selectedCategories, category],
     );
   };
+  const visibleCategories = categories.filter((category) =>
+    category.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()),
+  );
 
   const label = selectedCategories.length
     ? `${selectedCategories.length} categoría${selectedCategories.length === 1 ? "" : "s"}`
@@ -58,8 +62,17 @@ export const CategoryMultiSelect = ({
               </button>
             )}
           </div>
+          <label className="mx-1.5 mt-2 flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2 text-slate-500 focus-within:border-blue-300 focus-within:bg-white">
+            <Search className="h-3.5 w-3.5" />
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Buscar categoría..."
+              className="min-w-0 flex-1 bg-transparent text-xs text-slate-700 outline-none placeholder:text-slate-400"
+            />
+          </label>
           <div role="listbox" aria-multiselectable="true" className="max-h-60 overflow-y-auto py-1">
-            {categories.map((category) => {
+            {visibleCategories.map((category) => {
               const isSelected = selectedCategories.includes(category);
               return (
                 <label key={category} className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-slate-700 transition hover:bg-blue-50">
@@ -71,6 +84,9 @@ export const CategoryMultiSelect = ({
                 </label>
               );
             })}
+            {!visibleCategories.length && (
+              <p className="px-3 py-5 text-center text-xs text-slate-500">No se encontraron categorías.</p>
+            )}
           </div>
         </div>
       )}

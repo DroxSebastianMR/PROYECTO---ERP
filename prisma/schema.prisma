@@ -195,10 +195,30 @@ model LoginAudit {
 model Customer {
   id          String      @id @default(uuid()) @db.Uuid
   companyId   String      @db.Uuid
+  code        String
+  customerType String     @default("PERSONA_NATURAL")
+  documentType String     @default("DNI")
   document    String?
   name        String
+  firstName   String?
+  lastName    String?
+  birthDate   DateTime?
+  gender      String?
+  civilStatus String?
+  companyName String?
+  tradeName   String?
+  legalRepresentative String?
+  representativeRole String?
   email       String?
   phone       String?
+  mobilePhone String?
+  companyPhone String?
+  companyEmail String?
+  address     String?
+  ubigeo      String?
+  category    String      @default("REGULAR")
+  status      String      @default("ACTIVO")
+  notes       String?
   creditLimit Decimal     @default(0) @db.Decimal(12, 2)
   creditDays  Int         @default(0)
   isActive    Boolean     @default(true)
@@ -207,6 +227,7 @@ model Customer {
   company     Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
   sales       Sale[]
   @@index([companyId, name])
+  @@unique([companyId, code])
   @@unique([companyId, document])
 }
 

@@ -69,7 +69,7 @@ export const salesService = {
       orderBy: { name: "asc" },
     });
   },
-  createCustomer(
+  async createCustomer(
     companyId: string,
     input: {
       name: string;
@@ -80,7 +80,10 @@ export const salesService = {
       creditDays?: number;
     },
   ) {
-    return prisma.customer.create({ data: { companyId, ...input } });
+    const count = await prisma.customer.count({ where: { companyId } });
+    return prisma.customer.create({
+      data: { companyId, code: `CLI-${String(count + 1).padStart(6, "0")}`, ...input },
+    });
   },
   async create(companyId: string, userId: string, input: SaleInput) {
     const existing = await prisma.sale.findFirst({

@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { productService } from "@/features/products/services/product.service";
+import { customerService } from "@/features/customers/services/customer.service";
+import type { CreateCustomerInput } from "@/features/customers/types/customer.types";
 import { saleService } from "@/features/sales/services/sale.service";
 import type { CreateSaleInput, SaleReceipt, SaleStatus } from "@/features/sales/types/sale.types";
 
@@ -22,8 +24,8 @@ export const useSales = () => {
   });
   const productsQuery = useQuery({ queryKey: ["products"], queryFn: productService.getProducts });
   const customersQuery = useQuery({
-    queryKey: ["sales", "customers"],
-    queryFn: saleService.getCustomers,
+    queryKey: ["customers"],
+    queryFn: customerService.getCustomers,
   });
   const warehousesQuery = useQuery({
     queryKey: ["inventory", "warehouses"],
@@ -49,8 +51,8 @@ export const useSales = () => {
     },
   });
   const createCustomer = useMutation({
-    mutationFn: saleService.createCustomer,
-    onSuccess: () => client.invalidateQueries({ queryKey: ["sales", "customers"] }),
+    mutationFn: customerService.createCustomer,
+    onSuccess: () => client.invalidateQueries({ queryKey: ["customers"] }),
   });
   const confirm = useMutation({ mutationFn: saleService.confirmSale, onSuccess: invalidate });
   const dispatch = useMutation({ mutationFn: saleService.dispatchSale, onSuccess: invalidate });
@@ -75,7 +77,15 @@ export const useSales = () => {
     sales: paginatedSales,
     pagination: { page: currentPage, pageCount, total: filtered.length, setPage },
     products: productsQuery.data ?? [],
-    customers: customersQuery.data ?? [],
+    customers: (customersQuery.data ?? [])
+      .filter((customer) => customer.status === "ACTIVO")
+      .map((customer) => ({
+        id: customer.id,
+        name: customer.companyName || `${customer.firstName ?? ""} ${customer.lastName ?? ""}`.trim(),
+        document: customer.documentNumber,
+        creditLimit: 0,
+        creditDays: 0,
+      })),
     warehouses: warehousesQuery.data ?? [],
     isLoading: salesQuery.isLoading,
     isRefreshing: salesQuery.isFetching && !salesQuery.isLoading,
@@ -96,12 +106,18 @@ export const useSales = () => {
       setIsDetailOpen(true);
     },
     handleCreateSale: (input: CreateSaleInput) => create.mutateAsync(input),
-    handleCreateCustomer: (input: {
-      name: string;
-      document?: string;
-      phone?: string;
-      email?: string;
-    }) => createCustomer.mutateAsync(input),
+    isCreatingCustomer: createCustomer.isPending,
+    handleCreateCustomer: async (input: CreateCustomerInput) => {
+      const customer = await createCustomer.mutateAsync(input);
+      return {
+        id: customer.id,
+        name: customer.companyName || `${customer.firstName ?? ""} ${customer.lastName ?? ""}`.trim(),
+        document: customer.documentNumber,
+        creditLimit: 0,
+        creditDays: 0,
+      };
+    },
+    handleLookupCustomerDocument: customerService.lookupDocument,
     handleConfirmSale: (id: string) => confirm.mutateAsync(id),
     handleDispatchSale: (id: string) => dispatch.mutateAsync(id),
   };

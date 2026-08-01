@@ -5,8 +5,16 @@ import { useSales } from "@/features/sales/hooks/use-sales";
 
 export const NewSalePage = () => {
   const navigate = useNavigate();
-  const { products, customers, warehouses, isSubmitting, handleCreateSale, handleCreateCustomer } =
-    useSales();
+  const {
+    products,
+    customers,
+    warehouses,
+    isSubmitting,
+    isCreatingCustomer,
+    handleCreateSale,
+    handleCreateCustomer,
+    handleLookupCustomerDocument,
+  } = useSales();
 
   return (
     <div className="min-h-screen bg-slate-50 px-4 py-5 sm:px-6 sm:py-7 lg:px-10">
@@ -22,7 +30,9 @@ export const NewSalePage = () => {
           onSubmit={handleCreateSale}
           onComplete={() => navigate(PATHS.APP.SALES)}
           onCreateCustomer={handleCreateCustomer}
+          onLookupCustomerDocument={handleLookupCustomerDocument}
           isSubmitting={isSubmitting}
+          isCreatingCustomer={isCreatingCustomer}
           products={products}
           customers={customers}
           warehouses={warehouses}

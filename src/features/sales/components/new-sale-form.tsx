@@ -15,7 +15,9 @@ import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { SaleProcessingOverlay } from "@/features/sales/components/sale-processing-overlay";
+import { CustomerFormModal } from "@/features/customers/components/customer-form-modal";
 import type { Product } from "@/features/products/types/product.types";
+import type { CreateCustomerInput, DocumentType } from "@/features/customers/types/customer.types";
 import type {
   CreateSaleInput,
   CustomerOption,
@@ -30,13 +32,14 @@ interface NewSaleFormProps {
   onCancel: () => void;
   onSubmit: (data: CreateSaleInput) => Promise<SaleReceipt>;
   onComplete: () => void;
-  onCreateCustomer: (data: {
-    name: string;
-    document?: string;
-    phone?: string;
-    email?: string;
-  }) => Promise<CustomerOption>;
+  onCreateCustomer: (data: CreateCustomerInput) => Promise<CustomerOption>;
+  onLookupCustomerDocument: (type: DocumentType, document: string) => Promise<{
+    found: boolean;
+    data?: Record<string, string | undefined>;
+    message?: string;
+  }>;
   isSubmitting: boolean;
+  isCreatingCustomer: boolean;
   products: Product[];
   customers: CustomerOption[];
   warehouses: WarehouseOption[];
@@ -49,7 +52,9 @@ export const NewSaleForm = ({
   onSubmit,
   onComplete,
   onCreateCustomer,
+  onLookupCustomerDocument,
   isSubmitting,
+  isCreatingCustomer,
   products,
   customers,
   warehouses,
@@ -59,13 +64,13 @@ export const NewSaleForm = ({
   const [query, setQuery] = useState("");
   const [warehouseId, setWarehouseId] = useState("");
   const [customerId, setCustomerId] = useState("");
+  const [customerSearch, setCustomerSearch] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<SalePaymentMethod>("CASH");
   const documentType: SaleDocumentType = "RECEIPT";
   const [cart, setCart] = useState<CartLine[]>([]);
   const [customerOpen, setCustomerOpen] = useState(false);
   const [completedSale, setCompletedSale] = useState<SaleReceipt | null>(null);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [newCustomer, setNewCustomer] = useState({ name: "", document: "", phone: "", email: "" });
   const activeWarehouseId = warehouseId || warehouses[0]?.id || "";
   const warehouseName = warehouses.find((warehouse) => warehouse.id === activeWarehouseId)?.name;
   const available = useCallback(
@@ -95,6 +100,15 @@ export const NewSaleForm = ({
       .sort((first, second) => available(second) - available(first))
       .slice(0, 6);
   }, [products, query, available]);
+  const visibleCustomers = useMemo(() => {
+    const term = customerSearch.trim().toLowerCase();
+    return customers.filter(
+      (customer) =>
+        !term ||
+        customer.name.toLowerCase().includes(term) ||
+        customer.document?.toLowerCase().includes(term),
+    );
+  }, [customers, customerSearch]);
   const addProduct = (product: Product) => {
     const stock = available(product);
     if (stock <= 0) return;
@@ -137,16 +151,11 @@ export const NewSaleForm = ({
           : line.product.salePrice),
     0,
   );
-  const saveCustomer = async (event: FormEvent) => {
-    event.preventDefault();
-    try {
-      const customer = await onCreateCustomer(newCustomer);
-      setCustomerId(customer.id);
-      setCustomerOpen(false);
-      setNewCustomer({ name: "", document: "", phone: "", email: "" });
-    } catch (error) {
-      alert(error instanceof Error ? error.message : "No se pudo registrar el cliente.");
-    }
+  const saveCustomer = async (input: CreateCustomerInput) => {
+    const customer = await onCreateCustomer(input);
+    setCustomerId(customer.id);
+    setCustomerSearch("");
+    setCustomerOpen(false);
   };
   const requestSaleConfirmation = (event: FormEvent) => {
     event.preventDefault();
@@ -332,12 +341,18 @@ export const NewSaleForm = ({
               <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
                 Cliente
               </label>
+              <Input
+                value={customerSearch}
+                onChange={(event) => setCustomerSearch(event.target.value)}
+                placeholder="Buscar por nombre o DNI/RUC"
+                className="text-sm"
+              />
               <div className="flex gap-2">
                 <Select value={customerId} onChange={(event) => setCustomerId(event.target.value)}>
                   <option value="">Cliente genérico (público general)</option>
-                  {customers.map((customer) => (
+                  {visibleCustomers.map((customer) => (
                     <option key={customer.id} value={customer.id}>
-                      {customer.name}
+                      {customer.name}{customer.document ? ` · ${customer.document}` : ""}
                     </option>
                   ))}
                 </Select>
@@ -515,67 +530,15 @@ export const NewSaleForm = ({
           </div>
         </div>
       </Dialog>
-      <Dialog
+      <CustomerFormModal
         isOpen={customerOpen}
+        mode="create"
+        initialData={null}
+        isSubmitting={isCreatingCustomer}
         onClose={() => setCustomerOpen(false)}
-        title="Nuevo cliente"
-        description="Se agregará al carrito sin perder la venta actual."
-        maxWidth="md"
-      >
-        <form onSubmit={saveCustomer} className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="text-xs font-semibold text-slate-600">
-              DNI / RUC
-              <Input
-                required
-                value={newCustomer.document}
-                onChange={(event) =>
-                  setNewCustomer((current) => ({ ...current, document: event.target.value }))
-                }
-                className="mt-1"
-              />
-            </label>
-            <label className="text-xs font-semibold text-slate-600">
-              Nombre o razón social
-              <Input
-                required
-                value={newCustomer.name}
-                onChange={(event) =>
-                  setNewCustomer((current) => ({ ...current, name: event.target.value }))
-                }
-                className="mt-1"
-              />
-            </label>
-            <label className="text-xs font-semibold text-slate-600">
-              Celular
-              <Input
-                value={newCustomer.phone}
-                onChange={(event) =>
-                  setNewCustomer((current) => ({ ...current, phone: event.target.value }))
-                }
-                className="mt-1"
-              />
-            </label>
-            <label className="text-xs font-semibold text-slate-600">
-              Correo
-              <Input
-                type="email"
-                value={newCustomer.email}
-                onChange={(event) =>
-                  setNewCustomer((current) => ({ ...current, email: event.target.value }))
-                }
-                className="mt-1"
-              />
-            </label>
-          </div>
-          <div className="flex justify-end gap-3">
-            <Button type="button" variant="ghost" onClick={() => setCustomerOpen(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit">Registrar cliente</Button>
-          </div>
-        </form>
-      </Dialog>
+        onSubmit={saveCustomer}
+        onLookupDocument={onLookupCustomerDocument}
+      />
     </>
   );
 };
