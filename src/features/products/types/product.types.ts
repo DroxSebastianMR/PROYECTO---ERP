@@ -31,6 +31,7 @@ export interface Product {
   createdAt: string;
   updatedAt: string;
   stocks?: StockByWarehouse[];
+  barcodes?: Array<{ id: string; code: string; format: "CODE128" | "EAN13"; isPrimary: boolean }>;
 }
 
 export interface CreateProductInput {

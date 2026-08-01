@@ -101,6 +101,11 @@ enum TaxTreatment {
   UNAFFECTED
 }
 
+enum BarcodeFormat {
+  CODE128
+  EAN13
+}
+
 model Company {
   id          String      @id @default(uuid()) @db.Uuid
   name        String
@@ -115,6 +120,7 @@ model Company {
   productBrands ProductBrand[]
   measurementUnits MeasurementUnit[]
   productPresentations ProductPresentation[]
+  productBarcodes ProductBarcode[]
   inventoryTransfers InventoryTransfer[]
   inventoryCounts InventoryCount[]
   warehouses  Warehouse[]
@@ -259,6 +265,7 @@ model Product {
   subcategory ProductSubcategory? @relation(fields: [subcategoryId], references: [id], onDelete: SetNull)
   brand       ProductBrand?    @relation(fields: [brandId], references: [id], onDelete: SetNull)
   presentations ProductPresentation[]
+  barcodes     ProductBarcode[]
   stocks      InventoryStock[]
   movements   InventoryMovement[]
   saleItems   SaleItem[]
@@ -269,6 +276,22 @@ model Product {
   @@unique([companyId, sku])
   @@unique([companyId, barcode])
   @@index([companyId, name])
+}
+
+model ProductBarcode {
+  id        String        @id @default(uuid()) @db.Uuid
+  companyId String        @db.Uuid
+  productId String        @db.Uuid
+  code      String
+  format    BarcodeFormat @default(CODE128)
+  isPrimary Boolean       @default(false)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  company   Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  product   Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  @@unique([companyId, code])
+  @@unique([productId, code])
+  @@index([companyId, productId])
 }
 
 model ProductCategory {

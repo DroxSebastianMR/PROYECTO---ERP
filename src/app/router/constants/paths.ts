@@ -3,6 +3,7 @@ export const PATHS = {
   APP: {
     DASHBOARD: "/dashboard",
     PRODUCTS: "/productos",
+    BARCODES: "/codigos-de-barras",
     INVENTORY: "/inventario",
     PURCHASES: "/compras",
     SALES: "/ventas",

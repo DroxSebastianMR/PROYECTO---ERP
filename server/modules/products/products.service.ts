@@ -45,6 +45,7 @@ const productInclude = {
   category: true,
   brand: true,
   presentations: { orderBy: { unitsPerBase: "asc" } },
+  barcodes: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }] },
   stocks: { include: { warehouse: true } },
 } satisfies Prisma.ProductInclude;
 

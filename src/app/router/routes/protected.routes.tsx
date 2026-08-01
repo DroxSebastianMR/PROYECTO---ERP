@@ -9,6 +9,7 @@ import { PurchasesPage } from "@/features/purchases/pages";
 import { NewSalePage, SalesPage } from "@/features/sales/pages";
 import { CustomersPage } from "@/features/customers/pages";
 import { UsersPage } from "@/features/users/pages";
+import { BarcodesPage } from "@/features/barcodes/pages";
 
 export const protectedRoutes: RouteObject[] = [
   {
@@ -19,6 +20,7 @@ export const protectedRoutes: RouteObject[] = [
         children: [
           { path: PATHS.APP.DASHBOARD, element: <DashboardPage /> },
           { path: PATHS.APP.PRODUCTS, element: <ProductsPage /> },
+          { path: PATHS.APP.BARCODES, element: <BarcodesPage /> },
           { path: PATHS.APP.INVENTORY, element: <InventoryPage /> },
           { path: PATHS.APP.PURCHASES, element: <PurchasesPage /> },
           { path: PATHS.APP.SALES, element: <SalesPage /> },

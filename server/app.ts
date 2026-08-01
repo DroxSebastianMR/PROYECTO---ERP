@@ -10,6 +10,7 @@ import { salesRouter } from "./modules/sales/sales.routes.js";
 import { usersRouter } from "./modules/users/users.routes.js";
 import { notificationsRouter } from "./modules/notifications/notifications.routes.js";
 import { customersRouter } from "./modules/customers/customers.routes.js";
+import { barcodesRouter } from "./modules/barcodes/barcodes.routes.js";
 import { requireAuthentication } from "./modules/auth/auth.middleware.js";
 
 export function createApp() {
@@ -45,6 +46,7 @@ export function createApp() {
   protectedRoutes.use(requireAuthentication);
   protectedRoutes.use("/dashboard", dashboardRouter);
   protectedRoutes.use("/products", productsRouter);
+  protectedRoutes.use("/barcodes", barcodesRouter);
   protectedRoutes.use("/inventory", inventoryRouter);
   protectedRoutes.use("/purchases", purchasesRouter);
   protectedRoutes.use("/sales", salesRouter);

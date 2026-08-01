@@ -5,7 +5,7 @@ services:
     plan: free
     region: oregon
     buildCommand: npm ci && npx prisma generate
-    startCommand: npx tsx server/server.ts
+    startCommand: npx prisma migrate deploy && npx tsx server/server.ts
     healthCheckPath: /api/health
     autoDeploy: true
     envVars:

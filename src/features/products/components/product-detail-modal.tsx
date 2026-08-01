@@ -2,7 +2,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ProductStatusBadge } from "./product-status-badge";
 import type { Product } from "@/features/products/types/product.types";
-import { Boxes, Warehouse, DollarSign, Tag, Calendar } from "lucide-react";
+import { Boxes, Warehouse, DollarSign, Tag, Calendar, Barcode } from "lucide-react";
 
 interface ProductDetailModalProps {
   isOpen: boolean;
@@ -61,6 +61,11 @@ export const ProductDetailModal = ({
           >
             Editar Producto
           </Button>
+        </div>
+
+        <div className="rounded-lg border border-slate-100 bg-white p-4">
+          <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500"><Barcode className="h-3.5 w-3.5 text-blue-600" /> Códigos de barras asociados</div>
+          <div className="flex flex-wrap gap-2">{product.barcodes?.length ? product.barcodes.map((barcode) => <span key={barcode.id} className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 font-mono text-xs text-slate-700">{barcode.code} <span className="ml-1 font-sans text-[10px] font-semibold text-blue-600">{barcode.isPrimary ? "Principal" : barcode.format}</span></span>) : <span className="text-sm text-slate-500">Sin códigos asociados.</span>}</div>
         </div>
 
         {/* Specifications grid */}
