@@ -26,7 +26,7 @@ const navigation = [
   ["Inventario", Warehouse, PATHS.APP.INVENTORY],
   ["Compras", ShoppingCart, PATHS.APP.PURCHASES],
   ["Ventas", Tag, PATHS.APP.SALES],
-  ["Clientes", Users],
+  ["Clientes", Users, PATHS.APP.CUSTOMERS],
   ["Caja", CreditCard],
   ["Comprobantes", ClipboardList],
   ["SUNAT", Landmark],

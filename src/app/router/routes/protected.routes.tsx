@@ -7,6 +7,7 @@ import { ProductsPage } from "@/features/products/pages";
 import { InventoryPage } from "@/features/inventory/pages";
 import { PurchasesPage } from "@/features/purchases/pages";
 import { NewSalePage, SalesPage } from "@/features/sales/pages";
+import { CustomersPage } from "@/features/customers/pages";
 import { UsersPage } from "@/features/users/pages";
 
 export const protectedRoutes: RouteObject[] = [
@@ -22,6 +23,7 @@ export const protectedRoutes: RouteObject[] = [
           { path: PATHS.APP.PURCHASES, element: <PurchasesPage /> },
           { path: PATHS.APP.SALES, element: <SalesPage /> },
           { path: PATHS.APP.NEW_SALE, element: <NewSalePage /> },
+          { path: PATHS.APP.CUSTOMERS, element: <CustomersPage /> },
           { path: PATHS.APP.USERS, element: <UsersPage /> },
         ],
       },

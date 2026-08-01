@@ -25,12 +25,10 @@ export const InventoryPage = () => {
     warehousesList,
     metrics,
     pagination,
-    // Modal
     isAdjustmentOpen,
     setIsAdjustmentOpen,
     selectedStockItem,
     isSubmitting,
-    // Actions
     refresh,
     handleOpenAdjustment,
     handleSaveAdjustment,

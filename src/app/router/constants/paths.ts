@@ -7,6 +7,7 @@ export const PATHS = {
     PURCHASES: "/compras",
     SALES: "/ventas",
     NEW_SALE: "/ventas/nueva",
+    CUSTOMERS: "/clientes",
     USERS: "/usuarios",
   },
 } as const;
