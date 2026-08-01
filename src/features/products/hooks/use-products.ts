@@ -25,7 +25,7 @@ export const useProducts = () => {
   });
   const [filters, setFilters] = useState<ProductFilterState>({
     search: "",
-    category: "ALL",
+    categories: [],
     status: "ALL",
   });
   const [page, setPage] = useState(1);
@@ -72,7 +72,8 @@ export const useProducts = () => {
           [product.name, product.sku, product.category, product.barcode ?? ""].some((value) =>
             value.toLowerCase().includes(filters.search.toLowerCase()),
           );
-        const matchCategory = filters.category === "ALL" || product.category === filters.category;
+        const matchCategory =
+          filters.categories.length === 0 || filters.categories.includes(product.category);
         const matchStatus = filters.status === "ALL" || (filters.status === "ACTIVE" ? product.isActive : !product.isActive);
         return matchSearch && matchCategory && matchStatus;
       }),

@@ -69,7 +69,7 @@ export interface UpdateProductInput extends Partial<CreateProductInput> {
 
 export interface ProductFilterState {
   search: string;
-  category: string;
+  categories: string[];
   status: ProductStatusFilter;
 }
 

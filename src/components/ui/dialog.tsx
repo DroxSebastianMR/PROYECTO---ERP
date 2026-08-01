@@ -10,6 +10,11 @@ interface DialogProps {
   children: ReactNode;
   maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "4xl";
   page?: boolean;
+  headerClassName?: string;
+  titleClassName?: string;
+  descriptionClassName?: string;
+  headerIcon?: ReactNode;
+  headerAside?: ReactNode;
 }
 
 export const Dialog = ({
@@ -20,6 +25,11 @@ export const Dialog = ({
   children,
   maxWidth = "lg",
   page = false,
+  headerClassName,
+  titleClassName,
+  descriptionClassName,
+  headerIcon,
+  headerAside,
 }: DialogProps) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -72,15 +82,20 @@ export const Dialog = ({
           className={cn(
             "flex items-center justify-between",
             page ? "px-1 pb-6 pt-1" : "border-b border-slate-100 px-6 py-4",
+            headerClassName,
           )}
         >
-          <div>
-            <h3 className="text-lg font-semibold tracking-tight text-slate-900">{title}</h3>
-            {description && <p className="mt-0.5 text-xs text-slate-500">{description}</p>}
+          <div className="flex min-w-0 items-center gap-3">
+            {headerIcon}
+            <div>
+              <h3 className={cn("text-lg font-semibold tracking-tight text-slate-900", titleClassName)}>{title}</h3>
+              {description && <p className={cn("mt-0.5 text-xs text-slate-500", descriptionClassName)}>{description}</p>}
+            </div>
           </div>
+          {headerAside}
           <button
             onClick={onClose}
-            className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+            className={cn("grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600", headerClassName && "text-white/75 hover:bg-white/10 hover:text-white")}
           >
             <X className="h-4 w-4" />
           </button>
