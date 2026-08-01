@@ -43,7 +43,7 @@ export const SaleTicket = ({ sale, id = "printable-sale-ticket" }: SaleTicketPro
   return (
     <article
       id={id}
-      className="mx-auto w-[80mm] bg-white px-4 py-5 font-mono text-[11px] leading-[1.35] text-slate-950"
+      className="thermal-sale-ticket mx-auto w-[80mm] bg-white px-4 py-5 font-mono text-[11px] leading-[1.35] text-slate-950"
     >
       <header className="ticket-header text-center">
         <img
