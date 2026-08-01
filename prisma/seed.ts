@@ -37,6 +37,61 @@ const run = async () => {
       emailVerifiedAt: new Date(),
     },
   });
+  const customers = [
+    {
+      code: "CLI-000001",
+      customerType: "PERSONA_NATURAL",
+      documentType: "DNI",
+      document: "45892134",
+      name: "Carlos Mendoza",
+      firstName: "Carlos",
+      lastName: "Mendoza",
+      mobilePhone: "987654321",
+      email: "carlos.mendoza@ejemplo.pe",
+      category: "REGULAR",
+    },
+    {
+      code: "CLI-000002",
+      customerType: "PERSONA_NATURAL",
+      documentType: "DNI",
+      document: "71239845",
+      name: "Ana Gutierrez",
+      firstName: "Ana",
+      lastName: "Gutierrez",
+      mobilePhone: "912345678",
+      category: "REGULAR",
+    },
+    {
+      code: "CLI-000003",
+      customerType: "EMPRESA",
+      documentType: "RUC",
+      document: "20608912341",
+      name: "Comercial Andina S.A.C.",
+      companyName: "Comercial Andina S.A.C.",
+      tradeName: "Andina Comercial",
+      companyPhone: "014528900",
+      companyEmail: "ventas@andina.pe",
+      category: "MAYORISTA",
+    },
+    {
+      code: "CLI-000004",
+      customerType: "EMPRESA",
+      documentType: "RUC",
+      document: "20554433221",
+      name: "Distribuidora Central E.I.R.L.",
+      companyName: "Distribuidora Central E.I.R.L.",
+      tradeName: "Distri Central",
+      companyPhone: "016109900",
+      category: "MAYORISTA",
+    },
+  ] as const;
+  for (const customer of customers) {
+    await prisma.customer.upsert({
+      where: { companyId_document: { companyId: company.id, document: customer.document } },
+      update: { ...customer, isActive: true, status: "ACTIVO" },
+      create: { companyId: company.id, ...customer, isActive: true, status: "ACTIVO" },
+    });
+  }
   console.log(`Seed completed for ${email}`);
 };
 run().finally(() => prisma.$disconnect());

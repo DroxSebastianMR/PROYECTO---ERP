@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   Barcode,
   Minus,
@@ -47,6 +47,78 @@ interface NewSaleFormProps {
 const money = (value: number) =>
   new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" }).format(value);
 
+const CustomerPicker = ({
+  customers,
+  value,
+  onChange,
+}: {
+  customers: CustomerOption[];
+  value: string;
+  onChange: (customerId: string) => void;
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const selected = customers.find((customer) => customer.id === value);
+  const visibleCustomers = customers.filter((customer) => {
+    const term = search.trim().toLowerCase();
+    return !term || customer.name.toLowerCase().includes(term) || customer.document?.toLowerCase().includes(term);
+  });
+
+  useEffect(() => {
+    const close = (event: MouseEvent) => {
+      if (!containerRef.current?.contains(event.target as Node)) setIsOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, []);
+
+  return (
+    <div ref={containerRef} className="relative min-w-0 flex-1">
+      <button
+        type="button"
+        onClick={() => setIsOpen((open) => !open)}
+        className="flex h-10 w-full items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 text-left text-sm text-slate-700 outline-none transition hover:border-blue-300 focus:ring-2 focus:ring-blue-100"
+      >
+        <span className="truncate">{selected ? `${selected.name}${selected.document ? ` · ${selected.document}` : ""}` : "Cliente genérico (público general)"}</span>
+        <span className="text-xs text-slate-400">⌄</span>
+      </button>
+      {isOpen && (
+        <div className="absolute left-0 top-[calc(100%+6px)] z-30 w-full overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10">
+          <Input
+            autoFocus
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Buscar por nombre, DNI o RUC"
+            className="mb-1.5 h-9 text-xs"
+          />
+          <div className="max-h-52 overflow-y-auto">
+            <button
+              type="button"
+              onClick={() => { onChange(""); setIsOpen(false); setSearch(""); }}
+              className="w-full rounded-lg px-3 py-2 text-left text-sm text-slate-700 hover:bg-blue-50"
+            >
+              Cliente genérico (público general)
+            </button>
+            {visibleCustomers.map((customer) => (
+              <button
+                key={customer.id}
+                type="button"
+                onClick={() => { onChange(customer.id); setIsOpen(false); setSearch(""); }}
+                className="w-full rounded-lg px-3 py-2 text-left text-sm text-slate-700 hover:bg-blue-50"
+              >
+                <span className="block truncate font-medium">{customer.name}</span>
+                {customer.document && <span className="block text-xs text-slate-500">{customer.document}</span>}
+              </button>
+            ))}
+            {!visibleCustomers.length && <p className="px-3 py-4 text-center text-xs text-slate-500">No se encontraron clientes.</p>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const NewSaleForm = ({
   onCancel,
   onSubmit,
@@ -62,16 +134,14 @@ export const NewSaleForm = ({
   const scannerRef = useRef<HTMLInputElement>(null);
   const idempotencyKeyRef = useRef<string | null>(null);
   const [query, setQuery] = useState("");
-  const [warehouseId, setWarehouseId] = useState("");
   const [customerId, setCustomerId] = useState("");
-  const [customerSearch, setCustomerSearch] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<SalePaymentMethod>("CASH");
   const documentType: SaleDocumentType = "RECEIPT";
   const [cart, setCart] = useState<CartLine[]>([]);
   const [customerOpen, setCustomerOpen] = useState(false);
   const [completedSale, setCompletedSale] = useState<SaleReceipt | null>(null);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const activeWarehouseId = warehouseId || warehouses[0]?.id || "";
+  const activeWarehouseId = warehouses[0]?.id || "";
   const warehouseName = warehouses.find((warehouse) => warehouse.id === activeWarehouseId)?.name;
   const available = useCallback(
     (product: Product) => {
@@ -100,15 +170,6 @@ export const NewSaleForm = ({
       .sort((first, second) => available(second) - available(first))
       .slice(0, 6);
   }, [products, query, available]);
-  const visibleCustomers = useMemo(() => {
-    const term = customerSearch.trim().toLowerCase();
-    return customers.filter(
-      (customer) =>
-        !term ||
-        customer.name.toLowerCase().includes(term) ||
-        customer.document?.toLowerCase().includes(term),
-    );
-  }, [customers, customerSearch]);
   const addProduct = (product: Product) => {
     const stock = available(product);
     if (stock <= 0) return;
@@ -154,7 +215,6 @@ export const NewSaleForm = ({
   const saveCustomer = async (input: CreateCustomerInput) => {
     const customer = await onCreateCustomer(input);
     setCustomerId(customer.id);
-    setCustomerSearch("");
     setCustomerOpen(false);
   };
   const requestSaleConfirmation = (event: FormEvent) => {
@@ -341,21 +401,8 @@ export const NewSaleForm = ({
               <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
                 Cliente
               </label>
-              <Input
-                value={customerSearch}
-                onChange={(event) => setCustomerSearch(event.target.value)}
-                placeholder="Buscar por nombre o DNI/RUC"
-                className="text-sm"
-              />
               <div className="flex gap-2">
-                <Select value={customerId} onChange={(event) => setCustomerId(event.target.value)}>
-                  <option value="">Cliente genérico (público general)</option>
-                  {visibleCustomers.map((customer) => (
-                    <option key={customer.id} value={customer.id}>
-                      {customer.name}{customer.document ? ` · ${customer.document}` : ""}
-                    </option>
-                  ))}
-                </Select>
+                <CustomerPicker customers={customers} value={customerId} onChange={setCustomerId} />
                 <Button
                   type="button"
                   variant="ghost"
@@ -365,17 +412,7 @@ export const NewSaleForm = ({
                   <UserRound className="h-4 w-4" />
                 </Button>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <Select
-                  value={activeWarehouseId}
-                  onChange={(event) => setWarehouseId(event.target.value)}
-                >
-                  {warehouses.map((warehouse) => (
-                    <option key={warehouse.id} value={warehouse.id}>
-                      {warehouse.name}
-                    </option>
-                  ))}
-                </Select>
+              <div>
                 <Select
                   value={paymentMethod}
                   onChange={(event) => setPaymentMethod(event.target.value as SalePaymentMethod)}
@@ -384,7 +421,6 @@ export const NewSaleForm = ({
                   <option value="CARD">Tarjeta</option>
                   <option value="BANK_TRANSFER">Transferencia</option>
                   <option value="YAPE_PLIN">Yape / Plin</option>
-                  <option value="CREDIT">Crédito</option>
                 </Select>
               </div>
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">Ticket de venta</div>
