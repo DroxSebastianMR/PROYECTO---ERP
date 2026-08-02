@@ -1,256 +1,66 @@
-import { useState, type FormEvent } from "react";
-import { Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { FileUp, PackagePlus, Plus, ReceiptText, Search, ShoppingBag, Trash2, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import type { Product } from "@/features/products/types/product.types";
-import type {
-  CreatePurchaseInput,
-  PurchasePaymentMethod,
-  SupplierOption,
-  WarehouseOption,
-} from "@/features/purchases/types/purchase.types";
+import type { CreatePurchaseInput, PurchasePaymentMethod, SupplierOption, WarehouseOption } from "@/features/purchases/types/purchase.types";
 
-interface PurchaseFormModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (data: CreatePurchaseInput) => Promise<unknown>;
-  isSubmitting: boolean;
-  products: Product[];
-  suppliers: SupplierOption[];
-  warehouses: WarehouseOption[];
-}
+type FormItem = { productId: string; quantity: string; unitCost: string };
+const emptyItem = (): FormItem => ({ productId: "", quantity: "1", unitCost: "" });
+const today = () => new Date().toISOString().slice(0, 10);
+const money = (value: number) => new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" }).format(value);
 
-interface FormItem {
-  productId: string;
-  quantity: string;
-  unitCost: string;
-}
-const emptyItem: FormItem = { productId: "", quantity: "1", unitCost: "" };
+const FormSectionTitle = ({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) => <div className="flex items-center gap-2.5"><span className="grid h-8 w-8 place-items-center rounded-lg bg-blue-600 text-white">{icon}</span><div><h4 className="text-xs font-bold uppercase tracking-wider text-blue-900">{title}</h4><p className="text-[11px] text-slate-600">{description}</p></div></div>;
 
-export const PurchaseFormModal = ({
-  isOpen,
-  onClose,
-  onSubmit,
-  isSubmitting,
-  products,
-  suppliers,
-  warehouses,
-}: PurchaseFormModalProps) => {
+const PurchaseLine = ({ item, index, products, warehouseName, onChange, onRemove, canRemove }: { item: FormItem; index: number; products: Product[]; warehouseName: string; onChange: (changes: Partial<FormItem>) => void; onRemove: () => void; canRemove: boolean }) => {
+  const product = products.find((entry) => entry.id === item.productId);
+  const subtotal = (Number(item.quantity) || 0) * (Number(item.unitCost) || 0);
+  return <div className="grid min-w-[900px] grid-cols-[minmax(250px,1.6fr)_minmax(150px,1fr)_minmax(135px,1fr)_80px_105px_120px_110px_40px] items-center gap-2 border-b border-slate-100 px-4 py-3 last:border-b-0">
+    <Select value={item.productId} onChange={(event) => { const selected = products.find((entry) => entry.id === event.target.value); onChange({ productId: event.target.value, unitCost: selected ? String(selected.costPrice || "") : "" }); }}><option value="">Buscar y seleccionar producto</option>{products.map((entry) => <option key={entry.id} value={entry.id}>{entry.sku} — {entry.name}</option>)}</Select>
+    <div className="min-w-0"><p className="truncate text-sm font-medium text-slate-700">{product?.presentation || "Presentación base"}</p><p className="font-mono text-[10px] text-slate-400">{product?.sku || "—"}</p></div>
+    <p className="truncate text-sm text-slate-600">{warehouseName || "Almacén principal"}</p>
+    <span className="rounded-md bg-slate-100 px-2 py-2 text-center text-xs font-bold text-slate-600">{product?.unit || "UND"}</span>
+    <Input type="number" min="0.001" step="0.001" value={item.quantity} onChange={(event) => onChange({ quantity: event.target.value })} aria-label={`Cantidad del producto ${index + 1}`} />
+    <Input type="number" min="0" step="0.01" value={item.unitCost} onChange={(event) => onChange({ unitCost: event.target.value })} placeholder="0.00" aria-label={`Costo unitario del producto ${index + 1}`} />
+    <strong className="text-right text-sm text-emerald-700">{money(subtotal)}</strong>
+    <button type="button" onClick={onRemove} disabled={!canRemove} aria-label="Quitar producto" className="grid h-9 w-9 place-items-center rounded-lg text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-30"><Trash2 className="h-4 w-4" /></button>
+  </div>;
+};
+
+interface PurchaseFormModalProps { isOpen: boolean; onClose: () => void; onSubmit: (data: CreatePurchaseInput) => Promise<unknown>; isSubmitting: boolean; products: Product[]; suppliers: SupplierOption[]; warehouses: WarehouseOption[]; }
+
+export const PurchaseFormModal = ({ isOpen, onClose, onSubmit, isSubmitting, products, suppliers, warehouses }: PurchaseFormModalProps) => {
   const [supplierId, setSupplierId] = useState("");
+  const [supplierSearch, setSupplierSearch] = useState("");
   const [warehouseId, setWarehouseId] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PurchasePaymentMethod>("CREDIT");
-  const [items, setItems] = useState<FormItem[]>([emptyItem]);
-
+  const [currency, setCurrency] = useState("PEN");
+  const [supplierDocumentNumber, setSupplierDocumentNumber] = useState("");
+  const [purchasedAt, setPurchasedAt] = useState(today());
+  const [warehouseEntryAt, setWarehouseEntryAt] = useState(today());
+  const [notes, setNotes] = useState("");
+  const [items, setItems] = useState<FormItem[]>([emptyItem()]);
   const selectedWarehouseId = warehouseId || warehouses[0]?.id || "";
+  const selectedWarehouse = warehouses.find((warehouse) => warehouse.id === selectedWarehouseId);
+  const visibleSuppliers = useMemo(() => suppliers.filter((supplier) => supplier.name.toLowerCase().includes(supplierSearch.toLowerCase())), [suppliers, supplierSearch]);
+  const totals = useMemo(() => { const subtotal = items.reduce((total, item) => total + (Number(item.quantity) || 0) * (Number(item.unitCost) || 0), 0); const tax = subtotal * 0.18; return { subtotal, tax, total: subtotal + tax }; }, [items]);
 
-  const updateItem = (index: number, changes: Partial<FormItem>) => {
-    setItems((current) =>
-      current.map((item, itemIndex) => (itemIndex === index ? { ...item, ...changes } : item)),
-    );
-  };
-  const selectProduct = (index: number, productId: string) => {
-    const product = products.find((entry) => entry.id === productId);
-    updateItem(index, { productId, unitCost: product ? String(product.costPrice) : "" });
-  };
-  const calculatedTotal = items.reduce(
-    (total, item) => total + (Number(item.quantity) || 0) * (Number(item.unitCost) || 0),
-    0,
-  );
+  useEffect(() => { if (!isOpen) return; setSupplierId(""); setSupplierSearch(""); setWarehouseId(""); setPaymentMethod("CREDIT"); setCurrency("PEN"); setSupplierDocumentNumber(""); setPurchasedAt(today()); setWarehouseEntryAt(today()); setNotes(""); setItems([emptyItem()]); }, [isOpen]);
+  const updateItem = (index: number, changes: Partial<FormItem>) => setItems((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, ...changes } : item));
+  const submit = async (event: FormEvent) => { event.preventDefault(); if (!supplierId || !selectedWarehouseId || !supplierDocumentNumber.trim() || items.some((item) => !item.productId || Number(item.quantity) <= 0 || Number(item.unitCost) < 0)) { alert("Completa proveedor, comprobante, almacén y productos con cantidades válidas."); return; } await onSubmit({ supplierId, warehouseId: selectedWarehouseId, paymentMethod, currency, supplierDocumentNumber: supplierDocumentNumber.trim(), purchasedAt, warehouseEntryAt, notes: notes.trim() || undefined, items: items.map((item) => { const product = products.find((entry) => entry.id === item.productId); return { productId: item.productId, quantity: Number(item.quantity), unitCost: Number(item.unitCost), presentationName: product?.presentation || undefined, unit: product?.unit || "UND" }; }) }); };
 
-  const resetForm = () => {
-    setSupplierId("");
-    setWarehouseId("");
-    setPaymentMethod("CREDIT");
-    setItems([emptyItem]);
-  };
-  const handleSubmit = async (event: FormEvent) => {
-    event.preventDefault();
-    if (
-      !supplierId ||
-      !selectedWarehouseId ||
-      items.some(
-        (item) => !item.productId || Number(item.quantity) <= 0 || Number(item.unitCost) < 0,
-      )
-    ) {
-      alert("Selecciona proveedor, almacén y productos con cantidades válidas.");
-      return;
-    }
-    await onSubmit({
-      supplierId,
-      warehouseId: selectedWarehouseId,
-      paymentMethod,
-      items: items.map((item) => ({
-        productId: item.productId,
-        quantity: Number(item.quantity),
-        unitCost: Number(item.unitCost),
-      })),
-    });
-    resetForm();
-  };
+  return <Dialog isOpen={isOpen} onClose={onClose} title="Nueva compra nacional" description="Registra el comprobante y el detalle. El stock aumentará únicamente al recepcionar la compra." maxWidth="4xl" headerClassName="relative overflow-hidden border-b-0 bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 px-6 py-5" titleClassName="text-white" descriptionClassName="text-blue-100" headerIcon={<span className="grid h-10 w-10 place-items-center rounded-xl border border-white/20 bg-white/10 text-blue-100"><ShoppingBag className="h-5 w-5" /></span>}>
+    <form onSubmit={submit} className="space-y-6">
+      <section className="rounded-xl border border-blue-100 bg-gradient-to-r from-blue-50/90 to-indigo-50/40 p-4 shadow-sm"><FormSectionTitle icon={<ReceiptText className="h-4 w-4" />} title="Datos del comprobante" description="Identifica al proveedor, el documento y las fechas de la operación." /><div className="mt-4 grid gap-4 md:grid-cols-2"><label className="block text-xs font-semibold text-slate-700">Proveedor <span className="text-rose-500">*</span><div className="relative mt-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><Input value={supplierSearch} onChange={(event) => { setSupplierSearch(event.target.value); setSupplierId(""); }} placeholder="Buscar proveedor nacional..." className="pl-9" /></div><Select value={supplierId} onChange={(event) => setSupplierId(event.target.value)} className="mt-2" required><option value="">Selecciona un proveedor</option>{visibleSuppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</Select></label><label className="block text-xs font-semibold text-slate-700">N° comprobante proveedor <span className="text-rose-500">*</span><Input value={supplierDocumentNumber} onChange={(event) => setSupplierDocumentNumber(event.target.value)} placeholder="Ej. F001-000123" className="mt-1" required /></label><label className="block text-xs font-semibold text-slate-700">Fecha de compra <span className="text-rose-500">*</span><Input type="date" value={purchasedAt} onChange={(event) => setPurchasedAt(event.target.value)} className="mt-1" required /></label><label className="block text-xs font-semibold text-slate-700">Fecha de ingreso a almacén <span className="text-rose-500">*</span><Input type="date" value={warehouseEntryAt} onChange={(event) => setWarehouseEntryAt(event.target.value)} className="mt-1" required /></label></div><div className="mt-4 grid gap-4 sm:grid-cols-3"><label className="block text-xs font-semibold text-slate-700">Moneda <span className="text-rose-500">*</span><Select value={currency} onChange={(event) => setCurrency(event.target.value)} className="mt-1"><option value="PEN">PEN — Sol peruano</option><option value="USD">USD — Dólar americano</option></Select></label><label className="block text-xs font-semibold text-slate-700">Almacén de destino <span className="text-rose-500">*</span><Select value={selectedWarehouseId} onChange={(event) => setWarehouseId(event.target.value)} className="mt-1" required><option value="">Selecciona almacén</option>{warehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</Select></label><label className="block text-xs font-semibold text-slate-700">Forma de pago <Select value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value as PurchasePaymentMethod)} className="mt-1"><option value="CREDIT">Crédito</option><option value="CASH">Contado / efectivo</option><option value="BANK_TRANSFER">Transferencia</option><option value="CARD">Tarjeta</option></Select></label></div></section>
 
-  return (
-    <Dialog
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Nueva Orden de Compra"
-      description="Registra una orden. El stock solo aumentará cuando se recepcione."
-      maxWidth="2xl"
-    >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid gap-4 sm:grid-cols-3">
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
-            Proveedor <span className="text-red-500">*</span>
-            <Select
-              value={supplierId}
-              onChange={(event) => setSupplierId(event.target.value)}
-              className="mt-1"
-              required
-            >
-              <option value="">Selecciona un proveedor</option>
-              {suppliers.map((supplier) => (
-                <option key={supplier.id} value={supplier.id}>
-                  {supplier.name}
-                </option>
-              ))}
-            </Select>
-          </label>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
-            Almacén de destino <span className="text-red-500">*</span>
-            <Select
-              value={selectedWarehouseId}
-              onChange={(event) => setWarehouseId(event.target.value)}
-              className="mt-1"
-              required
-            >
-              <option value="">Selecciona un almacén</option>
-              {warehouses.map((warehouse) => (
-                <option key={warehouse.id} value={warehouse.id}>
-                  {warehouse.name}
-                </option>
-              ))}
-            </Select>
-          </label>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
-            Forma de pago
-            <Select
-              value={paymentMethod}
-              onChange={(event) => setPaymentMethod(event.target.value as PurchasePaymentMethod)}
-              className="mt-1"
-            >
-              <option value="CREDIT">Crédito</option>
-              <option value="CASH">Contado</option>
-              <option value="BANK_TRANSFER">Transferencia</option>
-              <option value="CARD">Tarjeta</option>
-            </Select>
-          </label>
-        </div>
-        <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50/50 p-4">
-          <div className="flex items-center justify-between">
-            <h4 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700">
-              <ShoppingBag className="h-4 w-4 text-blue-600" />
-              Detalle de productos
-            </h4>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setItems((current) => [...current, emptyItem])}
-              className="h-8 border border-blue-100 px-2.5 text-xs text-blue-600 hover:bg-blue-50"
-            >
-              <Plus className="mr-1 h-3.5 w-3.5" />
-              Agregar ítem
-            </Button>
-          </div>
-          {items.map((item, index) => {
-            const product = products.find((entry) => entry.id === item.productId);
-            const subtotal = (Number(item.quantity) || 0) * (Number(item.unitCost) || 0);
-            return (
-              <div
-                key={index}
-                className="grid grid-cols-12 items-center gap-2 rounded-lg border border-slate-200 bg-white p-3"
-              >
-                <div className="col-span-5">
-                  <Select
-                    value={item.productId}
-                    onChange={(event) => selectProduct(index, event.target.value)}
-                    required
-                  >
-                    <option value="">Selecciona producto</option>
-                    {products.map((entry) => (
-                      <option key={entry.id} value={entry.id}>
-                        {entry.sku} — {entry.name}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-                <div className="col-span-2">
-                  <Input
-                    type="number"
-                    min="0.001"
-                    step="0.001"
-                    placeholder="Cant."
-                    value={item.quantity}
-                    onChange={(event) => updateItem(index, { quantity: event.target.value })}
-                    required
-                  />
-                </div>
-                <div className="col-span-2">
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="Costo S/"
-                    value={item.unitCost}
-                    onChange={(event) => updateItem(index, { unitCost: event.target.value })}
-                    required
-                  />
-                </div>
-                <div className="col-span-2 text-right text-xs font-bold text-slate-900">
-                  S/ {subtotal.toFixed(2)}
-                  {product ? (
-                    <span className="block text-[10px] font-normal text-slate-400">
-                      {product.unit}
-                    </span>
-                  ) : null}
-                </div>
-                <div className="col-span-1 text-right">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setItems((current) =>
-                        current.length > 1
-                          ? current.filter((_, itemIndex) => itemIndex !== index)
-                          : current,
-                      )
-                    }
-                    disabled={items.length === 1}
-                    className="text-slate-400 transition hover:text-rose-600 disabled:opacity-30"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-          <div className="flex items-center justify-between border-t border-slate-200 pt-2 text-sm font-bold text-slate-900">
-            <span>Total referencial (sin IGV):</span>
-            <span className="text-base text-blue-700">S/ {calculatedTotal.toFixed(2)}</span>
-          </div>
-        </div>
-        <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
-          <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting}>
-            Cancelar
-          </Button>
-          <Button
-            type="submit"
-            disabled={isSubmitting || !products.length || !suppliers.length || !warehouses.length}
-            className="min-w-[160px]"
-          >
-            {isSubmitting ? "Guardando..." : "Generar Orden"}
-          </Button>
-        </div>
-      </form>
-    </Dialog>
-  );
+      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white"><div className="flex flex-col gap-3 border-b border-slate-200 bg-slate-50/80 p-4 sm:flex-row sm:items-center sm:justify-between"><FormSectionTitle icon={<PackagePlus className="h-4 w-4" />} title="Productos de la compra" description="Selecciona los productos y registra el costo recibido por el proveedor." /><Button type="button" variant="ghost" onClick={() => setItems((current) => [...current, emptyItem()])} className="gap-1.5 self-start border border-blue-100 bg-white text-xs text-blue-700 hover:bg-blue-50"><Plus className="h-3.5 w-3.5" /> Agregar producto</Button></div><div className="overflow-x-auto"><div className="min-w-[900px] grid grid-cols-[minmax(250px,1.6fr)_minmax(150px,1fr)_minmax(135px,1fr)_80px_105px_120px_110px_40px] gap-2 bg-slate-50 px-4 py-3 text-[11px] font-bold uppercase tracking-wide text-slate-500"><span>Producto</span><span>Presentación</span><span>Almacén</span><span>UM</span><span>Cant.</span><span>Costo unit.</span><span className="text-right">Subtotal</span><span /></div>{items.map((item, index) => <PurchaseLine key={index} item={item} index={index} products={products} warehouseName={selectedWarehouse?.name || ""} onChange={(changes) => updateItem(index, changes)} onRemove={() => setItems((current) => current.length === 1 ? current : current.filter((_, itemIndex) => itemIndex !== index))} canRemove={items.length > 1} />)}</div><div className="flex justify-end border-t border-slate-200 bg-slate-50/50 p-4"><div className="w-full max-w-xs space-y-2 text-sm"><div className="flex justify-between text-slate-500"><span>Subtotal</span><span>{money(totals.subtotal)}</span></div><div className="flex justify-between text-slate-500"><span>IGV (18%)</span><span>{money(totals.tax)}</span></div><div className="flex justify-between border-t border-slate-200 pt-3 text-base font-bold text-slate-900"><span>Total</span><span className="text-xl text-emerald-600">{money(totals.total)}</span></div></div></div></section>
+
+      <section className="rounded-xl border border-dashed border-slate-300 bg-slate-50/60 p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex items-center gap-2 text-sm font-bold text-slate-800"><FileUp className="h-4 w-4 text-blue-600" /> Documentos adjuntos</div><p className="mt-1 text-xs text-slate-500">Podrás adjuntar PDF, XML, imágenes o Excel cuando se habilite el almacenamiento documental.</p></div><Button type="button" variant="ghost" disabled className="gap-2 border border-slate-200 bg-white text-slate-400"><FileUp className="h-4 w-4" /> Adjuntar archivo</Button></div></section>
+
+      <label className="block text-sm font-semibold text-slate-700">Observaciones <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={2} placeholder="Notas internas de la compra o indicaciones de recepción..." className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-normal text-slate-900 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20" /></label>
+      <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-5"><Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting}>Cancelar</Button><Button type="submit" disabled={isSubmitting || !products.length || !suppliers.length || !warehouses.length} className="min-w-[180px] gap-2 bg-emerald-600 text-white hover:bg-emerald-700"><Truck className="h-4 w-4" />{isSubmitting ? "Registrando compra..." : "Registrar compra"}</Button></div>
+    </form>
+  </Dialog>;
 };

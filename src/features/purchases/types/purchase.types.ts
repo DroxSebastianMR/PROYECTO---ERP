@@ -19,6 +19,7 @@ export interface PurchaseItem {
   receivedQuantity: number;
   unitCost: number;
   subtotal: number;
+  presentationName?: string | null;
 }
 
 export interface PurchaseOrder {
@@ -31,6 +32,10 @@ export interface PurchaseOrder {
   total: number;
   createdAt: string;
   updatedAt: string;
+  supplierDocumentNumber?: string | null;
+  purchasedAt?: string | null;
+  warehouseEntryAt?: string | null;
+  currency: string;
   items: PurchaseItem[];
 }
 
@@ -38,7 +43,12 @@ export interface CreatePurchaseInput {
   supplierId: string;
   warehouseId: string;
   paymentMethod: PurchasePaymentMethod;
-  items: Array<{ productId: string; quantity: number; unitCost: number }>;
+  currency: string;
+  supplierDocumentNumber: string;
+  purchasedAt: string;
+  warehouseEntryAt: string;
+  notes?: string;
+  items: Array<{ productId: string; quantity: number; unitCost: number; presentationName?: string; unit?: string }>;
 }
 
 export interface SupplierOption {

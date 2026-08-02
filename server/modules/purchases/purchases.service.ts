@@ -15,12 +15,18 @@ type PurchaseInput = {
   supplierName?: string;
   warehouseId?: string;
   expectedDeliveryAt?: Date;
+  purchasedAt?: Date;
+  warehouseEntryAt?: Date;
+  supplierDocumentNumber?: string;
+  notes?: string;
   paymentMethod?: PaymentMethod;
   currency?: string;
   items: {
     productId: string;
     quantity: number;
     unitCost: number;
+    presentationName?: string;
+    unit?: string;
     discount?: number;
     taxRate?: number;
   }[];
@@ -119,6 +125,9 @@ export const purchasesService = {
         supplierName: supplier.businessName,
         warehouseId: warehouse.id,
         expectedDeliveryAt: input.expectedDeliveryAt,
+        purchasedAt: input.purchasedAt,
+        warehouseEntryAt: input.warehouseEntryAt,
+        notes: input.notes?.trim() || null,
         paymentMethod: input.paymentMethod ?? PaymentMethod.CREDIT,
         currency: input.currency ?? "PEN",
         subtotal: amount.subtotal,
@@ -131,8 +140,21 @@ export const purchasesService = {
             subtotal: item.quantity * item.unitCost - (item.discount ?? 0),
             discount: item.discount ?? 0,
             taxRate: item.taxRate ?? 18,
+            presentationName: item.presentationName?.trim() || null,
+            unit: item.unit?.trim() || null,
           })),
         },
+        ...(input.supplierDocumentNumber?.trim()
+          ? {
+              document: {
+                create: {
+                  type: "INVOICE",
+                  number: input.supplierDocumentNumber.trim(),
+                  issuedAt: input.purchasedAt ?? new Date(),
+                },
+              },
+            }
+          : {}),
       },
       include: includePurchase,
     });

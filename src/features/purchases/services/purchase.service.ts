@@ -16,6 +16,10 @@ type PurchaseApi = {
   supplierId: string | null;
   warehouseId: string | null;
   status: PurchaseOrder["status"];
+  currency: string;
+  purchasedAt?: string | null;
+  warehouseEntryAt?: string | null;
+  document?: { number: string } | null;
   total: Numeric;
   createdAt: string;
   updatedAt: string;
@@ -26,6 +30,7 @@ type PurchaseApi = {
     receivedQuantity: Numeric;
     unitCost: Numeric;
     subtotal: Numeric;
+    presentationName?: string | null;
     product: { sku: string; name: string; unit: string };
   }>;
 };
@@ -42,6 +47,10 @@ const mapPurchase = (purchase: PurchaseApi): PurchaseOrder => ({
   supplierId: purchase.supplierId,
   warehouseId: purchase.warehouseId,
   status: purchase.status,
+  currency: purchase.currency,
+  purchasedAt: purchase.purchasedAt,
+  warehouseEntryAt: purchase.warehouseEntryAt,
+  supplierDocumentNumber: purchase.document?.number ?? null,
   total: toNumber(purchase.total),
   createdAt: purchase.createdAt,
   updatedAt: purchase.updatedAt,
@@ -55,6 +64,7 @@ const mapPurchase = (purchase: PurchaseApi): PurchaseOrder => ({
     receivedQuantity: toNumber(item.receivedQuantity),
     unitCost: toNumber(item.unitCost),
     subtotal: toNumber(item.subtotal),
+    presentationName: item.presentationName,
   })),
 });
 
