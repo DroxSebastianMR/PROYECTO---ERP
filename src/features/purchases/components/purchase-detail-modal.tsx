@@ -1,8 +1,8 @@
-import { Dialog } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
 import type { PurchaseOrder } from "@/features/purchases/types/purchase.types";
-import { Truck, CheckCircle, Calendar, FileText, Send } from "lucide-react";
+import { Building2, CalendarDays, CheckCircle2, CreditCard, FileText, PackageCheck, ReceiptText, Send, Truck } from "lucide-react";
 
 interface PurchaseDetailModalProps {
   isOpen: boolean;
@@ -13,127 +13,38 @@ interface PurchaseDetailModalProps {
   isSubmitting: boolean;
 }
 
-export const PurchaseDetailModal = ({
-  isOpen,
-  onClose,
-  purchase,
-  onOrder,
-  onReceive,
-  isSubmitting,
-}: PurchaseDetailModalProps) => {
+export const PurchaseDetailModal = ({ isOpen, onClose, purchase, onOrder, onReceive, isSubmitting }: PurchaseDetailModalProps) => {
   if (!purchase) return null;
-
-  const formatPrice = (val: number) =>
-    new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" }).format(val);
-
+  const formatPrice = (value: number) => new Intl.NumberFormat("es-PE", { style: "currency", currency: purchase.currency || "PEN" }).format(value);
   const isReceived = ["PENDING_PAYMENT", "PAID", "RECEIVED"].includes(purchase.status);
   const canReceive = !isReceived && purchase.status !== "CANCELLED";
+  const isDraft = purchase.status === "DRAFT";
 
   return (
-    <Dialog
-      isOpen={isOpen}
-      onClose={onClose}
-      title={`Orden de Compra ${purchase.number}`}
-      description={`Proveedor: ${purchase.supplierName}`}
-      maxWidth="xl"
-    >
-      <div className="space-y-6">
-        {/* Status bar card */}
-        <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/50 p-4">
-          <div className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-lg bg-blue-600 text-white">
-              <Truck className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-slate-500">Estado de la Orden</p>
-              <div className="mt-0.5">
-                {isReceived ? (
-                  <Badge variant="success">Recepcionado en Almacén</Badge>
-                ) : (
-                  <Badge variant="warning">Pendiente de Ingreso</Badge>
-                )}
-              </div>
-            </div>
+    <Dialog isOpen={isOpen} onClose={onClose} title={`Detalle de compra ${purchase.number}`} description="Resumen comercial y control de recepción de mercadería." maxWidth="2xl" headerClassName="bg-gradient-to-r from-blue-700 to-indigo-700" titleClassName="text-white" descriptionClassName="text-blue-100" headerIcon={<span className="grid h-10 w-10 place-items-center rounded-xl border border-white/20 bg-white/10 text-white"><ReceiptText className="h-5 w-5" /></span>}>
+      <div className="space-y-5">
+        <section className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50/60 p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex gap-3"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-blue-600 text-white shadow-sm"><Truck className="h-6 w-6" /></span><div><p className="text-xs font-bold uppercase tracking-[.12em] text-blue-700">Compra registrada</p><p className="mt-1 font-mono text-2xl font-bold tracking-tight text-slate-900">{purchase.number}</p><p className="mt-1 text-sm text-slate-600">Comprobante proveedor: <strong>{purchase.supplierDocumentNumber || "Sin número"}</strong></p></div></div>
+            {isReceived ? <Badge variant="success">Recepcionada</Badge> : isDraft ? <Badge variant="secondary">Pendiente de confirmar</Badge> : <Badge variant="warning">Comprada</Badge>}
           </div>
-
-          <div className="flex gap-2">
-            {purchase.status === "DRAFT" && (
-              <Button
-                onClick={() => void onOrder(purchase.id)}
-                disabled={isSubmitting}
-                variant="ghost"
-                className="gap-2 border border-slate-200"
-              >
-                <Send className="h-4 w-4" />
-                Ordenar
-              </Button>
-            )}
-            {canReceive && (
-              <Button
-                onClick={() => void onReceive(purchase)}
-                disabled={isSubmitting || purchase.status === "DRAFT"}
-                className="gap-2 bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
-              >
-                <CheckCircle className="h-4 w-4" />
-                {isSubmitting ? "Procesando..." : "Recepcionar"}
-              </Button>
-            )}
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <InfoCard icon={<Building2 className="h-5 w-5" />} label="Proveedor" value={purchase.supplierName} />
+            <InfoCard icon={<CreditCard className="h-5 w-5" />} label="Moneda" value={purchase.currency === "USD" ? "Dólares (USD)" : "Soles (PEN)"} />
+            <InfoCard icon={<CalendarDays className="h-5 w-5" />} label="Fecha de compra" value={new Date(purchase.purchasedAt || purchase.createdAt).toLocaleDateString("es-PE")} />
           </div>
-        </div>
+        </section>
 
-        {/* Itemized Table */}
-        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-          <div className="flex items-center gap-1.5 border-b border-slate-100 bg-slate-50/70 px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-700">
-            <FileText className="h-4 w-4 text-blue-600" /> Ítems Solicitados
-          </div>
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-5 py-4"><div><h4 className="flex items-center gap-2 font-bold text-slate-900"><PackageCheck className="h-4 w-4 text-blue-600" /> Productos de la compra</h4><p className="mt-1 text-sm text-slate-500">{purchase.items.length} producto(s) registrado(s) en esta compra.</p></div><span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">{purchase.items.length} ítems</span></div>
+          <div className="overflow-x-auto"><table className="min-w-[620px] w-full text-left text-sm"><thead className="border-b border-slate-100 bg-slate-50/40 text-xs font-semibold uppercase tracking-wide text-slate-500"><tr><th className="px-5 py-3">Producto</th><th className="px-5 py-3 text-center">Cantidad</th><th className="px-5 py-3 text-right">Costo unit.</th><th className="px-5 py-3 text-right">Importe</th></tr></thead><tbody className="divide-y divide-slate-100">{purchase.items.map((item) => <tr key={item.id || item.productId}><td className="px-5 py-4"><p className="font-semibold text-slate-900">{item.productName}</p><p className="mt-0.5 font-mono text-xs text-slate-400">{item.sku}</p></td><td className="px-5 py-4 text-center font-semibold text-slate-700">{item.quantity} {item.unit}</td><td className="px-5 py-4 text-right text-slate-600">{formatPrice(item.unitCost)}</td><td className="px-5 py-4 text-right font-bold text-slate-900">{formatPrice(item.subtotal)}</td></tr>)}</tbody></table></div>
+          <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-5 py-4"><span className="font-semibold text-slate-700">Total de compra</span><span className="text-2xl font-bold tracking-tight text-emerald-600">{formatPrice(purchase.total)}</span></div>
+        </section>
 
-          <table className="w-full text-left text-sm text-slate-600">
-            <thead className="border-b border-slate-100 bg-slate-50/40 text-xs uppercase tracking-wider text-slate-500">
-              <tr>
-                <th className="px-4 py-2.5">SKU / Producto</th>
-                <th className="px-4 py-2.5 text-right">Cantidad</th>
-                <th className="px-4 py-2.5 text-right">Costo Unit. (S/)</th>
-                <th className="px-4 py-2.5 text-right">Subtotal</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {purchase.items?.map((item) => (
-                <tr key={item.id || item.productId}>
-                  <td className="px-4 py-3">
-                    <span className="mr-1.5 font-mono text-xs font-semibold text-slate-400">
-                      {item.sku}
-                    </span>
-                    <span className="font-medium text-slate-900">{item.productName}</span>
-                  </td>
-                  <td className="px-4 py-3 text-right font-bold text-slate-900">
-                    {item.quantity} {item.unit}
-                  </td>
-                  <td className="px-4 py-3 text-right">{formatPrice(item.unitCost)}</td>
-                  <td className="px-4 py-3 text-right font-bold text-slate-900">
-                    {formatPrice(item.subtotal)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900">
-            <span>Total Orden de Compra:</span>
-            <span className="text-base text-blue-700">{formatPrice(purchase.total)}</span>
-          </div>
-        </div>
-
-        {/* Timestamps */}
-        <div className="flex items-center justify-between border-t border-slate-100 pt-2 text-xs text-slate-400">
-          <div className="flex items-center gap-1">
-            <Calendar className="h-3.5 w-3.5" /> Fecha de emisión:{" "}
-            {new Date(purchase.createdAt).toLocaleDateString("es-PE")}
-          </div>
-          <Button variant="ghost" onClick={onClose}>
-            Cerrar
-          </Button>
-        </div>
+        <div className="flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm text-slate-500">{isReceived ? "La mercadería fue recepcionada e ingresó al inventario." : "La compra está registrada. El inventario se actualizará al recepcionar la mercadería."}</p><div className="flex justify-end gap-3">{isDraft && <Button onClick={() => void onOrder(purchase.id)} disabled={isSubmitting} variant="ghost" className="gap-2"><Send className="h-4 w-4" /> Ordenar</Button>}<Button variant="ghost" onClick={onClose} disabled={isSubmitting}>Cerrar</Button>{canReceive && <Button onClick={() => void onReceive(purchase)} disabled={isSubmitting || isDraft} className="gap-2 bg-emerald-600 text-white hover:bg-emerald-700"><CheckCircle2 className="h-4 w-4" />{isSubmitting ? "Procesando..." : "Recepcionar compra"}</Button>}</div></div>
       </div>
     </Dialog>
   );
 };
+
+const InfoCard = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => <div className="rounded-xl border border-white/80 bg-white/80 p-3"><span className="text-blue-600">{icon}</span><p className="mt-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{label}</p><p className="mt-1 truncate text-sm font-bold text-slate-800">{value}</p></div>;

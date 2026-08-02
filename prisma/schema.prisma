@@ -657,6 +657,7 @@ model PurchaseItem {
 model Supplier {
   id            String   @id @default(uuid()) @db.Uuid
   companyId     String   @db.Uuid
+  code          String
   ruc           String?
   businessName  String
   tradeName     String?
@@ -670,6 +671,7 @@ model Supplier {
   updatedAt     DateTime @updatedAt
   company       Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
   purchases     Purchase[]
+  @@unique([companyId, code])
   @@unique([companyId, ruc])
   @@index([companyId, businessName])
 }

@@ -3,6 +3,8 @@ import type {
   CreatePurchaseInput,
   PurchaseMetrics,
   PurchaseOrder,
+  Supplier,
+  SupplierInput,
   SupplierOption,
   WarehouseOption,
 } from "@/features/purchases/types/purchase.types";
@@ -35,7 +37,11 @@ type PurchaseApi = {
   }>;
 };
 
-type SupplierApi = { id: string; businessName: string };
+type SupplierApi = Omit<Supplier, "purchasesCount"> & { _count?: { purchases: number } };
+const mapSupplier = (supplier: SupplierApi): Supplier => ({
+  ...supplier,
+  purchasesCount: supplier._count?.purchases ?? 0,
+});
 type WarehouseApi = { id: string; name: string };
 
 const toNumber = (value: Numeric | null | undefined) => Number(value ?? 0);
@@ -74,7 +80,19 @@ export const purchaseService = {
   },
   async getSuppliers(): Promise<SupplierOption[]> {
     const suppliers = await httpClient<SupplierApi[]>("/purchases/suppliers");
-    return suppliers.map((supplier) => ({ id: supplier.id, name: supplier.businessName }));
+    return suppliers.filter((supplier) => supplier.isActive).map((supplier) => ({ id: supplier.id, name: supplier.businessName }));
+  },
+  async getSupplierCatalog(): Promise<Supplier[]> {
+    return (await httpClient<SupplierApi[]>("/purchases/suppliers")).map(mapSupplier);
+  },
+  async createSupplier(input: SupplierInput): Promise<Supplier> {
+    return mapSupplier(await httpClient<SupplierApi>("/purchases/suppliers", { method: "POST", body: JSON.stringify(input) }));
+  },
+  async updateSupplier(id: string, input: Partial<SupplierInput>): Promise<Supplier> {
+    return mapSupplier(await httpClient<SupplierApi>(`/purchases/suppliers/${id}`, { method: "PATCH", body: JSON.stringify(input) }));
+  },
+  async deleteSupplier(id: string): Promise<{ action: "deleted" | "deactivated" }> {
+    return httpClient(`/purchases/suppliers/${id}`, { method: "DELETE" });
   },
   async getWarehouses(): Promise<WarehouseOption[]> {
     const warehouses = await httpClient<WarehouseApi[]>("/inventory/warehouses");

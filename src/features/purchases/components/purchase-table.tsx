@@ -77,7 +77,7 @@ export const PurchaseTable = ({ purchases, onView }: PurchaseTableProps) => {
                     {isReceived ? (
                       <Badge variant="success">Recepcionado</Badge>
                     ) : isOrdered ? (
-                      <Badge variant="warning">Comprada · Pendiente de recepción</Badge>
+                      <Badge variant="warning">Comprada</Badge>
                     ) : purchase.status === "DRAFT" ? (
                       <Badge variant="secondary">Pendiente</Badge>
                     ) : purchase.status === "PARTIALLY_RECEIVED" ? (

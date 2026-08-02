@@ -1,15 +1,18 @@
 import { ChevronLeft, ChevronRight, RefreshCw, ShoppingCart, Search, Plus, RotateCcw } from "lucide-react";
+import { useState } from "react";
 import { usePurchases } from "@/features/purchases/hooks/use-purchases";
 import { PurchaseMetrics } from "@/features/purchases/components/purchase-metrics";
 import { PurchaseTable } from "@/features/purchases/components/purchase-table";
 import { PurchaseFormModal } from "@/features/purchases/components/purchase-form-modal";
 import { PurchaseDetailModal } from "@/features/purchases/components/purchase-detail-modal";
+import { SupplierMasterTab } from "@/features/purchases/components/supplier-master-tab";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import type { PurchaseStatus } from "@/features/purchases/types/purchase.types";
 
 export const PurchasesPage = () => {
+  const [activeTab, setActiveTab] = useState<"purchases" | "suppliers">("purchases");
   const {
     purchases,
     products,
@@ -61,6 +64,17 @@ export const PurchasesPage = () => {
         </div>
       </header>
 
+      <nav className="mt-6 flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1.5">
+        <button type="button" onClick={() => setActiveTab("purchases")} className={`flex shrink-0 items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold ${activeTab === "purchases" ? "bg-blue-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}>
+          <ShoppingCart className="h-4 w-4" /> Compras
+        </button>
+        <button type="button" onClick={() => setActiveTab("suppliers")} className={`flex shrink-0 items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold ${activeTab === "suppliers" ? "bg-blue-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}>
+          Proveedores
+        </button>
+      </nav>
+
+      {activeTab === "suppliers" ? <SupplierMasterTab /> : <>
+
       {/* Metrics */}
       <section className="mt-6">
         <PurchaseMetrics metrics={metrics} />
@@ -85,7 +99,7 @@ export const PurchasesPage = () => {
               onChange={(e) => setStatusFilter(e.target.value as "ALL" | PurchaseStatus)}
             >
               <option value="ALL">Todos los Estados</option>
-              <option value="ORDERED">Comprada · Pendiente de recepción</option>
+              <option value="ORDERED">Comprada</option>
               <option value="RECEIVED">Recepcionado</option>
             </Select>
           </div>
@@ -136,6 +150,7 @@ export const PurchasesPage = () => {
         onReceive={handleReceivePurchase}
         isSubmitting={isSubmitting}
       />
+      </>}
     </div>
   );
 };

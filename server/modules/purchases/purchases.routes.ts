@@ -80,6 +80,36 @@ purchasesRouter.post("/suppliers", async (req, res, next) => {
     error(e, res, next);
   }
 });
+purchasesRouter.patch("/suppliers/:id", async (req, res, next) => {
+  try {
+    const input = supplierSchema
+      .extend({ isActive: z.boolean().optional() })
+      .partial()
+      .refine((value) => Object.keys(value).length > 0, { message: "Indica un cambio para guardar." })
+      .parse(req.body);
+    res.json(
+      await purchasesService.updateSupplier(
+        companyId(req as AuthenticatedRequest),
+        uuid.parse(req.params.id),
+        input,
+      ),
+    );
+  } catch (e) {
+    error(e, res, next);
+  }
+});
+purchasesRouter.delete("/suppliers/:id", async (req, res, next) => {
+  try {
+    res.json(
+      await purchasesService.removeSupplier(
+        companyId(req as AuthenticatedRequest),
+        uuid.parse(req.params.id),
+      ),
+    );
+  } catch (e) {
+    error(e, res, next);
+  }
+});
 purchasesRouter.get("/", async (req, res, next) => {
   try {
     res.json(await purchasesService.list(companyId(req as AuthenticatedRequest)));

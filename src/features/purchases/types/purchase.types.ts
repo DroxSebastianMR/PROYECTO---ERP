@@ -55,6 +55,34 @@ export interface SupplierOption {
   id: string;
   name: string;
 }
+
+export interface Supplier {
+  id: string;
+  code: string;
+  ruc: string | null;
+  businessName: string;
+  tradeName: string | null;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+  contactName: string | null;
+  paymentTermsDays: number;
+  isActive: boolean;
+  createdAt: string;
+  purchasesCount: number;
+}
+
+export interface SupplierInput {
+  ruc?: string;
+  businessName: string;
+  tradeName?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  contactName?: string;
+  paymentTermsDays?: number;
+  isActive?: boolean;
+}
 export interface WarehouseOption {
   id: string;
   name: string;

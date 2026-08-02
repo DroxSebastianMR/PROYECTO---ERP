@@ -32,6 +32,18 @@ type PurchaseInput = {
   }[];
 };
 
+export type SupplierInput = {
+  ruc?: string;
+  businessName: string;
+  tradeName?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  contactName?: string;
+  paymentTermsDays?: number;
+  isActive?: boolean;
+};
+
 const includePurchase = {
   supplier: true,
   warehouse: true,
@@ -62,22 +74,38 @@ export const purchasesService = {
     return prisma.purchase.findFirst({ where: { id, companyId }, include: includePurchase });
   },
   listSuppliers(companyId: string) {
-    return prisma.supplier.findMany({ where: { companyId }, orderBy: { businessName: "asc" } });
+    return prisma.supplier.findMany({
+      where: { companyId },
+      include: { _count: { select: { purchases: true } } },
+      orderBy: { businessName: "asc" },
+    });
   },
-  createSupplier(
-    companyId: string,
-    input: {
-      ruc?: string;
-      businessName: string;
-      tradeName?: string;
-      address?: string;
-      phone?: string;
-      email?: string;
-      contactName?: string;
-      paymentTermsDays?: number;
-    },
-  ) {
-    return prisma.supplier.create({ data: { companyId, ...input } });
+  async createSupplier(companyId: string, input: SupplierInput) {
+    const count = await prisma.supplier.count({ where: { companyId } });
+    let sequence = count + 1;
+    let code = `PRV${String(sequence).padStart(3, "0")}`;
+    while (await prisma.supplier.findFirst({ where: { companyId, code }, select: { id: true } })) {
+      code = `PRV${String(++sequence).padStart(3, "0")}`;
+    }
+    return prisma.supplier.create({ data: { companyId, code, ...input } });
+  },
+  async updateSupplier(companyId: string, id: string, input: Partial<SupplierInput>) {
+    const supplier = await prisma.supplier.findFirst({ where: { id, companyId }, select: { id: true } });
+    if (!supplier) throw new PurchaseError("Proveedor no encontrado.", 404);
+    return prisma.supplier.update({ where: { id }, data: input });
+  },
+  async removeSupplier(companyId: string, id: string) {
+    const supplier = await prisma.supplier.findFirst({
+      where: { id, companyId },
+      include: { _count: { select: { purchases: true } } },
+    });
+    if (!supplier) throw new PurchaseError("Proveedor no encontrado.", 404);
+    if (supplier._count.purchases > 0) {
+      await prisma.supplier.update({ where: { id }, data: { isActive: false } });
+      return { action: "deactivated" as const };
+    }
+    await prisma.supplier.delete({ where: { id } });
+    return { action: "deleted" as const };
   },
   async create(companyId: string, input: PurchaseInput) {
     const supplier = input.supplierId
@@ -91,9 +119,7 @@ export const purchasesService = {
             });
             return (
               existing ??
-              prisma.supplier.create({
-                data: { companyId, businessName: input.supplierName!.trim() },
-              })
+              purchasesService.createSupplier(companyId, { businessName: input.supplierName!.trim() })
             );
           })()
         : null;
