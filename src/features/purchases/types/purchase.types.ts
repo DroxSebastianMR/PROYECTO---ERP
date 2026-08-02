@@ -7,7 +7,7 @@ export type PurchaseStatus =
   | "PAID"
   | "CANCELLED";
 
-export type PurchasePaymentMethod = "CASH" | "BANK_TRANSFER" | "CARD" | "CREDIT";
+export type PurchasePaymentMethod = "CASH" | "BANK_TRANSFER" | "CARD" | "YAPE_PLIN" | "CREDIT";
 
 export interface PurchaseItem {
   id?: string;
@@ -41,7 +41,7 @@ export interface PurchaseOrder {
 
 export interface CreatePurchaseInput {
   supplierId: string;
-  warehouseId: string;
+  warehouseId?: string;
   paymentMethod: PurchasePaymentMethod;
   currency: string;
   supplierDocumentNumber: string;

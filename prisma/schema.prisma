@@ -54,6 +54,7 @@ enum PaymentMethod {
   CASH
   BANK_TRANSFER
   CARD
+  YAPE_PLIN
   CREDIT
 }
 

@@ -38,7 +38,7 @@ const purchaseSchema = z
     warehouseEntryAt: z.coerce.date().optional(),
     supplierDocumentNumber: z.string().trim().min(3).max(80).optional(),
     notes: z.string().trim().max(1000).optional(),
-    paymentMethod: z.enum(["CASH", "BANK_TRANSFER", "CARD", "CREDIT"]).optional(),
+    paymentMethod: z.enum(["CASH", "BANK_TRANSFER", "CARD", "YAPE_PLIN", "CREDIT"]).optional(),
     currency: z.string().length(3).optional(),
     items: z
       .array(
@@ -163,7 +163,7 @@ purchasesRouter.post("/:id/payments", async (req, res, next) => {
     const body = z
       .object({
         amount: z.coerce.number().positive(),
-        method: z.enum(["CASH", "BANK_TRANSFER", "CARD", "CREDIT"]),
+        method: z.enum(["CASH", "BANK_TRANSFER", "CARD", "YAPE_PLIN", "CREDIT"]),
         reference: z.string().max(100).optional(),
       })
       .parse(req.body);
