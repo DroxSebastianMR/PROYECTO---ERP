@@ -36,7 +36,7 @@ export const PurchaseMetrics = ({ metrics }: PurchaseMetricsProps) => {
           <p className="mt-2 text-2xl font-bold tracking-tight text-amber-600">
             {metrics.pendingOrdersCount}
           </p>
-          <p className="mt-1 text-xs text-slate-500">En tránsito o borrador</p>
+          <p className="mt-1 text-xs text-slate-500">Pendientes de recepción</p>
         </div>
         <div className="grid h-11 w-11 place-items-center rounded-lg bg-amber-50 text-amber-600">
           <Clock className="h-5 w-5" />

@@ -133,7 +133,9 @@ export const purchasesService = {
         subtotal: amount.subtotal,
         taxAmount: amount.tax,
         total: amount.subtotal + amount.tax,
-        status: PurchaseStatus.DRAFT,
+        // El registro de una compra confirma la operación comercial. El stock
+        // se incrementa recién al confirmar la recepción física.
+        status: PurchaseStatus.ORDERED,
         items: {
           create: input.items.map((item) => ({
             ...item,

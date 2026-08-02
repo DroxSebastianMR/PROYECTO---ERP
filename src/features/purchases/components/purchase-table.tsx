@@ -56,7 +56,6 @@ export const PurchaseTable = ({ purchases, onView }: PurchaseTableProps) => {
             {purchases.map((purchase) => {
               const isReceived = ["RECEIVED", "PENDING_PAYMENT", "PAID"].includes(purchase.status);
               const isOrdered = purchase.status === "ORDERED";
-              const isDraft = purchase.status === "DRAFT";
 
               return (
                 <tr key={purchase.id} className="transition hover:bg-slate-50/80">
@@ -78,9 +77,9 @@ export const PurchaseTable = ({ purchases, onView }: PurchaseTableProps) => {
                     {isReceived ? (
                       <Badge variant="success">Recepcionado</Badge>
                     ) : isOrdered ? (
-                      <Badge variant="warning">En Tránsito</Badge>
-                    ) : isDraft ? (
-                      <Badge variant="secondary">Borrador</Badge>
+                      <Badge variant="warning">Comprada · Pendiente de recepción</Badge>
+                    ) : purchase.status === "DRAFT" ? (
+                      <Badge variant="secondary">Pendiente</Badge>
                     ) : purchase.status === "PARTIALLY_RECEIVED" ? (
                       <Badge variant="warning">Recepción parcial</Badge>
                     ) : (

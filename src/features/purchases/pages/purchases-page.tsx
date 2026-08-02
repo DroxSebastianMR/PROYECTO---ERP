@@ -85,9 +85,8 @@ export const PurchasesPage = () => {
               onChange={(e) => setStatusFilter(e.target.value as "ALL" | PurchaseStatus)}
             >
               <option value="ALL">Todos los Estados</option>
-              <option value="ORDERED">En Tránsito / Ordenado</option>
+              <option value="ORDERED">Comprada · Pendiente de recepción</option>
               <option value="RECEIVED">Recepcionado</option>
-              <option value="DRAFT">Borrador</option>
             </Select>
           </div>
 
