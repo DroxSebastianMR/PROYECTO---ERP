@@ -30,6 +30,7 @@ import type {
 } from "@/features/sales/types/sale.types";
 
 type CartLine = { product: Product; quantity: number };
+type PaymentSplit = { method: Exclude<SalePaymentMethod, "CREDIT">; amount: string };
 interface NewSaleFormProps {
   onCancel: () => void;
   onSubmit: (data: CreateSaleInput) => Promise<SaleReceipt>;
@@ -121,6 +122,13 @@ const CustomerPicker = ({
   );
 };
 
+const paymentLabels: Record<Exclude<SalePaymentMethod, "CREDIT">, string> = { CASH: "Efectivo · físico", YAPE_PLIN: "Yape / Plin · digital", BANK_TRANSFER: "Transferencia · digital", CARD: "Tarjeta · digital" };
+const PaymentPicker = ({ method, isSplit, splitCount, onSelect, onConfigure }: { method: SalePaymentMethod; isSplit: boolean; splitCount: number; onSelect: (method: Exclude<SalePaymentMethod, "CREDIT">) => void; onConfigure: () => void }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const label = isSplit ? `Pago combinado · ${splitCount} medios` : method === "CREDIT" ? "Crédito" : paymentLabels[method];
+  return <div className="relative"><label className="text-xs font-bold uppercase tracking-wide text-slate-500">Forma de cobro</label><button type="button" onClick={() => setIsOpen((value) => !value)} className="mt-1.5 flex h-11 w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition hover:border-blue-300 focus:ring-2 focus:ring-blue-100"><span className="truncate">{label}</span><span className="text-slate-400">⌄</span></button>{isOpen && <div className="absolute z-30 mt-1.5 w-full overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10">{(Object.keys(paymentLabels) as Array<Exclude<SalePaymentMethod, "CREDIT">>).map((option) => <button key={option} type="button" onClick={() => { onSelect(option); setIsOpen(false); }} className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-blue-50"><span>{paymentLabels[option]}</span>{!isSplit && method === option && <span className="text-blue-600">✓</span>}</button>)}<div className="my-1 border-t border-slate-100" /><button type="button" onClick={() => { onConfigure(); setIsOpen(false); }} className="w-full rounded-lg bg-blue-50 px-3 py-2.5 text-left text-sm font-semibold text-blue-700 hover:bg-blue-100">+ Combinar medios de pago</button></div>}</div>;
+};
+
 export const NewSaleForm = ({
   onCancel,
   onSubmit,
@@ -139,6 +147,9 @@ export const NewSaleForm = ({
   const [query, setQuery] = useState("");
   const [customerId, setCustomerId] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<SalePaymentMethod>("CASH");
+  const [isSplitPayment, setIsSplitPayment] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [paymentSplits, setPaymentSplits] = useState<PaymentSplit[]>([{ method: "CASH", amount: "" }]);
   const documentType: SaleDocumentType = "RECEIPT";
   const [cart, setCart] = useState<CartLine[]>([]);
   const [customerOpen, setCustomerOpen] = useState(false);
@@ -236,6 +247,7 @@ export const NewSaleForm = ({
           : line.product.salePrice),
     0,
   );
+  const splitTotal = paymentSplits.reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0);
   const saveCustomer = async (input: CreateCustomerInput) => {
     const customer = await onCreateCustomer(input);
     setCustomerId(customer.id);
@@ -251,6 +263,10 @@ export const NewSaleForm = ({
       alert("Selecciona un cliente para registrar una venta a crédito.");
       return;
     }
+    if (isSplitPayment && Math.abs(splitTotal - total) > 0.009) {
+      alert("La suma de los pagos combinados debe coincidir con el total de la venta.");
+      return;
+    }
     setIsConfirmOpen(true);
   };
   const processSale = async () => {
@@ -258,6 +274,7 @@ export const NewSaleForm = ({
       customerId: customerId || undefined,
       warehouseId: activeWarehouseId,
       paymentMethod,
+      payments: isSplitPayment ? paymentSplits.map((payment) => ({ method: payment.method, amount: Number(payment.amount) || 0 })) : undefined,
       documentType,
       idempotencyKey: idempotencyKeyRef.current ?? crypto.randomUUID(),
       items: cart.map((line) => ({
@@ -436,17 +453,11 @@ export const NewSaleForm = ({
                   <UserRound className="h-4 w-4" />
                 </Button>
               </div>
-              <div>
-                <Select
-                  value={paymentMethod}
-                  onChange={(event) => setPaymentMethod(event.target.value as SalePaymentMethod)}
-                >
-                  <option value="CASH">Efectivo</option>
-                  <option value="CARD">Tarjeta</option>
-                  <option value="BANK_TRANSFER">Transferencia</option>
-                  <option value="YAPE_PLIN">Yape / Plin</option>
-                </Select>
-              </div>
+              <PaymentPicker method={paymentMethod} isSplit={isSplitPayment} splitCount={paymentSplits.length} onSelect={(method) => { setPaymentMethod(method); setIsSplitPayment(false); }} onConfigure={() => { setPaymentMethod("CASH"); setIsPaymentModalOpen(true); }} />
+              {false && paymentMethod !== "CREDIT" && <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-3">
+                <div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold text-slate-800">Pago combinado</p><p className="text-xs text-slate-500">Divide el total entre efectivo y medios digitales.</p></div><button type="button" onClick={() => setIsSplitPayment((value) => !value)} className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${isSplitPayment ? "bg-blue-600 text-white" : "border border-blue-200 bg-white text-blue-700"}`}>{isSplitPayment ? "Activo" : "Dividir pago"}</button></div>
+                {isSplitPayment && <div className="mt-3 space-y-2">{paymentSplits.map((payment, index) => <div key={index} className="grid grid-cols-[1fr_110px_auto] gap-2"><Select value={payment.method} onChange={(event) => setPaymentSplits((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, method: event.target.value as PaymentSplit["method"] } : item))}><option value="CASH">Efectivo · físico</option><option value="YAPE_PLIN">Yape / Plin · digital</option><option value="BANK_TRANSFER">Transferencia · digital</option><option value="CARD">Tarjeta · digital</option></Select><Input type="number" min="0.01" step="0.01" value={payment.amount} onChange={(event) => setPaymentSplits((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, amount: event.target.value } : item))} placeholder="S/ 0.00" />{paymentSplits.length > 1 && <button type="button" onClick={() => setPaymentSplits((items) => items.filter((_, itemIndex) => itemIndex !== index))} className="text-xs font-semibold text-rose-600">Quitar</button>}</div>)}<div className="flex items-center justify-between pt-1 text-xs"><button type="button" onClick={() => setPaymentSplits((items) => [...items, { method: "YAPE_PLIN", amount: "" }])} className="font-semibold text-blue-700">+ Agregar medio</button><span className={Math.abs(splitTotal - total) < 0.009 ? "font-semibold text-emerald-700" : "font-semibold text-amber-700"}>Asignado {money(splitTotal)} · Falta {money(Math.max(0, total - splitTotal))}</span></div></div>}
+              </div>}
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">Ticket de venta</div>
             </div>
             <div className="flex-1 overflow-y-auto p-3">
@@ -553,6 +564,9 @@ export const NewSaleForm = ({
           </section>
         </aside>
       </form>
+      <Dialog isOpen={isPaymentModalOpen} onClose={() => setIsPaymentModalOpen(false)} title="Combinar medios de pago" description="Distribuye el total entre efectivo y medios digitales." maxWidth="md">
+        <div className="space-y-4"><div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3"><div className="flex justify-between text-sm font-semibold text-slate-700"><span>Total de venta</span><span className="text-blue-700">{money(total)}</span></div><div className={`mt-2 flex justify-between text-xs font-semibold ${Math.abs(splitTotal - total) < 0.009 ? "text-emerald-700" : "text-amber-700"}`}><span>Asignado {money(splitTotal)}</span><span>Falta {money(Math.max(0, total - splitTotal))}</span></div></div><div className="space-y-3">{paymentSplits.map((payment, index) => <div key={index} className="grid grid-cols-[1fr_120px_auto] gap-2"><Select value={payment.method} onChange={(event) => setPaymentSplits((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, method: event.target.value as PaymentSplit["method"] } : item))}><option value="CASH">Efectivo · físico</option><option value="YAPE_PLIN">Yape / Plin · digital</option><option value="BANK_TRANSFER">Transferencia · digital</option><option value="CARD">Tarjeta · digital</option></Select><Input type="number" min="0.01" step="0.01" value={payment.amount} onChange={(event) => setPaymentSplits((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, amount: event.target.value } : item))} placeholder="S/ 0.00" />{paymentSplits.length > 1 ? <button type="button" onClick={() => setPaymentSplits((items) => items.filter((_, itemIndex) => itemIndex !== index))} className="text-xs font-semibold text-rose-600">Quitar</button> : <span />}</div>)}</div><button type="button" onClick={() => setPaymentSplits((items) => [...items, { method: "YAPE_PLIN", amount: "" }])} className="text-sm font-semibold text-blue-700">+ Agregar medio de pago</button><div className="flex justify-end gap-3 border-t border-slate-100 pt-4"><Button type="button" variant="ghost" onClick={() => setIsPaymentModalOpen(false)}>Cancelar</Button><Button type="button" disabled={Math.abs(splitTotal - total) > 0.009} onClick={() => { setIsSplitPayment(true); setIsPaymentModalOpen(false); }}>Aplicar pago combinado</Button></div></div>
+      </Dialog>
       <Dialog isOpen={isConfirmOpen} onClose={() => setIsConfirmOpen(false)} title="Confirmar venta" description="Revisa el resumen antes de confirmar el cobro y descontar el stock." maxWidth="md">
         <div className="space-y-4">
           <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white p-5">

@@ -1,11 +1,4 @@
-import {
-  AlertTriangle,
-  Boxes,
-  CreditCard,
-  ShoppingCart,
-  Store,
-  Users,
-} from "lucide-react";
+import { AlertTriangle, Boxes, CreditCard, ShoppingCart, Store, Users } from "lucide-react";
 import { MetricCard } from "@/features/dashboard/components/metric-card";
 import { MonthlySalesChart } from "@/features/dashboard/components/monthly-sales-chart";
 import { PaymentMethods } from "@/features/dashboard/components/payment-methods";

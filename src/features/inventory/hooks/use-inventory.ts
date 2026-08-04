@@ -50,9 +50,7 @@ export const useInventory = () => {
           (warehouseFilter === "ALL" || stock.warehouseName === warehouseFilter) &&
           (stockLevelFilter === "ALL" ||
             (stockLevelFilter === "IN_STOCK" && stock.quantity > stock.minimum) ||
-            (stockLevelFilter === "LOW_STOCK" &&
-              stock.quantity > 0 &&
-              stock.quantity <= stock.minimum) ||
+            (stockLevelFilter === "LOW_STOCK" && stock.quantity <= stock.minimum) ||
             (stockLevelFilter === "OUT_OF_STOCK" && stock.quantity <= 0)) &&
           (!searchQuery ||
             `${stock.productName} ${stock.sku}`.toLowerCase().includes(searchQuery.toLowerCase())),

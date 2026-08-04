@@ -1,4 +1,4 @@
-import { Warehouse, Boxes, ArrowUpDown, AlertTriangle } from "lucide-react";
+import { WalletCards, Boxes, ArrowUpDown, AlertTriangle } from "lucide-react";
 import type { InventoryMetrics as IMetrics } from "@/features/inventory/types/inventory.types";
 
 interface InventoryMetricsProps {
@@ -24,19 +24,19 @@ export const InventoryMetrics = ({ metrics }: InventoryMetricsProps) => {
         </div>
       </div>
 
-      {/* Metric 2: Almacenes Activos */}
+      {/* Metric 2: Valor de inventario */}
       <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-[0_8px_20px_rgba(37,99,235,.03)]">
         <div>
           <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
-            Almacenes Activos
+            Valor de inventario
           </p>
           <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
-            {metrics.activeWarehouses}
+            {new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" }).format(metrics.inventoryValue)}
           </p>
-          <p className="mt-1 text-xs text-slate-500">Sedes de custodia</p>
+          <p className="mt-1 text-xs text-slate-500">Valorizado al costo referencial</p>
         </div>
         <div className="grid h-11 w-11 place-items-center rounded-lg bg-emerald-50 text-emerald-600">
-          <Warehouse className="h-5 w-5" />
+          <WalletCards className="h-5 w-5" />
         </div>
       </div>
 

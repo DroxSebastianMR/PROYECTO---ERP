@@ -15,7 +15,7 @@ type StockApi = {
   minimum: string | number;
   reserved: string | number;
   maximum: string | number | null;
-  product: { sku: string; name: string; unit: string };
+  product: { sku: string; name: string; unit: string; purchasePrice?: string | number | null };
   warehouse: { name: string };
 };
 type MovementApi = {
@@ -51,6 +51,7 @@ export const inventoryService = {
       minimum: value(item.minimum),
       reserved: value(item.reserved),
       maximum: item.maximum === null ? null : value(item.maximum),
+      unitCost: value(item.product.purchasePrice),
     }));
   },
   async getMovements(): Promise<InventoryMovementRecord[]> {
@@ -96,7 +97,7 @@ export const inventoryService = {
     const today = new Date().toISOString().slice(0, 10);
     return {
       totalUnits: stocks.reduce((total, item) => total + item.quantity, 0),
-      activeWarehouses: new Set(stocks.map((item) => item.warehouseId)).size,
+      inventoryValue: stocks.reduce((total, item) => total + item.quantity * item.unitCost, 0),
       todayMovementsCount: movements.filter((item) => item.createdAt.startsWith(today)).length,
       lowStockItemsCount: stocks.filter((item) => item.quantity <= item.minimum).length,
     };

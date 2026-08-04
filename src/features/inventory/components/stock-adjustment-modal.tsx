@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { AlertTriangle, Boxes } from "lucide-react";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,6 +55,10 @@ export const StockAdjustmentModal = ({
       title="Ajuste de Inventario"
       description={`Actualizar unidades de ${stockItem.productName} en ${stockItem.warehouseName}`}
       maxWidth="md"
+      headerClassName="bg-gradient-to-r from-blue-700 to-indigo-700"
+      titleClassName="text-white"
+      descriptionClassName="text-blue-100"
+      headerIcon={<span className="grid h-10 w-10 place-items-center rounded-xl border border-white/20 bg-white/10 text-white"><Boxes className="h-5 w-5" /></span>}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="rounded-lg border border-slate-200/80 bg-slate-50 p-3 text-sm">
@@ -104,7 +109,8 @@ export const StockAdjustmentModal = ({
           />
         </div>
 
-        <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
+        <div className="rounded-xl border border-amber-100 bg-amber-50 p-3 text-xs leading-5 text-amber-800"><AlertTriangle className="mr-1 inline h-4 w-4" />Cada ajuste genera un movimiento trazable en el Kardex.</div>
+        <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-5">
           <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting}>
             Cancelar
           </Button>

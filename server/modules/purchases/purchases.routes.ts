@@ -44,7 +44,7 @@ const purchaseSchema = z
       .array(
         z.object({
           productId: uuid,
-          quantity: z.coerce.number().positive(),
+          quantity: z.coerce.number().int().positive(),
           unitCost: z.coerce.number().nonnegative(),
           presentationName: z.string().trim().max(160).optional(),
           unit: z.string().trim().max(30).optional(),
@@ -124,9 +124,35 @@ purchasesRouter.post("/", async (req, res, next) => {
       .json(
         await purchasesService.create(
           companyId(req as AuthenticatedRequest),
+          userId(req as AuthenticatedRequest),
           purchaseSchema.parse(req.body),
         ),
       );
+  } catch (e) {
+    error(e, res, next);
+  }
+});
+purchasesRouter.patch("/:id", async (req, res, next) => {
+  try {
+    const body = z
+      .object({
+        supplierId: uuid.optional(),
+        purchasedAt: z.coerce.date().optional(),
+        warehouseEntryAt: z.coerce.date().optional(),
+        supplierDocumentNumber: z.string().trim().min(3).max(80).optional(),
+        notes: z.string().trim().max(1000).optional(),
+        paymentMethod: z.enum(["CASH", "BANK_TRANSFER", "CARD", "YAPE_PLIN", "CREDIT"]).optional(),
+        currency: z.string().length(3).optional(),
+      })
+      .refine((input) => Object.keys(input).length > 0, { message: "Indica datos para actualizar." })
+      .parse(req.body);
+    res.json(
+      await purchasesService.update(
+        companyId(req as AuthenticatedRequest),
+        uuid.parse(req.params.id),
+        body,
+      ),
+    );
   } catch (e) {
     error(e, res, next);
   }
@@ -165,8 +191,8 @@ purchasesRouter.post("/:id/receipts", async (req, res, next) => {
           .array(
             z.object({
               purchaseItemId: uuid,
-              receivedQuantity: z.coerce.number().positive(),
-              damagedQuantity: z.coerce.number().nonnegative().optional(),
+              receivedQuantity: z.coerce.number().int().positive(),
+              damagedQuantity: z.coerce.number().int().nonnegative().optional(),
               lotNumber: z.string().max(80).optional(),
               expiresAt: z.coerce.date().optional(),
             }),

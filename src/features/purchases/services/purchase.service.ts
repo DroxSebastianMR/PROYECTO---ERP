@@ -5,6 +5,7 @@ import type {
   PurchaseOrder,
   Supplier,
   SupplierInput,
+  UpdatePurchaseInput,
   SupplierOption,
   WarehouseOption,
 } from "@/features/purchases/types/purchase.types";
@@ -19,6 +20,8 @@ type PurchaseApi = {
   warehouseId: string | null;
   status: PurchaseOrder["status"];
   currency: string;
+  paymentMethod?: PurchaseOrder["paymentMethod"];
+  notes?: string | null;
   purchasedAt?: string | null;
   warehouseEntryAt?: string | null;
   document?: { number: string } | null;
@@ -32,6 +35,7 @@ type PurchaseApi = {
     receivedQuantity: Numeric;
     unitCost: Numeric;
     subtotal: Numeric;
+    taxRate: Numeric;
     presentationName?: string | null;
     product: { sku: string; name: string; unit: string };
   }>;
@@ -54,6 +58,8 @@ const mapPurchase = (purchase: PurchaseApi): PurchaseOrder => ({
   warehouseId: purchase.warehouseId,
   status: purchase.status,
   currency: purchase.currency,
+  paymentMethod: purchase.paymentMethod,
+  notes: purchase.notes,
   purchasedAt: purchase.purchasedAt,
   warehouseEntryAt: purchase.warehouseEntryAt,
   supplierDocumentNumber: purchase.document?.number ?? null,
@@ -70,6 +76,7 @@ const mapPurchase = (purchase: PurchaseApi): PurchaseOrder => ({
     receivedQuantity: toNumber(item.receivedQuantity),
     unitCost: toNumber(item.unitCost),
     subtotal: toNumber(item.subtotal),
+    taxRate: toNumber(item.taxRate),
     presentationName: item.presentationName,
   })),
 });
@@ -102,6 +109,9 @@ export const purchaseService = {
     return mapPurchase(
       await httpClient<PurchaseApi>("/purchases", { method: "POST", body: JSON.stringify(input) }),
     );
+  },
+  async updatePurchase(id: string, input: UpdatePurchaseInput): Promise<PurchaseOrder> {
+    return mapPurchase(await httpClient<PurchaseApi>(`/purchases/${id}`, { method: "PATCH", body: JSON.stringify(input) }));
   },
   async orderPurchase(id: string): Promise<PurchaseOrder> {
     return mapPurchase(await httpClient<PurchaseApi>(`/purchases/${id}/order`, { method: "POST" }));

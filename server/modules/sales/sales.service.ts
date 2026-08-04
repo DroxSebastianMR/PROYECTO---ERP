@@ -1,4 +1,5 @@
 import {
+  CashSessionStatus,
   MovementType,
   SaleDocumentType,
   SalePaymentMethod,
@@ -20,6 +21,7 @@ export type SaleInput = {
   customerId?: string;
   warehouseId: string;
   paymentMethod: SalePaymentMethod;
+  payments?: Array<{ method: "CASH" | "BANK_TRANSFER" | "CARD" | "YAPE_PLIN"; amount: number }>;
   documentType: SaleDocumentType;
   idempotencyKey: string;
   dueAt?: Date;
@@ -103,12 +105,25 @@ export const salesService = {
       throw new SaleError("Una venta al crédito requiere cliente.");
     if (input.paymentMethod === SalePaymentMethod.CREDIT && !input.dueAt)
       throw new SaleError("Indica la fecha de vencimiento del crédito.");
+    const payments = input.paymentMethod === SalePaymentMethod.CREDIT ? [] : (input.payments?.length ? input.payments : [{ method: input.paymentMethod as "CASH" | "BANK_TRANSFER" | "CARD" | "YAPE_PLIN", amount: 0 }]);
+    if (input.paymentMethod === SalePaymentMethod.CREDIT && input.payments?.length)
+      throw new SaleError("Una venta al crédito no puede combinar métodos de pago.");
+    if (payments.some((payment) => payment.method === SalePaymentMethod.CASH)) {
+      const openCashSession = await prisma.cashSession.findFirst({
+        where: { companyId, status: CashSessionStatus.OPEN },
+        select: { id: true },
+      });
+      if (!openCashSession)
+        throw new SaleError("Debe abrir una caja antes de registrar ventas en efectivo.", 409);
+    }
     const productCount = await prisma.product.count({
       where: { companyId, isActive: true, id: { in: input.items.map((item) => item.productId) } },
     });
     if (productCount !== new Set(input.items.map((item) => item.productId)).size)
       throw new SaleError("Uno o más productos no son válidos.", 404);
     const amount = calculate(input.items);
+    if (payments.length && Math.abs(payments.reduce((sum, payment) => sum + payment.amount, 0) - amount.total) > 0.009)
+      throw new SaleError("La suma de los pagos debe coincidir con el total de la venta.");
     if (customer && input.paymentMethod === SalePaymentMethod.CREDIT) {
       const balance = await prisma.sale.aggregate({
         where: {
@@ -160,9 +175,7 @@ export const salesService = {
             },
             ...(paid
               ? {
-                  payments: {
-                    create: { amount: toMoney(amount.total), method: input.paymentMethod },
-                  },
+                  payments: { create: payments.map((payment) => ({ amount: toMoney(payment.amount || amount.total), method: payment.method })) },
                 }
               : {}),
           },

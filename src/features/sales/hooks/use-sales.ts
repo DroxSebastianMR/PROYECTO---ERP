@@ -37,6 +37,7 @@ export const useSales = () => {
       client.invalidateQueries({ queryKey: ["inventory", "stocks"] }),
       client.invalidateQueries({ queryKey: ["inventory", "movements"] }),
       client.invalidateQueries({ queryKey: ["products"] }),
+      client.invalidateQueries({ queryKey: ["cash"] }),
     ]);
   };
   const create = useMutation({

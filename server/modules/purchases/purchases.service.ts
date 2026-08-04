@@ -44,6 +44,16 @@ export type SupplierInput = {
   isActive?: boolean;
 };
 
+type PurchaseUpdateInput = {
+  supplierId?: string;
+  purchasedAt?: Date;
+  warehouseEntryAt?: Date;
+  supplierDocumentNumber?: string;
+  notes?: string;
+  paymentMethod?: PaymentMethod;
+  currency?: string;
+};
+
 const includePurchase = {
   supplier: true,
   warehouse: true,
@@ -107,7 +117,7 @@ export const purchasesService = {
     await prisma.supplier.delete({ where: { id } });
     return { action: "deleted" as const };
   },
-  async create(companyId: string, input: PurchaseInput) {
+  async create(companyId: string, userId: string, input: PurchaseInput) {
     const supplier = input.supplierId
       ? await prisma.supplier.findFirst({
           where: { id: input.supplierId, companyId, isActive: true },
@@ -143,7 +153,7 @@ export const purchasesService = {
       throw new PurchaseError("Uno o más productos no pertenecen a la empresa.", 404);
     const amount = totals(input.items);
     const count = await prisma.purchase.count({ where: { companyId } });
-    return prisma.purchase.create({
+    const purchase = await prisma.purchase.create({
       data: {
         companyId,
         number: `OC-${String(count + 1).padStart(6, "0")}`,
@@ -159,8 +169,7 @@ export const purchasesService = {
         subtotal: amount.subtotal,
         taxAmount: amount.tax,
         total: amount.subtotal + amount.tax,
-        // El registro de una compra confirma la operación comercial. El stock
-        // se incrementa recién al confirmar la recepción física.
+        // La nueva compra representa mercadería ya adquirida y recibida.
         status: PurchaseStatus.ORDERED,
         items: {
           create: input.items.map((item) => ({
@@ -186,6 +195,23 @@ export const purchasesService = {
       },
       include: includePurchase,
     });
+    await purchasesService.receive(companyId, userId, purchase.id, {
+      warehouseId: warehouse.id,
+      notes: "Recepción automática al registrar la compra.",
+      lines: purchase.items.map((item) => ({
+        purchaseItemId: item.id,
+        receivedQuantity: Number(item.quantity),
+      })),
+    });
+    // Las formas disponibles en Nueva compra son pagos inmediatos; por ello no
+    // se mantiene una cuenta por pagar luego de la recepción automática.
+    await prisma.$transaction([
+      prisma.accountsPayable.deleteMany({ where: { purchaseId: purchase.id } }),
+      prisma.purchase.update({ where: { id: purchase.id }, data: { status: PurchaseStatus.RECEIVED } }),
+    ]);
+    const receivedPurchase = await purchasesService.getById(companyId, purchase.id);
+    if (!receivedPurchase) throw new PurchaseError("No se pudo recuperar la compra registrada.", 500);
+    return receivedPurchase;
   },
   async order(companyId: string, id: string) {
     const purchase = await this.getById(companyId, id);
@@ -195,6 +221,38 @@ export const purchasesService = {
     return prisma.purchase.update({
       where: { id },
       data: { status: PurchaseStatus.ORDERED },
+      include: includePurchase,
+    });
+  },
+  async update(companyId: string, id: string, input: PurchaseUpdateInput) {
+    const purchase = await prisma.purchase.findFirst({ where: { id, companyId } });
+    if (!purchase) throw new PurchaseError("Compra no encontrada.", 404);
+    if (purchase.status === PurchaseStatus.CANCELLED)
+      throw new PurchaseError("No se puede editar una compra anulada.", 409);
+    const supplier = input.supplierId
+      ? await prisma.supplier.findFirst({ where: { id: input.supplierId, companyId, isActive: true } })
+      : null;
+    if (input.supplierId && !supplier) throw new PurchaseError("Proveedor inválido.", 404);
+    return prisma.purchase.update({
+      where: { id },
+      data: {
+        ...(supplier ? { supplierId: supplier.id, supplierName: supplier.businessName } : {}),
+        ...(input.purchasedAt ? { purchasedAt: input.purchasedAt } : {}),
+        ...(input.warehouseEntryAt ? { warehouseEntryAt: input.warehouseEntryAt } : {}),
+        ...(input.paymentMethod ? { paymentMethod: input.paymentMethod } : {}),
+        ...(input.currency ? { currency: input.currency } : {}),
+        ...(input.notes !== undefined ? { notes: input.notes.trim() || null } : {}),
+        ...(input.supplierDocumentNumber?.trim()
+          ? {
+              document: {
+                upsert: {
+                  create: { type: "INVOICE", number: input.supplierDocumentNumber.trim(), issuedAt: input.purchasedAt ?? purchase.purchasedAt ?? new Date() },
+                  update: { number: input.supplierDocumentNumber.trim(), ...(input.purchasedAt ? { issuedAt: input.purchasedAt } : {}) },
+                },
+              },
+            }
+          : {}),
+      },
       include: includePurchase,
     });
   },

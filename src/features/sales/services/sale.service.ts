@@ -21,6 +21,7 @@ type SaleApi = {
   createdAt: string;
   customer: { name: string; document?: string | null } | null;
   createdBy: { fullName: string };
+  payments: Array<{ method: SaleReceipt["paymentMethod"]; amount: Numeric }>;
   items: Array<{
     id: string;
     productId: string;
@@ -46,6 +47,7 @@ const mapSale = (sale: SaleApi): SaleReceipt => ({
   igvAmount: number(sale.taxAmount),
   createdAt: sale.createdAt,
   createdBy: sale.createdBy.fullName,
+  payments: sale.payments.map((payment) => ({ method: payment.method as Exclude<SaleReceipt["paymentMethod"], "CREDIT">, amount: number(payment.amount) })),
   items: sale.items.map((item) => ({
     id: item.id,
     productId: item.productId,

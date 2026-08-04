@@ -28,7 +28,7 @@ const navigation = [
   ["Compras", ShoppingCart, PATHS.APP.PURCHASES],
   ["Ventas", Tag, PATHS.APP.SALES],
   ["Clientes", Users, PATHS.APP.CUSTOMERS],
-  ["Caja", CreditCard],
+  ["Caja", CreditCard, PATHS.APP.CASH],
   ["Comprobantes", ClipboardList],
   ["SUNAT", Landmark],
   ["Reportes", BarChart3],

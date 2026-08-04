@@ -10,6 +10,7 @@ import { NewSalePage, SalesPage } from "@/features/sales/pages";
 import { CustomersPage } from "@/features/customers/pages";
 import { UsersPage } from "@/features/users/pages";
 import { BarcodesPage } from "@/features/barcodes/pages";
+import { CashPage } from "@/features/cash/pages";
 
 export const protectedRoutes: RouteObject[] = [
   {
@@ -27,6 +28,7 @@ export const protectedRoutes: RouteObject[] = [
           { path: PATHS.APP.NEW_SALE, element: <NewSalePage /> },
           { path: PATHS.APP.CUSTOMERS, element: <CustomersPage /> },
           { path: PATHS.APP.USERS, element: <UsersPage /> },
+          { path: PATHS.APP.CASH, element: <CashPage /> },
         ],
       },
     ],

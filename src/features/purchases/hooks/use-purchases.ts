@@ -6,6 +6,7 @@ import type {
   CreatePurchaseInput,
   PurchaseOrder,
   PurchaseStatus,
+  UpdatePurchaseInput,
 } from "@/features/purchases/types/purchase.types";
 
 const PURCHASES_QUERY_KEY = ["purchases"] as const;
@@ -21,6 +22,7 @@ export const usePurchases = () => {
   const [page, setPage] = useState(1);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedPurchase, setSelectedPurchase] = useState<PurchaseOrder | null>(null);
 
   const purchasesQuery = useQuery({
@@ -70,6 +72,15 @@ export const usePurchases = () => {
       setSelectedPurchase(null);
     },
   });
+  const updateMutation = useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdatePurchaseInput }) => purchaseService.updatePurchase(id, input),
+    onSuccess: async () => {
+      await invalidatePurchaseData();
+      setIsEditOpen(false);
+      setIsDetailOpen(false);
+      setSelectedPurchase(null);
+    },
+  });
 
   const purchases = purchasesQuery.data ?? EMPTY_PURCHASES;
   const filteredPurchases = useMemo(
@@ -110,12 +121,15 @@ export const usePurchases = () => {
     setIsFormOpen,
     isDetailOpen,
     setIsDetailOpen,
+    isEditOpen,
+    setIsEditOpen,
     selectedPurchase,
-    isSubmitting: createMutation.isPending || orderMutation.isPending || receiptMutation.isPending,
+    isSubmitting: createMutation.isPending || orderMutation.isPending || receiptMutation.isPending || updateMutation.isPending,
     refresh: () => purchasesQuery.refetch(),
     handleOpenDetailModal,
     handleSavePurchase: (input: CreatePurchaseInput) => createMutation.mutateAsync(input),
     handleOrderPurchase: (id: string) => orderMutation.mutateAsync(id),
     handleReceivePurchase: (purchase: PurchaseOrder) => receiptMutation.mutateAsync(purchase),
+    handleUpdatePurchase: (id: string, input: UpdatePurchaseInput) => updateMutation.mutateAsync({ id, input }),
   };
 };

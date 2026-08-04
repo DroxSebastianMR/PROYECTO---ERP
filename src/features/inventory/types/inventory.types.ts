@@ -26,6 +26,7 @@ export interface WarehouseStockItem {
   minimum: number;
   reserved?: number;
   maximum?: number | null;
+  unitCost: number;
 }
 
 export interface InventoryMovementRecord {
@@ -56,7 +57,7 @@ export interface StockAdjustmentInput {
 
 export interface InventoryMetrics {
   totalUnits: number;
-  activeWarehouses: number;
+  inventoryValue: number;
   todayMovementsCount: number;
   lowStockItemsCount: number;
 }

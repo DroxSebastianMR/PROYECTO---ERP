@@ -12,6 +12,7 @@ import { notificationsRouter } from "./modules/notifications/notifications.route
 import { customersRouter } from "./modules/customers/customers.routes.js";
 import { barcodesRouter } from "./modules/barcodes/barcodes.routes.js";
 import { requireAuthentication } from "./modules/auth/auth.middleware.js";
+import { cashRouter } from "./modules/cash/cash.routes.js";
 
 export function createApp() {
   const app = express();
@@ -53,6 +54,7 @@ export function createApp() {
   protectedRoutes.use("/customers", customersRouter);
   protectedRoutes.use("/users", usersRouter);
   protectedRoutes.use("/notifications", notificationsRouter);
+  protectedRoutes.use("/cash", cashRouter);
   app.use("/api", protectedRoutes);
   app.use(
     (error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

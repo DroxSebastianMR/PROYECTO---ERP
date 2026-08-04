@@ -1,0 +1,8 @@
+export type CashRegister = { id: string; name: string; code: string | null };
+export type CashSummary = { openingAmount: number; cashIncome: number; digitalIncome: number; expenses: number; expectedAmount: number; totalOperational: number };
+export type CashCount = { id: string; expectedAmount: number | string; countedAmount: number | string; difference: number | string; status: "BALANCED" | "SHORTAGE" | "SURPLUS"; explanation?: string | null; createdAt: string; user: { fullName: string } };
+export type CashSession = { id: string; status: "OPEN" | "CLOSED"; openedAt: string; openingAmount: number | string; openingNotes?: string | null; closedAt?: string | null; closingAmount?: number | string | null; expectedAmount?: number | string | null; countedAmount?: number | string | null; difference?: number | string | null; closingNotes?: string | null; cashRegister: CashRegister; openedBy: { fullName: string }; closedBy?: { fullName: string } | null; counts: CashCount[] };
+export type CurrentCash = { session: CashSession; summary: CashSummary } | null;
+export type CashMovement = { id: string; type: "INCOME" | "EXPENSE"; description: string; amount: number; paymentMethod: string; createdAt: string; user: string; source: "MANUAL" | "SALE" | "PURCHASE" };
+export type CashMovementsResponse = { session: CashSession | null; movements: CashMovement[] };
+export type CashSessionActivity = { session: CashSession; movements: CashMovement[]; counts: Array<{ id: string; expectedAmount: number; countedAmount: number; difference: number; explanation?: string | null; createdAt: string; user: { fullName: string }; details: Array<{ denomination: number; quantity: number; subtotal: number }> }> };

@@ -107,6 +107,17 @@ enum BarcodeFormat {
   EAN13
 }
 
+enum CashSessionStatus {
+  OPEN
+  CLOSED
+}
+
+enum CashCountStatus {
+  BALANCED
+  SHORTAGE
+  SURPLUS
+}
+
 model Company {
   id          String      @id @default(uuid()) @db.Uuid
   name        String
@@ -128,6 +139,9 @@ model Company {
   sales       Sale[]
   purchases   Purchase[]
   suppliers   Supplier[]
+  cashRegisters CashRegister[]
+  cashSessions CashSession[]
+  cashMovements CashMovement[]
 }
 
 model User {
@@ -151,7 +165,99 @@ model User {
   loginAudits      LoginAudit[]
   inventoryMovements InventoryMovement[]
   notifications     Notification[]
+  openedCashSessions CashSession[] @relation("CashSessionOpenedBy")
+  closedCashSessions CashSession[] @relation("CashSessionClosedBy")
+  cashCounts        CashCount[]
+  cashMovements     CashMovement[]
   @@index([companyId, isActive])
+}
+
+model CashRegister {
+  id        String   @id @default(uuid()) @db.Uuid
+  companyId String   @db.Uuid
+  name      String
+  code      String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  sessions  CashSession[]
+  @@unique([companyId, name])
+  @@unique([companyId, code])
+}
+
+model CashSession {
+  id              String            @id @default(uuid()) @db.Uuid
+  companyId       String            @db.Uuid
+  cashRegisterId  String            @db.Uuid
+  openedById      String            @db.Uuid
+  openedAt        DateTime          @default(now())
+  openingAmount   Decimal           @db.Decimal(12, 2)
+  openingNotes    String?
+  status          CashSessionStatus @default(OPEN)
+  closedById      String?           @db.Uuid
+  closedAt        DateTime?
+  closingAmount   Decimal?          @db.Decimal(12, 2)
+  expectedAmount  Decimal?          @db.Decimal(12, 2)
+  countedAmount   Decimal?          @db.Decimal(12, 2)
+  difference      Decimal?          @db.Decimal(12, 2)
+  closingNotes    String?
+  closingIp       String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  company         Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  cashRegister    CashRegister      @relation(fields: [cashRegisterId], references: [id], onDelete: Restrict)
+  openedBy        User              @relation("CashSessionOpenedBy", fields: [openedById], references: [id], onDelete: Restrict)
+  closedBy        User?             @relation("CashSessionClosedBy", fields: [closedById], references: [id], onDelete: SetNull)
+  counts          CashCount[]
+  movements       CashMovement[]
+  @@index([companyId, status])
+  @@index([cashRegisterId, status])
+  @@index([openedById, status])
+}
+
+model CashMovement {
+  id            String      @id @default(uuid()) @db.Uuid
+  companyId     String      @db.Uuid
+  cashSessionId String      @db.Uuid
+  userId        String      @db.Uuid
+  type          String
+  description   String
+  amount        Decimal     @db.Decimal(12, 2)
+  paymentMethod PaymentMethod @default(CASH)
+  createdAt     DateTime    @default(now())
+  company       Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  cashSession   CashSession @relation(fields: [cashSessionId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  @@index([cashSessionId, createdAt])
+  @@index([companyId, createdAt])
+}
+
+model CashCount {
+  id              String          @id @default(uuid()) @db.Uuid
+  cashSessionId   String          @db.Uuid
+  userId          String          @db.Uuid
+  expectedAmount  Decimal         @db.Decimal(12, 2)
+  countedAmount   Decimal         @db.Decimal(12, 2)
+  difference      Decimal         @db.Decimal(12, 2)
+  status          CashCountStatus
+  explanation     String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  cashSession     CashSession     @relation(fields: [cashSessionId], references: [id], onDelete: Cascade)
+  user            User            @relation(fields: [userId], references: [id], onDelete: Restrict)
+  details         CashCountDetail[]
+  @@index([cashSessionId, createdAt])
+}
+
+model CashCountDetail {
+  id          String    @id @default(uuid()) @db.Uuid
+  cashCountId String    @db.Uuid
+  denomination Decimal  @db.Decimal(8, 2)
+  quantity    Int
+  subtotal    Decimal  @db.Decimal(12, 2)
+  cashCount   CashCount @relation(fields: [cashCountId], references: [id], onDelete: Cascade)
+  @@unique([cashCountId, denomination])
 }
 
 enum NotificationType {

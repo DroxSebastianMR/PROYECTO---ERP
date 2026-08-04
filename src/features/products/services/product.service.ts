@@ -65,6 +65,8 @@ const toPayload = (input: CreateProductInput | UpdateProductInput) => ({
   taxTreatment: input.taxTreatment ?? "TAXED",
   imageUrl: input.imageUrl || null,
   description: input.description || null,
+  initialStock: input.initialStock,
+  minStock: input.minStock,
   presentations: input.presentations ?? [],
 });
 

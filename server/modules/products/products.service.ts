@@ -29,6 +29,8 @@ export type ProductInput = {
   taxTreatment: TaxTreatment;
   imageUrl?: string | null;
   description?: string | null;
+  initialStock?: number;
+  minStock?: number;
   presentations?: PresentationInput[];
 };
 
@@ -147,6 +149,28 @@ const validatePresentations = async (
   }
 };
 
+const syncPrimaryStock = async (
+  client: Prisma.TransactionClient,
+  companyId: string,
+  productId: string,
+  initialStock: number | undefined,
+  minimum: number | undefined,
+) => {
+  if (initialStock === undefined && minimum === undefined) return;
+  const warehouse = await client.warehouse.findFirst({ where: { companyId, isActive: true }, orderBy: { isPrimary: "desc" } });
+  if (!warehouse) return;
+  const current = await client.inventoryStock.findUnique({ where: { productId_warehouseId: { productId, warehouseId: warehouse.id } } });
+  const quantity = initialStock ?? Number(current?.quantity ?? 0);
+  const min = minimum ?? Number(current?.minimum ?? 0);
+  await client.inventoryStock.upsert({
+    where: { productId_warehouseId: { productId, warehouseId: warehouse.id } },
+    create: { productId, warehouseId: warehouse.id, quantity, minimum: min, reserved: 0 },
+    update: { quantity, minimum: min },
+  });
+  const delta = quantity - Number(current?.quantity ?? 0);
+  if (delta !== 0) await client.inventoryMovement.create({ data: { productId, warehouseId: warehouse.id, type: delta > 0 ? "INITIAL" : "NEGATIVE_ADJUSTMENT", quantity: Math.abs(delta), quantityIn: delta > 0 ? delta : 0, quantityOut: delta < 0 ? Math.abs(delta) : 0, previousStock: Number(current?.quantity ?? 0), resultingStock: quantity, reason: "Actualización de stock desde el catálogo de productos", reference: "PRODUCT-CATALOG" } });
+};
+
 export const productsService = {
   list(companyId: string, search?: string, isActive?: boolean) {
     return prisma.product.findMany({
@@ -184,7 +208,8 @@ export const productsService = {
     );
     const sku = await nextSku(companyId, categoryName);
 
-    return prisma.product.create({
+    return prisma.$transaction(async (transaction) => {
+      const product = await transaction.product.create({
       data: {
         companyId,
         sku,
@@ -211,8 +236,11 @@ export const productsService = {
             }
           : undefined,
       },
-      include: productInclude,
-    });
+        include: productInclude,
+      });
+      await syncPrimaryStock(transaction, companyId, product.id, input.initialStock, input.minStock);
+      return transaction.product.findUniqueOrThrow({ where: { id: product.id }, include: productInclude });
+    }, { maxWait: 10_000, timeout: 20_000 });
   },
 
   async update(companyId: string, id: string, input: ProductInput) {
@@ -220,18 +248,22 @@ export const productsService = {
     if (!existing) throw new ProductCatalogError("Producto no encontrado.", 404);
     await ensureBarcodeAvailable(companyId, normalized(input.barcode), id);
     await validatePresentations(companyId, input.presentations, id);
-    const { categoryName: _categoryName, ...classification } = await resolveClassification(
+    const resolvedClassification = await resolveClassification(
       companyId,
       input.categoryId,
       input.categoryName,
       input.brandId,
       input.brandName,
     );
+    const classification = {
+      categoryId: resolvedClassification.categoryId,
+      brandId: resolvedClassification.brandId,
+    };
 
     return prisma.$transaction(async (transaction) => {
       if (input.presentations)
         await transaction.productPresentation.deleteMany({ where: { productId: id } });
-      return transaction.product.update({
+      const product = await transaction.product.update({
         where: { id },
         data: {
           sku: existing.sku,
@@ -262,7 +294,9 @@ export const productsService = {
         },
         include: productInclude,
       });
-    });
+      await syncPrimaryStock(transaction, companyId, id, input.initialStock, input.minStock);
+      return transaction.product.findUniqueOrThrow({ where: { id: product.id }, include: productInclude });
+    }, { maxWait: 10_000, timeout: 20_000 });
   },
 
   async setStatus(companyId: string, id: string, isActive: boolean) {

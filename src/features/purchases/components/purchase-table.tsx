@@ -1,13 +1,14 @@
-import { Eye, ShoppingCart } from "lucide-react";
+import { Eye, FilePenLine, ShoppingCart } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { PurchaseOrder } from "@/features/purchases/types/purchase.types";
 
 interface PurchaseTableProps {
   purchases: PurchaseOrder[];
   onView: (purchase: PurchaseOrder) => void;
+  onEdit: (purchase: PurchaseOrder) => void;
 }
 
-export const PurchaseTable = ({ purchases, onView }: PurchaseTableProps) => {
+export const PurchaseTable = ({ purchases, onView, onEdit }: PurchaseTableProps) => {
   const formatPrice = (val: number) =>
     new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" }).format(val);
 
@@ -75,7 +76,7 @@ export const PurchaseTable = ({ purchases, onView }: PurchaseTableProps) => {
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-center">
                     {isReceived ? (
-                      <Badge variant="success">Recepcionado</Badge>
+                      <Badge variant="success">Comprada · Recepcionada</Badge>
                     ) : isOrdered ? (
                       <Badge variant="warning">Comprada</Badge>
                     ) : purchase.status === "DRAFT" ? (
@@ -90,13 +91,16 @@ export const PurchaseTable = ({ purchases, onView }: PurchaseTableProps) => {
                     {new Date(purchase.createdAt).toLocaleDateString("es-PE")}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-right">
-                    <button
-                      onClick={() => onView(purchase)}
-                      className="ml-auto grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-blue-50 hover:text-blue-600"
-                      title="Ver detalle de orden"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
+                    <div className="ml-auto flex w-fit items-center gap-1">
+                      <button
+                        onClick={() => onView(purchase)}
+                        className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-blue-50 hover:text-blue-600"
+                        title="Ver detalle de compra"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      <button onClick={() => onEdit(purchase)} className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-blue-50 hover:text-blue-600" title="Editar compra"><FilePenLine className="h-4 w-4" /></button>
+                    </div>
                   </td>
                 </tr>
               );

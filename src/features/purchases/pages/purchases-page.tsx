@@ -5,6 +5,7 @@ import { PurchaseMetrics } from "@/features/purchases/components/purchase-metric
 import { PurchaseTable } from "@/features/purchases/components/purchase-table";
 import { PurchaseFormModal } from "@/features/purchases/components/purchase-form-modal";
 import { PurchaseDetailModal } from "@/features/purchases/components/purchase-detail-modal";
+import { PurchaseEditModal } from "@/features/purchases/components/purchase-edit-modal";
 import { SupplierMasterTab } from "@/features/purchases/components/supplier-master-tab";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -30,12 +31,15 @@ export const PurchasesPage = () => {
     setIsFormOpen,
     isDetailOpen,
     setIsDetailOpen,
+    isEditOpen,
+    setIsEditOpen,
     selectedPurchase,
     isSubmitting,
     handleOpenDetailModal,
     handleSavePurchase,
     handleOrderPurchase,
     handleReceivePurchase,
+    handleUpdatePurchase,
   } = usePurchases();
 
   if (isLoading) {
@@ -126,7 +130,7 @@ export const PurchasesPage = () => {
 
       {/* Main Table */}
       <section className="mt-6">
-        <PurchaseTable purchases={purchases} onView={handleOpenDetailModal} />
+        <PurchaseTable purchases={purchases} onView={handleOpenDetailModal} onEdit={(purchase) => { handleOpenDetailModal(purchase); setIsDetailOpen(false); setIsEditOpen(true); }} />
         <div className="mt-4 flex flex-col gap-3 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between"><span>Mostrando {purchases.length} de {pagination.total}</span><div className="flex items-center gap-1.5 self-end sm:gap-2 sm:self-auto"><Button variant="ghost" disabled={pagination.page === 1} onClick={() => pagination.setPage(pagination.page - 1)}><ChevronLeft className="h-4 w-4" /> Anterior</Button><span className="whitespace-nowrap">{pagination.page} / {pagination.pageCount}</span><Button variant="ghost" disabled={pagination.page === pagination.pageCount} onClick={() => pagination.setPage(pagination.page + 1)}>Siguiente <ChevronRight className="h-4 w-4" /></Button></div></div>
       </section>
 
@@ -148,7 +152,16 @@ export const PurchasesPage = () => {
         purchase={selectedPurchase}
         onOrder={handleOrderPurchase}
         onReceive={handleReceivePurchase}
+        onEdit={() => { setIsDetailOpen(false); setIsEditOpen(true); }}
         isSubmitting={isSubmitting}
+      />
+      <PurchaseEditModal
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        purchase={selectedPurchase}
+        suppliers={suppliers}
+        isSubmitting={isSubmitting}
+        onSubmit={handleUpdatePurchase}
       />
       </>}
     </div>

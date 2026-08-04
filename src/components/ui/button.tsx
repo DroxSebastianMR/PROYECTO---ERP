@@ -6,7 +6,7 @@ const buttonVariants = cva(
   "inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
-      variant: { default: "bg-blue-600 text-white hover:bg-blue-700", ghost: "hover:bg-slate-100" },
+      variant: { default: "bg-blue-600 text-white hover:bg-blue-700", ghost: "hover:bg-slate-100", outline: "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50" },
       size: { default: "h-10 px-4 py-2", lg: "h-14 px-6" },
     },
     defaultVariants: { variant: "default", size: "default" },

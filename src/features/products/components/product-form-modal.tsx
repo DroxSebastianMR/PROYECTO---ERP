@@ -4,6 +4,7 @@ import {
   ChevronRight,
   FileText,
   Image as ImageIcon,
+  LoaderCircle,
   Package,
   Plus,
   Save,
@@ -49,6 +50,7 @@ export const ProductFormModal = ({
 }: ProductFormModalProps) => {
   const isEditing = Boolean(product);
   const [activeStep, setActiveStep] = useState<1 | 2 | 3>(1);
+  const [submitRequested, setSubmitRequested] = useState(false);
 
   const [formData, setFormData] = useState({
     sku: "",
@@ -192,6 +194,9 @@ export const ProductFormModal = ({
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    // Evita que Enter en un campo del paso 3 registre accidentalmente el producto.
+    if (!submitRequested) return;
+    setSubmitRequested(false);
     const finalCategory = useCustomCategory ? customCategory.trim() : formData.category;
 
     if (!formData.name.trim() || !finalCategory) {
@@ -261,6 +266,7 @@ export const ProductFormModal = ({
       }
     >
       <form onSubmit={handleSubmit} className="space-y-6">
+        {isSaving && <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-950/45 px-4 backdrop-blur-sm"><div className="flex w-full max-w-sm items-center gap-4 rounded-2xl border border-blue-100 bg-white p-5 shadow-2xl"><span className="grid h-11 w-11 place-items-center rounded-xl bg-blue-50 text-blue-600"><LoaderCircle className="h-6 w-6 animate-spin" /></span><div><p className="font-bold text-slate-900">Guardando producto</p><p className="mt-1 text-sm text-slate-500">Actualizando catálogo e inventario...</p></div></div></div>}
         <ProductFormStepper activeStep={activeStep} onStepChange={setActiveStep} />
 
         {/* PASO 1: INFORMACIÓN GENERAL & MULTIMEDIA */}
@@ -774,6 +780,7 @@ export const ProductFormModal = ({
             ) : (
               <Button
                 type="submit"
+                onClick={() => setSubmitRequested(true)}
                 disabled={isSaving}
                 className="bg-emerald-600 text-white hover:bg-emerald-700 text-xs h-9 px-4 font-medium shadow-sm"
               >

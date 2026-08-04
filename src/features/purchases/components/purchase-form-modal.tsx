@@ -3,6 +3,7 @@ import {
   Check,
   ChevronDown,
   FileUp,
+  LoaderCircle,
   PackagePlus,
   Plus,
   ReceiptText,
@@ -23,8 +24,8 @@ import type {
   WarehouseOption,
 } from "@/features/purchases/types/purchase.types";
 
-type FormItem = { productId: string; quantity: string; unitCost: string };
-const blankItem = (): FormItem => ({ productId: "", quantity: "1", unitCost: "" });
+type FormItem = { productId: string; productSearch: string; quantity: string; unitCost: string };
+const blankItem = (): FormItem => ({ productId: "", productSearch: "", quantity: "1", unitCost: "" });
 const today = () => new Date().toISOString().slice(0, 10);
 const money = (value: number) =>
   new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" }).format(value);
@@ -122,7 +123,7 @@ const SupplierCombobox = ({
   );
 };
 
-const PurchaseLine = ({
+const LegacyPurchaseLine = ({
   item,
   index,
   products,
@@ -138,46 +139,35 @@ const PurchaseLine = ({
   removable: boolean;
 }) => {
   const product = products.find((entry) => entry.id === item.productId);
+  const productOptionsId = `purchase-products-${index}`;
   const subtotal = (Number(item.quantity) || 0) * (Number(item.unitCost) || 0);
   return (
     <div className="grid min-w-[690px] grid-cols-[minmax(260px,1fr)_80px_110px_135px_125px_40px] items-center gap-3 border-b border-slate-100 px-4 py-3 last:border-b-0">
-      <Select
-        value={item.productId}
-        onChange={(event) => {
-          const selected = products.find((entry) => entry.id === event.target.value);
-          onChange({
-            productId: event.target.value,
-            unitCost: selected ? String(selected.costPrice || "") : "",
-          });
-        }}
-      >
-        <option value="">Buscar y seleccionar producto</option>
-        {products.map((entry) => (
-          <option key={entry.id} value={entry.id}>
-            {entry.sku} — {entry.name}
-          </option>
-        ))}
-      </Select>
+      <div className="space-y-1">
+        <Input
+          list={productOptionsId}
+          value={item.productSearch}
+          placeholder="Escribe SKU o nombre del producto"
+          onChange={(event) => {
+            const selected = products.find((entry) => `${entry.sku} — ${entry.name}` === event.target.value);
+            onChange({ productSearch: event.target.value, productId: selected?.id ?? "", unitCost: selected ? String(selected.costPrice) : "" });
+          }}
+        />
+        <datalist id={productOptionsId}>{products.map((entry) => <option key={entry.id} value={`${entry.sku} — ${entry.name}`}>{`Costo ref.: ${money(entry.costPrice)}`}</option>)}</datalist>
+      </div>
       <span className="rounded-md bg-slate-100 px-2 py-2 text-center text-xs font-bold text-slate-600">
         {product?.unit || "UND"}
       </span>
       <Input
         type="number"
-        min="0.001"
-        step="0.001"
+        min="1"
+        step="1"
+        inputMode="numeric"
         value={item.quantity}
-        onChange={(event) => onChange({ quantity: event.target.value })}
+        onChange={(event) => onChange({ quantity: event.target.value.replace(/\D/g, "") })}
         aria-label={`Cantidad ${index + 1}`}
       />
-      <Input
-        type="number"
-        min="0"
-        step="0.01"
-        value={item.unitCost}
-        onChange={(event) => onChange({ unitCost: event.target.value })}
-        placeholder="0.00"
-        aria-label={`Costo unitario ${index + 1}`}
-      />
+      <div className="space-y-1"><Input type="number" min="0" step="0.01" value={item.unitCost} onChange={(event) => onChange({ unitCost: event.target.value })} placeholder="0.00" aria-label={`Costo unitario ${index + 1}`} /><p className="text-[10px] text-slate-500">Ref.: {product ? money(product.costPrice) : "—"}</p></div>
       <strong className="text-right text-sm text-emerald-700">{money(subtotal)}</strong>
       <button
         type="button"
@@ -190,6 +180,69 @@ const PurchaseLine = ({
       </button>
     </div>
   );
+};
+
+const ProductCombobox = ({
+  products,
+  item,
+  onChange,
+}: {
+  products: Product[];
+  item: FormItem;
+  onChange: (changes: Partial<FormItem>) => void;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState(item.productSearch);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const selected = products.find((product) => product.id === item.productId);
+  const options = products.filter((product) =>
+    `${product.sku} ${product.name}`.toLowerCase().includes(search.toLowerCase()),
+  );
+  useEffect(() => {
+    const close = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) setIsOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, []);
+  return (
+    <div ref={containerRef} className="relative">
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <Input
+          value={isOpen ? search : (selected ? `${selected.sku} — ${selected.name}` : search)}
+          placeholder="Buscar por SKU o nombre"
+          className="pl-9 pr-9"
+          onFocus={() => { setSearch(item.productSearch); setIsOpen(true); }}
+          onChange={(event) => { setSearch(event.target.value); onChange({ productSearch: event.target.value, productId: "", unitCost: "" }); setIsOpen(true); }}
+        />
+        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+      </div>
+      {isOpen && <div className="absolute z-40 mt-1 max-h-52 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
+        <p className="border-b border-slate-100 px-2 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Filtrar productos · {options.length} resultado(s)</p>
+        {options.map((product) => <button key={product.id} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => { onChange({ productId: product.id, productSearch: `${product.sku} — ${product.name}`, unitCost: String(product.costPrice) }); setSearch(""); setIsOpen(false); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition hover:bg-blue-50">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-blue-50 text-[10px] font-bold text-blue-700">{product.sku.slice(0, 3)}</span>
+          <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium text-slate-800">{product.name}</span><span className="block text-xs text-slate-500">{product.sku} · {product.unit} · Ref. {money(product.costPrice)}</span></span>
+          {product.taxTreatment !== "TAXED" && <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">Sin IGV</span>}
+          {item.productId === product.id && <Check className="h-4 w-4 text-blue-600" />}
+        </button>)}
+        {!options.length && <p className="px-3 py-6 text-center text-sm text-slate-500">No se encontraron productos.</p>}
+      </div>}
+    </div>
+  );
+};
+
+const PurchaseLine = ({ item, index, products, onChange, onRemove, removable }: { item: FormItem; index: number; products: Product[]; onChange: (changes: Partial<FormItem>) => void; onRemove: () => void; removable: boolean }) => {
+  const product = products.find((entry) => entry.id === item.productId);
+  const subtotal = (Number(item.quantity) || 0) * (Number(item.unitCost) || 0);
+  return <div className="grid w-full grid-cols-[minmax(220px,1fr)_58px_82px_110px_100px_36px] items-start gap-2 border-b border-slate-100 px-4 py-4 last:border-b-0">
+    <div><ProductCombobox products={products} item={item} onChange={onChange} /><p className={`mt-1 pl-1 text-[11px] font-medium ${product?.taxTreatment === "TAXED" ? "text-slate-500" : "text-amber-700"}`}>{product ? product.taxTreatment === "TAXED" ? "Afecto a IGV (18%)" : "Producto sin IGV" : "Seleccione un producto"}</p></div>
+    <span className="mt-0.5 rounded-lg bg-slate-100 px-1 py-2.5 text-center text-xs font-bold text-slate-600">{product?.unit || "UND"}</span>
+    <Input type="number" min="1" step="1" inputMode="numeric" value={item.quantity} onChange={(event) => onChange({ quantity: event.target.value.replace(/\D/g, "") })} aria-label={`Cantidad ${index + 1}`} />
+    <div><Input type="number" min="0" step="0.01" value={item.unitCost} onChange={(event) => onChange({ unitCost: event.target.value })} placeholder="0.00" aria-label={`Costo unitario ${index + 1}`} /><p className="mt-1 text-[11px] text-slate-500">Ref.: {product ? money(product.costPrice) : "—"}</p></div>
+    <strong className="pt-2.5 text-right text-sm text-emerald-700">{money(subtotal)}</strong>
+    <button type="button" onClick={onRemove} disabled={!removable} aria-label="Quitar producto" className="mt-0.5 grid h-9 w-9 place-items-center rounded-lg text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 disabled:opacity-30"><Trash2 className="h-4 w-4" /></button>
+  </div>;
 };
 
 interface PurchaseFormModalProps {
@@ -220,12 +273,16 @@ export const PurchaseFormModal = ({
   const [items, setItems] = useState<FormItem[]>([blankItem()]);
   const canAddProduct = items.every((item) => Boolean(item.productId));
   const totals = useMemo(() => {
-    const subtotal = items.reduce(
-      (total, item) => total + (Number(item.quantity) || 0) * (Number(item.unitCost) || 0),
-      0,
+    const result = items.reduce(
+      (total, item) => {
+        const subtotal = (Number(item.quantity) || 0) * (Number(item.unitCost) || 0);
+        const product = products.find((entry) => entry.id === item.productId);
+        return { subtotal: total.subtotal + subtotal, tax: total.tax + (product?.taxTreatment === "TAXED" ? subtotal * 0.18 : 0) };
+      },
+      { subtotal: 0, tax: 0 },
     );
-    return { subtotal, tax: subtotal * 0.18, total: subtotal * 1.18 };
-  }, [items]);
+    return { ...result, total: result.subtotal + result.tax };
+  }, [items, products]);
   useEffect(() => {
     if (!isOpen) return;
     setSupplierId("");
@@ -253,7 +310,8 @@ export const PurchaseFormModal = ({
       alert("Completa proveedor, comprobante y productos con cantidades válidas.");
       return;
     }
-    await onSubmit({
+    try {
+      await onSubmit({
       supplierId,
       paymentMethod,
       currency,
@@ -269,16 +327,21 @@ export const PurchaseFormModal = ({
           unitCost: Number(item.unitCost),
           presentationName: product?.presentation || undefined,
           unit: product?.unit || "UND",
+          taxRate: product?.taxTreatment === "TAXED" ? 18 : 0,
         };
       }),
-    });
+      });
+      onClose();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "No se pudo registrar la compra. Revisa los datos e inténtalo nuevamente.");
+    }
   };
   return (
     <Dialog
       isOpen={isOpen}
       onClose={onClose}
       title="Nueva compra nacional"
-      description="Registra el comprobante y detalle recibido. El stock aumentará únicamente al recepcionar la compra."
+      description="Registra una compra ya recibida. Al guardar, el inventario se actualizará automáticamente."
       maxWidth="4xl"
       headerClassName="relative overflow-hidden border-b-0 bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 px-6 py-5"
       titleClassName="text-white"
@@ -290,6 +353,14 @@ export const PurchaseFormModal = ({
       }
     >
       <form onSubmit={submit} className="space-y-6">
+        {isSubmitting && (
+          <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-950/45 px-4 backdrop-blur-sm">
+            <div className="flex w-full max-w-sm items-center gap-4 rounded-2xl border border-blue-100 bg-white p-5 shadow-2xl">
+              <span className="grid h-11 w-11 place-items-center rounded-xl bg-blue-50 text-blue-600"><LoaderCircle className="h-6 w-6 animate-spin" /></span>
+              <div><p className="font-bold text-slate-900">Registrando compra</p><p className="mt-1 text-sm text-slate-500">Guardando la compra e ingresando existencias...</p></div>
+            </div>
+          </div>
+        )}
         <section className="rounded-xl border border-blue-100 bg-gradient-to-r from-blue-50/90 to-indigo-50/40 p-4 shadow-sm">
           <SectionTitle
             icon={<ReceiptText className="h-4 w-4" />}
@@ -359,7 +430,7 @@ export const PurchaseFormModal = ({
             </label>
           </div>
         </section>
-        <section className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <section className="relative overflow-visible rounded-xl border border-slate-200 bg-white">
           <div className="flex flex-col gap-3 border-b border-slate-200 bg-slate-50/80 p-4 sm:flex-row sm:items-center sm:justify-between">
             <SectionTitle
               icon={<PackagePlus className="h-4 w-4" />}
@@ -381,8 +452,8 @@ export const PurchaseFormModal = ({
               <Plus className="h-3.5 w-3.5" /> Agregar producto
             </Button>
           </div>
-          <div className="overflow-x-auto">
-            <div className="grid min-w-[690px] grid-cols-[minmax(260px,1fr)_80px_110px_135px_125px_40px] gap-3 bg-slate-50 px-4 py-3 text-[11px] font-bold uppercase tracking-wide text-slate-500">
+          <div className="relative">
+            <div className="grid w-full grid-cols-[minmax(220px,1fr)_58px_82px_110px_100px_36px] gap-2 bg-slate-50 px-4 py-3 text-[11px] font-bold uppercase tracking-wide text-slate-500">
               <span>Producto</span>
               <span>UM</span>
               <span>Cant.</span>
@@ -469,7 +540,7 @@ export const PurchaseFormModal = ({
             className="min-w-[180px] gap-2 bg-emerald-600 text-white hover:bg-emerald-700"
           >
             <Truck className="h-4 w-4" />
-            {isSubmitting ? "Registrando compra..." : "Registrar compra"}
+            {isSubmitting ? "Registrando y recepcionando..." : "Registrar y recepcionar"}
           </Button>
         </div>
       </form>

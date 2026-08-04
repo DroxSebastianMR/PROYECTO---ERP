@@ -31,6 +31,8 @@ const productSchema = z.object({
   taxTreatment: z.enum(["TAXED", "EXONERATED", "UNAFFECTED"]),
   imageUrl: z.string().url().nullable().optional(),
   description: z.string().trim().max(2000).nullable().optional(),
+  initialStock: z.coerce.number().nonnegative().optional(),
+  minStock: z.coerce.number().nonnegative().optional(),
   presentations: z.array(presentationSchema).max(30).optional(),
 });
 const classificationSchema = z.object({

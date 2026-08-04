@@ -8,6 +8,7 @@ export type SaleStatus =
   | "DISPATCHED"
   | "CANCELLED";
 export type SalePaymentMethod = "CASH" | "BANK_TRANSFER" | "CARD" | "YAPE_PLIN" | "CREDIT";
+export type SalePayment = { method: Exclude<SalePaymentMethod, "CREDIT">; amount: number };
 export type SaleDocumentType = "RECEIPT" | "INVOICE";
 
 export interface SaleItem {
@@ -35,6 +36,7 @@ export interface SaleReceipt {
   igvAmount: number;
   createdAt: string;
   createdBy: string;
+  payments: SalePayment[];
   items: SaleItem[];
 }
 export interface CustomerOption {
@@ -52,6 +54,7 @@ export interface CreateSaleInput {
   customerId?: string;
   warehouseId: string;
   paymentMethod: SalePaymentMethod;
+  payments?: SalePayment[];
   documentType: SaleDocumentType;
   idempotencyKey: string;
   dueAt?: string;

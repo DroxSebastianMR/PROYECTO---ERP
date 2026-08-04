@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import type { PurchaseOrder } from "@/features/purchases/types/purchase.types";
-import { Building2, CalendarDays, CheckCircle2, CreditCard, FileText, PackageCheck, ReceiptText, Send, Truck } from "lucide-react";
+import { Building2, CalendarDays, CheckCircle2, CreditCard, FilePenLine, PackageCheck, ReceiptText, Send, Truck } from "lucide-react";
 
 interface PurchaseDetailModalProps {
   isOpen: boolean;
@@ -10,10 +10,11 @@ interface PurchaseDetailModalProps {
   purchase: PurchaseOrder | null;
   onOrder: (id: string) => Promise<unknown>;
   onReceive: (purchase: PurchaseOrder) => Promise<unknown>;
+  onEdit: () => void;
   isSubmitting: boolean;
 }
 
-export const PurchaseDetailModal = ({ isOpen, onClose, purchase, onOrder, onReceive, isSubmitting }: PurchaseDetailModalProps) => {
+export const PurchaseDetailModal = ({ isOpen, onClose, purchase, onOrder, onReceive, onEdit, isSubmitting }: PurchaseDetailModalProps) => {
   if (!purchase) return null;
   const formatPrice = (value: number) => new Intl.NumberFormat("es-PE", { style: "currency", currency: purchase.currency || "PEN" }).format(value);
   const isReceived = ["PENDING_PAYMENT", "PAID", "RECEIVED"].includes(purchase.status);
@@ -26,7 +27,7 @@ export const PurchaseDetailModal = ({ isOpen, onClose, purchase, onOrder, onRece
         <section className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50/60 p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex gap-3"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-blue-600 text-white shadow-sm"><Truck className="h-6 w-6" /></span><div><p className="text-xs font-bold uppercase tracking-[.12em] text-blue-700">Compra registrada</p><p className="mt-1 font-mono text-2xl font-bold tracking-tight text-slate-900">{purchase.number}</p><p className="mt-1 text-sm text-slate-600">Comprobante proveedor: <strong>{purchase.supplierDocumentNumber || "Sin número"}</strong></p></div></div>
-            {isReceived ? <Badge variant="success">Recepcionada</Badge> : isDraft ? <Badge variant="secondary">Pendiente de confirmar</Badge> : <Badge variant="warning">Comprada</Badge>}
+            {isReceived ? <Badge variant="success">Comprada · Recepcionada</Badge> : isDraft ? <Badge variant="secondary">Pendiente de confirmar</Badge> : <Badge variant="warning">Comprada</Badge>}
           </div>
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
             <InfoCard icon={<Building2 className="h-5 w-5" />} label="Proveedor" value={purchase.supplierName} />
@@ -41,7 +42,7 @@ export const PurchaseDetailModal = ({ isOpen, onClose, purchase, onOrder, onRece
           <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-5 py-4"><span className="font-semibold text-slate-700">Total de compra</span><span className="text-2xl font-bold tracking-tight text-emerald-600">{formatPrice(purchase.total)}</span></div>
         </section>
 
-        <div className="flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm text-slate-500">{isReceived ? "La mercadería fue recepcionada e ingresó al inventario." : "La compra está registrada. El inventario se actualizará al recepcionar la mercadería."}</p><div className="flex justify-end gap-3">{isDraft && <Button onClick={() => void onOrder(purchase.id)} disabled={isSubmitting} variant="ghost" className="gap-2"><Send className="h-4 w-4" /> Ordenar</Button>}<Button variant="ghost" onClick={onClose} disabled={isSubmitting}>Cerrar</Button>{canReceive && <Button onClick={() => void onReceive(purchase)} disabled={isSubmitting || isDraft} className="gap-2 bg-emerald-600 text-white hover:bg-emerald-700"><CheckCircle2 className="h-4 w-4" />{isSubmitting ? "Procesando..." : "Recepcionar compra"}</Button>}</div></div>
+        <div className="flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm text-slate-500">{isReceived ? "La mercadería fue recepcionada e ingresó al inventario." : "La compra está registrada. El inventario se actualizará al recepcionar la mercadería."}</p><div className="flex justify-end gap-3"><Button variant="ghost" onClick={onEdit} disabled={isSubmitting} className="gap-2"><FilePenLine className="h-4 w-4" /> Editar</Button>{isDraft && <Button onClick={() => void onOrder(purchase.id)} disabled={isSubmitting} variant="ghost" className="gap-2"><Send className="h-4 w-4" /> Ordenar</Button>}<Button variant="ghost" onClick={onClose} disabled={isSubmitting}>Cerrar</Button>{canReceive && <Button onClick={() => void onReceive(purchase)} disabled={isSubmitting || isDraft} className="gap-2 bg-emerald-600 text-white hover:bg-emerald-700"><CheckCircle2 className="h-4 w-4" />{isSubmitting ? "Procesando..." : "Recepcionar compra"}</Button>}</div></div>
       </div>
     </Dialog>
   );
