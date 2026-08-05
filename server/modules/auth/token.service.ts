@@ -8,6 +8,7 @@ export type AccessTokenPayload = JwtPayload & {
   sub: string;
   companyId: string;
   role: UserRole;
+  permissions: string[];
 };
 
 export const tokenService = {
@@ -19,7 +20,7 @@ export const tokenService = {
       audience: env.JWT_AUDIENCE,
     };
 
-    return jwt.sign({ companyId: user.companyId, role: user.role }, env.JWT_SECRET, options);
+    return jwt.sign({ companyId: user.companyId, role: user.role, permissions: user.permissions }, env.JWT_SECRET, options);
   },
   createRefreshToken() {
     return randomBytes(48).toString("base64url");

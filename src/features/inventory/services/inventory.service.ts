@@ -4,6 +4,8 @@ import type {
   InventoryMovementRecord,
   StockAdjustmentInput,
   WarehouseStockItem,
+  CreateWarehouseInput,
+  WarehouseRecord,
 } from "@/features/inventory/types/inventory.types";
 
 const value = (input: string | number | null | undefined) => Number(input ?? 0);
@@ -35,8 +37,18 @@ type MovementApi = {
   warehouse: { name: string };
   createdBy?: { fullName: string } | null;
 };
+type WarehouseApi = WarehouseRecord;
 
 export const inventoryService = {
+  async getWarehouses(): Promise<WarehouseRecord[]> {
+    return httpClient<WarehouseApi[]>("/inventory/warehouses");
+  },
+  async createWarehouse(input: CreateWarehouseInput): Promise<WarehouseRecord> {
+    return httpClient<WarehouseRecord>("/inventory/warehouses", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  },
   async getStocks(): Promise<WarehouseStockItem[]> {
     const data = await httpClient<StockApi[]>("/inventory/stocks");
     return data.map((item) => ({

@@ -7,7 +7,7 @@ export const AuthHero = () => (
       <div className="grid h-11 w-11 place-items-center rounded-xl border border-white/80 bg-white/60 text-blue-600 shadow-sm backdrop-blur">
         <Archive className="h-5 w-5" strokeWidth={2.4} />
       </div>
-      <span className="text-[23px] font-bold tracking-[-0.055em] text-slate-900">DistriCorp</span>
+      <span className="text-[23px] font-bold tracking-[-0.055em] text-slate-900">Clienty</span>
     </div>
 
     <div className="relative mx-auto flex w-full max-w-[445px] items-center justify-center">
@@ -44,10 +44,9 @@ export const AuthHero = () => (
     </div>
 
     <div className="relative max-w-[430px]">
-      <h1 className="text-[32px] font-bold tracking-[-0.05em] text-slate-950">DistriCorp ERP</h1>
+      <h1 className="text-[32px] font-bold tracking-[-0.05em] text-slate-950">Clienty</h1>
       <p className="mt-3 max-w-[430px] text-[17px] font-light leading-[1.55] text-slate-600">
-        Gestiona tu empresa desde un solo lugar. Control de inventario, logística y ventas en tiempo
-        real.
+        Sistema de ventas para controlar clientes, inventario y operaciones en tiempo real.
       </p>
     </div>
   </aside>

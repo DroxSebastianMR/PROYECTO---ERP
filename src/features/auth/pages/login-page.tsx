@@ -10,7 +10,7 @@ export const LoginPage = () => (
     </header>
     <LoginForm />
     <footer className="mt-14 text-center font-mono text-[11px] tracking-[.08em] text-slate-400">
-      Versión 2.5.0 · © 2024 DistriCorp
+      Versión 2.5.0 · Clienty · Sistema de Ventas
     </footer>
   </>
 );

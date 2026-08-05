@@ -9,6 +9,7 @@ export type SystemUser = {
   lastLoginAt: string | null;
   createdAt: string;
   updatedAt: string;
+  permissions: string[];
 };
 
 export type UserRoleDefinition = {
@@ -21,6 +22,7 @@ export type CreateUserInput = {
   email: string;
   password: string;
   role: ManagedUserRole;
+  permissions: string[];
 };
 
 export const ROLE_LABELS: Record<ManagedUserRole, string> = {

@@ -21,6 +21,11 @@ export const useUsers = () => {
     queryFn: userService.getRoles,
     staleTime: Infinity,
   });
+  const permissionsQuery = useQuery({
+    queryKey: ["users", "permissions"],
+    queryFn: userService.getPermissions,
+    staleTime: Infinity,
+  });
   const invalidate = () => queryClient.invalidateQueries({ queryKey: USERS_KEY });
   const createMutation = useMutation({
     mutationFn: userService.create,
@@ -48,6 +53,7 @@ export const useUsers = () => {
     users: filteredUsers,
     allUsers: users,
     roles: rolesQuery.data ?? [],
+    permissions: permissionsQuery.data ?? [],
     search,
     setSearch,
     role,

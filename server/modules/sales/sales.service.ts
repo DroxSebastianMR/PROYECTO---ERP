@@ -4,6 +4,7 @@ import {
   SaleDocumentType,
   SalePaymentMethod,
   SaleStatus,
+  UserRole,
   type Prisma,
 } from "@prisma/client";
 import { prisma } from "../../lib/prisma.js";
@@ -38,6 +39,10 @@ const includeSale = {
   returns: { include: { lines: true } },
 } satisfies Prisma.SaleInclude;
 const toMoney = (value: number) => Math.round(value * 100) / 100;
+const saleScope = (companyId: string, userId?: string, role?: UserRole, permissions?: readonly string[]) => ({
+  companyId,
+  ...((permissions?.includes("SALES_VIEW_OWN") && !permissions.includes("SALES_VIEW_ALL")) || role === UserRole.SALES_PURCHASING ? userId ? { createdById: userId } : {} : {}),
+});
 
 const calculate = (items: SaleInput["items"]) =>
   items.reduce(
@@ -54,16 +59,70 @@ const calculate = (items: SaleInput["items"]) =>
     { subtotal: 0, tax: 0, discount: 0, total: 0 },
   );
 
+/** Applies all sale stock reductions without repeating product and warehouse lookups per item. */
+const recordSaleDispatches = async (
+  tx: Prisma.TransactionClient,
+  userId: string,
+  warehouseId: string,
+  saleNumber: string,
+  items: SaleInput["items"],
+) => {
+  const quantities = new Map<string, number>();
+  for (const item of items)
+    quantities.set(item.productId, (quantities.get(item.productId) ?? 0) + item.quantity);
+
+  const productIds = [...quantities.keys()];
+  const stocks = await tx.inventoryStock.findMany({
+    where: { warehouseId, productId: { in: productIds } },
+    select: { id: true, productId: true, quantity: true },
+  });
+  const stockByProduct = new Map(stocks.map((stock) => [stock.productId, stock]));
+  const updates = productIds.map((productId) => {
+    const stock = stockByProduct.get(productId);
+    const quantity = quantities.get(productId)!;
+    const previousStock = Number(stock?.quantity ?? 0);
+    const resultingStock = previousStock - quantity;
+    if (!stock || resultingStock < 0)
+      throw new SaleError("Stock insuficiente para registrar la salida.", 409);
+    return { productId, stockId: stock.id, quantity, previousStock, resultingStock };
+  });
+
+  await Promise.all(
+    updates.map((update) =>
+      tx.inventoryStock.update({
+        where: { id: update.stockId },
+        data: { quantity: update.resultingStock },
+      }),
+    ),
+  );
+  await tx.inventoryMovement.createMany({
+    data: updates.map((update) => ({
+      productId: update.productId,
+      warehouseId,
+      type: MovementType.SALE_DISPATCH,
+      quantity: update.quantity,
+      quantityIn: 0,
+      quantityOut: update.quantity,
+      previousStock: update.previousStock,
+      resultingStock: update.resultingStock,
+      documentRef: saleNumber,
+      reason: "Venta cobrada",
+      reference: "Venta cobrada",
+      createdById: userId,
+    })),
+  });
+};
+
 export const salesService = {
-  list(companyId: string) {
+  list(companyId: string, userId?: string, role?: UserRole, permissions?: readonly string[]) {
     return prisma.sale.findMany({
-      where: { companyId },
+      where: saleScope(companyId, userId, role, permissions),
       include: includeSale,
       orderBy: { createdAt: "desc" },
     });
   },
-  get(companyId: string, id: string) {
-    return prisma.sale.findFirst({ where: { id, companyId }, include: includeSale });
+  get(companyId: string, id: string, userId?: string, role?: UserRole, permissions?: readonly string[]) {
+    return prisma.sale.findFirst({ where: { id, ...saleScope(companyId, userId, role, permissions) }, include: includeSale });
   },
   listCustomers(companyId: string) {
     return prisma.customer.findMany({
@@ -87,16 +146,46 @@ export const salesService = {
       data: { companyId, code: `CLI-${String(count + 1).padStart(6, "0")}`, ...input },
     });
   },
-  async create(companyId: string, userId: string, input: SaleInput) {
+  async create(companyId: string, userId: string, input: SaleInput, role?: UserRole) {
+    if (role === UserRole.SALES_PURCHASING) {
+      const primaryWarehouse = await prisma.warehouse.findFirst({
+        where: { companyId, isActive: true, isPrimary: true },
+        select: { id: true },
+      });
+      if (!primaryWarehouse) throw new SaleError("No hay un almacén principal activo para registrar ventas.", 409);
+      input = { ...input, warehouseId: primaryWarehouse.id };
+    }
     const existing = await prisma.sale.findFirst({
       where: { companyId, idempotencyKey: input.idempotencyKey },
-      include: includeSale,
+      select: { id: true },
     });
-    if (existing) return existing;
-    const [warehouse, customer] = await Promise.all([
+    if (existing)
+      return prisma.sale.findFirstOrThrow({ where: { id: existing.id, companyId }, include: includeSale });
+
+    const amount = calculate(input.items);
+    const payments = input.paymentMethod === SalePaymentMethod.CREDIT
+      ? []
+      : input.payments?.length
+        ? input.payments
+        : [
+            {
+              method: input.paymentMethod as "CASH" | "BANK_TRANSFER" | "CARD" | "YAPE_PLIN",
+              amount: amount.total,
+            },
+          ];
+    const productIds = [...new Set(input.items.map((item) => item.productId))];
+    const requiresOpenCashSession = payments.some((payment) => payment.method === SalePaymentMethod.CASH);
+    const [warehouse, customer, productCount, openCashSession] = await Promise.all([
       prisma.warehouse.findFirst({ where: { id: input.warehouseId, companyId, isActive: true } }),
       input.customerId
         ? prisma.customer.findFirst({ where: { id: input.customerId, companyId, isActive: true } })
+        : null,
+      prisma.product.count({ where: { companyId, isActive: true, id: { in: productIds } } }),
+      requiresOpenCashSession
+        ? prisma.cashSession.findFirst({
+            where: { companyId, status: CashSessionStatus.OPEN },
+            select: { id: true },
+          })
         : null,
     ]);
     if (!warehouse) throw new SaleError("Almacén de venta inválido.", 404);
@@ -105,23 +194,12 @@ export const salesService = {
       throw new SaleError("Una venta al crédito requiere cliente.");
     if (input.paymentMethod === SalePaymentMethod.CREDIT && !input.dueAt)
       throw new SaleError("Indica la fecha de vencimiento del crédito.");
-    const payments = input.paymentMethod === SalePaymentMethod.CREDIT ? [] : (input.payments?.length ? input.payments : [{ method: input.paymentMethod as "CASH" | "BANK_TRANSFER" | "CARD" | "YAPE_PLIN", amount: 0 }]);
     if (input.paymentMethod === SalePaymentMethod.CREDIT && input.payments?.length)
       throw new SaleError("Una venta al crédito no puede combinar métodos de pago.");
-    if (payments.some((payment) => payment.method === SalePaymentMethod.CASH)) {
-      const openCashSession = await prisma.cashSession.findFirst({
-        where: { companyId, status: CashSessionStatus.OPEN },
-        select: { id: true },
-      });
-      if (!openCashSession)
-        throw new SaleError("Debe abrir una caja antes de registrar ventas en efectivo.", 409);
-    }
-    const productCount = await prisma.product.count({
-      where: { companyId, isActive: true, id: { in: input.items.map((item) => item.productId) } },
-    });
-    if (productCount !== new Set(input.items.map((item) => item.productId)).size)
+    if (requiresOpenCashSession && !openCashSession)
+      throw new SaleError("Debe abrir una caja antes de registrar ventas en efectivo.", 409);
+    if (productCount !== productIds.length)
       throw new SaleError("Uno o más productos no son válidos.", 404);
-    const amount = calculate(input.items);
     if (payments.length && Math.abs(payments.reduce((sum, payment) => sum + payment.amount, 0) - amount.total) > 0.009)
       throw new SaleError("La suma de los pagos debe coincidir con el total de la venta.");
     if (customer && input.paymentMethod === SalePaymentMethod.CREDIT) {
@@ -135,7 +213,7 @@ export const salesService = {
       if (Number(balance._sum.total ?? 0) + amount.total > Number(customer.creditLimit))
         throw new SaleError("La venta supera el límite de crédito del cliente.", 409);
     }
-    return prisma.$transaction(
+    const saleId = await prisma.$transaction(
       async (tx) => {
         const count = await tx.sale.count({ where: { companyId } });
         const number = `V-${String(count + 1).padStart(6, "0")}`;
@@ -179,30 +257,18 @@ export const salesService = {
                 }
               : {}),
           },
-          include: includeSale,
+          select: { id: true, number: true },
         });
-        for (const item of sale.items)
-          await inventoryService.recordMovement(
-            companyId,
-            userId,
-            {
-              productId: item.productId,
-              warehouseId: warehouse.id,
-              type: MovementType.SALE_DISPATCH,
-              quantity: Number(item.quantity),
-              reason: "Venta cobrada",
-              documentRef: sale.number,
-            },
-            tx,
-          );
-        return sale;
+        await recordSaleDispatches(tx, userId, warehouse.id, sale.number, input.items);
+        return sale.id;
       },
       { maxWait: 10_000, timeout: 20_000 },
     );
+    return prisma.sale.findFirstOrThrow({ where: { id: saleId, companyId }, include: includeSale });
   },
-  async confirm(companyId: string, userId: string, id: string) {
+  async confirm(companyId: string, userId: string, id: string, role?: UserRole) {
     return prisma.$transaction(async (tx) => {
-      const sale = await tx.sale.findFirst({ where: { id, companyId }, include: { items: true } });
+      const sale = await tx.sale.findFirst({ where: { id, ...saleScope(companyId, userId, role) }, include: { items: true } });
       if (!sale) throw new SaleError("Venta no encontrada.", 404);
       if (sale.status !== SaleStatus.DRAFT)
         throw new SaleError("Solo se confirman ventas en borrador.", 409);
@@ -246,11 +312,11 @@ export const salesService = {
   async addPayment(
     companyId: string,
     id: string,
-    input: { amount: number; method: SalePaymentMethod; reference?: string },
+    input: { amount: number; method: SalePaymentMethod; reference?: string }, userId?: string, role?: UserRole,
   ) {
     return prisma.$transaction(async (tx) => {
       const sale = await tx.sale.findFirst({
-        where: { id, companyId },
+        where: { id, ...saleScope(companyId, userId, role) },
         include: { payments: true },
       });
       if (
@@ -267,8 +333,8 @@ export const salesService = {
       return tx.sale.update({ where: { id }, data: { status }, include: includeSale });
     });
   },
-  async dispatch(companyId: string, userId: string, id: string, notes?: string) {
-    const sale = await this.get(companyId, id);
+  async dispatch(companyId: string, userId: string, id: string, notes?: string, role?: UserRole) {
+    const sale = await this.get(companyId, id, userId, role);
     if (!sale || !sale.warehouseId) throw new SaleError("Venta no encontrada.", 404);
     if (sale.status === SaleStatus.DRAFT || sale.status === SaleStatus.CANCELLED)
       throw new SaleError("La venta no está lista para despacho.", 409);
@@ -289,11 +355,11 @@ export const salesService = {
       warehouseId: string;
       reason: string;
       lines: Array<{ saleItemId: string; quantity: number }>;
-    },
+    }, role?: UserRole,
   ) {
     return prisma.$transaction(async (tx) => {
       const sale = await tx.sale.findFirst({
-        where: { id, companyId },
+        where: { id, ...saleScope(companyId, userId, role) },
         include: { items: { include: { returnLines: true } } },
       });
       if (!sale || sale.status === SaleStatus.DRAFT || sale.status === SaleStatus.CANCELLED)

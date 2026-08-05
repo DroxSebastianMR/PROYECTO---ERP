@@ -32,7 +32,6 @@ export const CustomersPage = () => {
     pagination,
     metrics,
     isLoading,
-    isFetching,
 
     // Filtros
     searchQuery,
@@ -67,7 +66,6 @@ export const CustomersPage = () => {
     handleChangeStatus,
     handleDeleteCustomer,
     handleLookupDocument,
-    refresh,
   } = useCustomers();
 
   if (isLoading) {
@@ -123,14 +121,6 @@ export const CustomersPage = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            onClick={refresh}
-            disabled={isFetching}
-            className="border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 text-xs font-medium h-10 px-3"
-          >
-            <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${isFetching ? "animate-spin text-blue-600" : ""}`} />
-            Actualizar
-          </Button>
           <Button
             onClick={handleOpenCreateModal}
             className="gap-2 bg-blue-600 font-medium text-white shadow-sm hover:bg-blue-700"

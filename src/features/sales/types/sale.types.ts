@@ -49,6 +49,7 @@ export interface CustomerOption {
 export interface WarehouseOption {
   id: string;
   name: string;
+  isPrimary?: boolean;
 }
 export interface CreateSaleInput {
   customerId?: string;

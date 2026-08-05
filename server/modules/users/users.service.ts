@@ -1,6 +1,8 @@
 import { UserRole } from "@prisma/client";
 import { prisma } from "../../lib/prisma.js";
 import { passwordService } from "../auth/password.service.js";
+import { PERMISSIONS, ROLE_PERMISSION_DEFAULTS, type Permission } from "../auth/permissions.js";
+import { permissionsForUser } from "../auth/permissions.js";
 
 export const MANAGEABLE_ROLES = [
   UserRole.ADMIN,
@@ -17,9 +19,10 @@ export const ROLE_PERMISSIONS: Record<ManageableRole, readonly string[]> = {
     "Configurar empresa y seguridad",
   ],
   SALES_PURCHASING: [
-    "Registrar y consultar ventas",
-    "Consultar clientes y productos",
-    "Consultar stock disponible",
+    "Registrar y consultar únicamente sus propias ventas",
+    "Consultar y registrar clientes",
+    "Consultar inventario en modo vista",
+    "Operar caja",
   ],
   ACCOUNTANT: [
     "Consultar compras y ventas",
@@ -46,6 +49,7 @@ const safeSelect = {
   lastLoginAt: true,
   createdAt: true,
   updatedAt: true,
+  permissions: true,
 } as const;
 
 function assertRole(role: UserRole): asserts role is ManageableRole {
@@ -55,17 +59,18 @@ function assertRole(role: UserRole): asserts role is ManageableRole {
 }
 
 export const usersService = {
-  list(companyId: string) {
-    return prisma.user.findMany({
+  async list(companyId: string) {
+    const users = await prisma.user.findMany({
       where: { companyId },
       select: safeSelect,
       orderBy: [{ isActive: "desc" }, { fullName: "asc" }],
     });
+    return users.map((user) => ({ ...user, permissions: permissionsForUser(user.role, user.permissions) }));
   },
 
   async create(
     companyId: string,
-    input: { fullName: string; email: string; password: string; role: UserRole },
+    input: { fullName: string; email: string; password: string; role: UserRole; permissions?: Permission[] },
   ) {
     assertRole(input.role);
     const email = input.email.trim().toLowerCase();
@@ -79,6 +84,7 @@ export const usersService = {
         email,
         passwordHash: await passwordService.hash(input.password),
         role: input.role,
+        permissions: input.permissions ?? [...ROLE_PERMISSION_DEFAULTS[input.role]],
       },
       select: safeSelect,
     });
@@ -88,7 +94,7 @@ export const usersService = {
     companyId: string,
     actorId: string,
     id: string,
-    input: { fullName?: string; role?: UserRole; isActive?: boolean },
+    input: { fullName?: string; role?: UserRole; isActive?: boolean; permissions?: Permission[] },
   ) {
     const user = await prisma.user.findFirst({
       where: { id, companyId },
@@ -119,6 +125,7 @@ export const usersService = {
       data: {
         ...(input.fullName !== undefined ? { fullName: input.fullName.trim() } : {}),
         ...(input.role ? { role: input.role } : {}),
+        ...(input.permissions ? { permissions: input.permissions } : input.role ? { permissions: [...ROLE_PERMISSION_DEFAULTS[input.role]] } : {}),
         ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
       },
       select: safeSelect,
@@ -127,5 +134,8 @@ export const usersService = {
 
   roles() {
     return MANAGEABLE_ROLES.map((role) => ({ role, permissions: ROLE_PERMISSIONS[role] }));
+  },
+  permissions() {
+    return PERMISSIONS;
   },
 };

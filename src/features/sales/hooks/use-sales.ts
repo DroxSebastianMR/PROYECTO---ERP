@@ -5,11 +5,14 @@ import { customerService } from "@/features/customers/services/customer.service"
 import type { CreateCustomerInput } from "@/features/customers/types/customer.types";
 import { saleService } from "@/features/sales/services/sale.service";
 import type { CreateSaleInput, SaleReceipt, SaleStatus } from "@/features/sales/types/sale.types";
+import { useAuth } from "@/features/auth/hooks/use-auth";
 
-const SALES_KEY = ["sales"] as const;
 const EMPTY_SALES: SaleReceipt[] = [];
 export const useSales = () => {
+  const { user } = useAuth();
   const client = useQueryClient();
+  // Never restore another user's sales from the persisted React Query cache.
+  const salesKey = ["sales", user?.id] as const;
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | SaleStatus>("ALL");
   const [page, setPage] = useState(1);
@@ -17,7 +20,7 @@ export const useSales = () => {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedSale, setSelectedSale] = useState<SaleReceipt | null>(null);
   const salesQuery = useQuery({
-    queryKey: SALES_KEY,
+    queryKey: salesKey,
     queryFn: saleService.getSales,
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
@@ -33,7 +36,7 @@ export const useSales = () => {
   });
   const invalidate = async () => {
     await Promise.all([
-      client.invalidateQueries({ queryKey: SALES_KEY }),
+      client.invalidateQueries({ queryKey: salesKey }),
       client.invalidateQueries({ queryKey: ["inventory", "stocks"] }),
       client.invalidateQueries({ queryKey: ["inventory", "movements"] }),
       client.invalidateQueries({ queryKey: ["products"] }),

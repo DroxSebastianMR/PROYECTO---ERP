@@ -1,12 +1,18 @@
 import { Router } from "express";
 import type { NextFunction, Response } from "express";
 import { z } from "zod";
+import { UserRole } from "@prisma/client";
 import type { AuthenticatedRequest } from "../auth/auth.middleware.js";
 import { InventoryError, inventoryService } from "./inventory.service.js";
 
 const id = z.string().uuid();
 const companyId = (request: AuthenticatedRequest) => request.auth!.companyId;
 const userId = (request: AuthenticatedRequest) => request.auth!.sub;
+const canMutateInventory = (request: AuthenticatedRequest, response: Response) => {
+  if (request.auth?.role !== UserRole.SALES_PURCHASING) return true;
+  response.status(403).json({ message: "El rol Vendedor solo puede consultar el inventario." });
+  return false;
+};
 const handleError = (error: unknown, response: Response, next: NextFunction) => {
   if (error instanceof z.ZodError)
     return response
@@ -53,6 +59,7 @@ inventoryRouter.get("/warehouses", async (req, res, next) => {
 });
 inventoryRouter.post("/warehouses", async (req, res, next) => {
   try {
+    if (!canMutateInventory(req as AuthenticatedRequest, res)) return;
     res
       .status(201)
       .json(
@@ -88,6 +95,7 @@ inventoryRouter.get("/movements", async (req, res, next) => {
 });
 inventoryRouter.post("/movements", async (req, res, next) => {
   try {
+    if (!canMutateInventory(req as AuthenticatedRequest, res)) return;
     res
       .status(201)
       .json(
@@ -103,6 +111,7 @@ inventoryRouter.post("/movements", async (req, res, next) => {
 });
 inventoryRouter.post("/transfers", async (req, res, next) => {
   try {
+    if (!canMutateInventory(req as AuthenticatedRequest, res)) return;
     const body = z
       .object({
         originWarehouseId: id,
@@ -137,6 +146,7 @@ inventoryRouter.get("/batches", async (req, res, next) => {
 });
 inventoryRouter.post("/batches", async (req, res, next) => {
   try {
+    if (!canMutateInventory(req as AuthenticatedRequest, res)) return;
     const body = z
       .object({
         productId: id,
@@ -156,6 +166,7 @@ inventoryRouter.post("/batches", async (req, res, next) => {
 });
 inventoryRouter.post("/counts", async (req, res, next) => {
   try {
+    if (!canMutateInventory(req as AuthenticatedRequest, res)) return;
     const body = z
       .object({
         warehouseId: id,
@@ -188,6 +199,7 @@ inventoryRouter.post("/counts", async (req, res, next) => {
 });
 inventoryRouter.post("/counts/:id/approve", async (req, res, next) => {
   try {
+    if (!canMutateInventory(req as AuthenticatedRequest, res)) return;
     res.json(
       await inventoryService.approveCount(
         companyId(req as AuthenticatedRequest),

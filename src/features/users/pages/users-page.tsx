@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { useUsers } from "@/features/users/hooks/use-users";
 import { UserFormModal } from "@/features/users/components/user-form-modal";
 import { ROLE_LABELS, type ManagedUserRole } from "@/features/users/types/user.types";
+import { PERMISSION_LABELS, type Permission } from "@/lib/permissions";
 
 const roleTone: Record<ManagedUserRole, string> = {
   ADMIN: "bg-blue-100 text-blue-700",
@@ -109,16 +110,18 @@ export const UsersPage = () => {
               className="pl-9"
             />
           </div>
-          <select
-            value={state.role}
-            onChange={(event) => state.setRole(event.target.value as ManagedUserRole | "ALL")}
-            className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700"
-          >
-            <option value="ALL">Todos los roles</option>
-            <option value="ADMIN">Administrador</option>
-            <option value="SALES_PURCHASING">Vendedor</option>
-            <option value="ACCOUNTANT">Contador</option>
-          </select>
+          <div className="flex max-w-full gap-1 overflow-x-auto rounded-lg border border-slate-200 bg-slate-50 p-1">
+            {(["ALL", "ADMIN", "SALES_PURCHASING", "ACCOUNTANT"] as const).map((role) => (
+              <button
+                key={role}
+                type="button"
+                onClick={() => state.setRole(role)}
+                className={`shrink-0 rounded-md px-3 py-2 text-xs font-semibold transition ${state.role === role ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 hover:bg-white"}`}
+              >
+                {role === "ALL" ? "Todos" : ROLE_LABELS[role]}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
@@ -212,7 +215,7 @@ export const UsersPage = () => {
               {definition.permissions.map((permission) => (
                 <li key={permission} className="flex gap-2">
                   <span className="mt-1 h-1.5 w-1.5 rounded-full bg-blue-600" />
-                  {permission}
+                  {PERMISSION_LABELS[permission as Permission] ?? permission}
                 </li>
               ))}
             </ul>
@@ -232,17 +235,25 @@ export const UsersPage = () => {
         description="Los permisos se asignan de forma segura según el rol."
       >
         <div className="space-y-3">
-          {state.roles
-            .find((item) => item.role === state.permissionsUser?.role)
-            ?.permissions.map((permission) => (
-              <div
-                key={permission}
-                className="flex items-center gap-3 rounded-lg bg-blue-50 px-3 py-3 text-sm text-blue-900"
-              >
-                <ShieldCheck className="h-4 w-4 text-blue-600" />
-                {permission}
-              </div>
-            ))}
+          {state.permissions.map((permission) => (
+            <label key={permission} className="flex cursor-pointer items-center gap-3 rounded-lg bg-blue-50 px-3 py-3 text-sm text-blue-900">
+              <input
+                type="checkbox"
+                checked={state.permissionsUser?.permissions.includes(permission) ?? false}
+                disabled={state.isSubmitting}
+                onChange={(event) => {
+                  const user = state.permissionsUser;
+                  if (!user) return;
+                  if (!event.target.checked && user.permissions.length === 1) return;
+                  const permissions = event.target.checked ? [...user.permissions, permission] : user.permissions.filter((item) => item !== permission);
+                  state.setPermissionsUser({ ...user, permissions });
+                  void state.updateUser(user.id, { permissions });
+                }}
+                className="h-4 w-4 rounded border-slate-300 text-blue-600"
+              />
+              {PERMISSION_LABELS[permission as Permission] ?? permission}
+            </label>
+          ))}
         </div>
       </Dialog>
     </div>

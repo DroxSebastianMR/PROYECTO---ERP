@@ -16,3 +16,11 @@
     font: inherit;
   }
 }
+
+/* On laptops the ERP stays dense and usable without relying on browser zoom.
+   Phones and tablets retain their native responsive sizing. */
+@media (min-width: 1024px) {
+  .app-desktop-compact {
+    zoom: 0.9;
+  }
+}

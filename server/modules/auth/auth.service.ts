@@ -3,6 +3,7 @@ import { passwordService } from "./password.service.js";
 import { tokenService } from "./token.service.js";
 import { env } from "../../config/env.js";
 import type { AuthenticatedUser, LoginInput } from "./auth.types.js";
+import { permissionsForUser } from "./permissions.js";
 
 export class AuthError extends Error {
   constructor(
@@ -18,12 +19,14 @@ const toAuthenticatedUser = (user: {
   email: string;
   fullName: string;
   role: AuthenticatedUser["role"];
+  permissions: string[];
 }): AuthenticatedUser => ({
   id: user.id,
   companyId: user.companyId,
   email: user.email,
   fullName: user.fullName,
   role: user.role,
+  permissions: permissionsForUser(user.role, user.permissions),
 });
 
 export const authService = {
@@ -41,16 +44,18 @@ export const authService = {
         user?.lockedUntil && user.lockedUntil > new Date() ? 423 : 401,
       );
     }
-    await authRepository.registerSuccess(user.id, email, input.ipAddress, input.userAgent);
     const safeUser = toAuthenticatedUser(user);
     const tokens = tokenService.createTokens(safeUser);
-    await authRepository.createSession(
-      user.id,
-      tokenService.hashRefreshToken(tokens.refreshToken),
-      new Date(Date.now() + env.REFRESH_TOKEN_DAYS * 86400000),
-      input.ipAddress,
-      input.userAgent,
-    );
+    await Promise.all([
+      authRepository.registerSuccess(user.id, email, input.ipAddress, input.userAgent),
+      authRepository.createSession(
+        user.id,
+        tokenService.hashRefreshToken(tokens.refreshToken),
+        new Date(Date.now() + env.REFRESH_TOKEN_DAYS * 86400000),
+        input.ipAddress,
+        input.userAgent,
+      ),
+    ]);
     return { user: safeUser, tokens };
   },
   async logout(refreshToken: string, userId: string) {

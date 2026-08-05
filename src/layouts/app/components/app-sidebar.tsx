@@ -20,6 +20,7 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { PATHS } from "@/app/router/constants/paths";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { cn } from "@/lib/utils";
+import { canAccessPath } from "@/lib/access-control";
 
 const navigation = [
   ["Dashboard", LayoutDashboard, PATHS.APP.DASHBOARD],
@@ -42,7 +43,7 @@ interface AppSidebarProps {
 }
 
 export const AppSidebar = ({ isOpen = false, onClose }: AppSidebarProps) => {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -64,21 +65,21 @@ export const AppSidebar = ({ isOpen = false, onClose }: AppSidebarProps) => {
           </div>
           <div>
             <p className="text-[24px] font-bold leading-6 tracking-[-.055em] text-blue-700">
-              DistriCorp
+              Clienty
             </p>
-            <p className="mt-1 text-[11px] text-slate-600">Gestión Empresarial</p>
+            <p className="mt-1 text-[11px] text-slate-600">Sistema de Ventas</p>
           </div>
         </div>
-        <Link
+        {canAccessPath(user ?? undefined, PATHS.APP.NEW_SALE) && <Link
           to={PATHS.APP.NEW_SALE}
           onClick={onClose}
           className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-blue-700 text-sm font-medium text-white shadow-sm transition hover:bg-blue-800"
         >
           <Plus className="h-[18px] w-[18px]" /> + Nueva Venta
-        </Link>
+        </Link>}
       </div>
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 py-2">
-        {navigation.map(([label, Icon, path]) =>
+        {navigation.filter(([, , path]) => !path || canAccessPath(user ?? undefined, path)).map(([label, Icon, path]) =>
           path ? (
             <NavLink
               key={label}
@@ -106,10 +107,10 @@ export const AppSidebar = ({ isOpen = false, onClose }: AppSidebarProps) => {
         )}
       </nav>
       <div className="border-t border-slate-200 p-4">
-        <button className="flex h-10 w-full items-center gap-4 rounded-lg px-4 text-sm text-slate-600 hover:bg-slate-100">
+        <Link to={PATHS.APP.PROFILE} onClick={onClose} className="flex h-10 w-full items-center gap-4 rounded-lg px-4 text-sm text-slate-600 hover:bg-slate-100">
           <CircleUserRound className="h-5 w-5" />
           Perfil
-        </button>
+        </Link>
         <button
           type="button"
           onClick={() => {

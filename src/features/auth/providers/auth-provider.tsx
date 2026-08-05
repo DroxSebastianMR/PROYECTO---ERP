@@ -12,6 +12,21 @@ import {
   type LoginCredentials,
 } from "@/features/auth/types/auth.types";
 
+const hasUsableAccessToken = (token?: string) => {
+  if (!token) return false;
+  try {
+    const encodedPayload = token.split(".")[1]?.replace(/-/g, "+").replace(/_/g, "/");
+    if (!encodedPayload) return false;
+    const payload = JSON.parse(
+      window.atob(encodedPayload.padEnd(Math.ceil(encodedPayload.length / 4) * 4, "=")),
+    ) as { exp?: number };
+    // Leave a small margin so the first protected request does not race with expiry.
+    return typeof payload.exp === "number" && payload.exp * 1000 > Date.now() + 30_000;
+  } catch {
+    return false;
+  }
+};
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthenticatedUser | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
@@ -35,7 +50,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = useCallback(async (credentials: LoginCredentials) => {
     const response = await authService.login(credentials);
     authStorageService.save(
-      { user: response.user, refreshToken: response.tokens.refreshToken },
+      {
+        user: response.user,
+        refreshToken: response.tokens.refreshToken,
+        accessToken: response.tokens.accessToken,
+      },
       AuthStorage.PERSISTENT,
     );
     setAccessToken(response.tokens.accessToken);
@@ -50,10 +69,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
+      if (hasUsableAccessToken(storedSession.session.accessToken)) {
+        setAccessToken(storedSession.session.accessToken!);
+        setUser(storedSession.session.user);
+        setIsInitializing(false);
+        return;
+      }
+
       try {
         const response = await authService.refreshToken(storedSession.session.refreshToken);
         authStorageService.save(
-          { user: response.user, refreshToken: response.tokens.refreshToken },
+          {
+            user: response.user,
+            refreshToken: response.tokens.refreshToken,
+            accessToken: response.tokens.accessToken,
+          },
           storedSession.storage,
         );
         setAccessToken(response.tokens.accessToken);
@@ -74,7 +104,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!storedSession) return;
     try {
       const response = await authService.refreshToken(storedSession.session.refreshToken);
-      authStorageService.save({ user: response.user, refreshToken: response.tokens.refreshToken }, storedSession.storage);
+      authStorageService.save(
+        {
+          user: response.user,
+          refreshToken: response.tokens.refreshToken,
+          accessToken: response.tokens.accessToken,
+        },
+        storedSession.storage,
+      );
       setAccessToken(response.tokens.accessToken);
       setUser(response.user);
       setIsSessionPromptOpen(false);

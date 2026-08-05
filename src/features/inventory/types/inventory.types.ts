@@ -61,3 +61,24 @@ export interface InventoryMetrics {
   todayMovementsCount: number;
   lowStockItemsCount: number;
 }
+
+export type WarehouseType = "MAIN" | "STORE" | "DEPOT" | "TEMPORARY";
+
+export interface WarehouseRecord {
+  id: string;
+  name: string;
+  code: string | null;
+  type: WarehouseType;
+  address: string | null;
+  isPrimary: boolean;
+  isActive: boolean;
+  createdAt?: string;
+}
+
+export interface CreateWarehouseInput {
+  name: string;
+  code?: string;
+  type: WarehouseType;
+  address?: string;
+  isPrimary?: boolean;
+}

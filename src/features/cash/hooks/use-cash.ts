@@ -8,7 +8,11 @@ export const useCash = () => {
   const registers = useQuery({ queryKey: [...KEY, "registers"], queryFn: cashService.getRegisters });
   const history = useQuery({ queryKey: [...KEY, "history"], queryFn: cashService.getHistory });
   const movements = useQuery({ queryKey: [...KEY, "movements"], queryFn: cashService.getMovements, refetchInterval: 30_000 });
-  const refresh = () => Promise.all([client.invalidateQueries({ queryKey: KEY }), client.invalidateQueries({ queryKey: ["sales"] })]);
+  const refresh = () => {
+    // La mutación responde de inmediato; React Query sincroniza los datos en segundo plano.
+    void client.invalidateQueries({ queryKey: KEY });
+    void client.invalidateQueries({ queryKey: ["sales"] });
+  };
   const open = useMutation({ mutationFn: cashService.open, onSuccess: refresh });
   const count = useMutation({ mutationFn: cashService.count, onSuccess: refresh });
   const close = useMutation({ mutationFn: cashService.close, onSuccess: refresh });

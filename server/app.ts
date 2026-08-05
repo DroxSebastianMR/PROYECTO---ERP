@@ -13,6 +13,7 @@ import { customersRouter } from "./modules/customers/customers.routes.js";
 import { barcodesRouter } from "./modules/barcodes/barcodes.routes.js";
 import { requireAuthentication } from "./modules/auth/auth.middleware.js";
 import { cashRouter } from "./modules/cash/cash.routes.js";
+import { requirePermission, type Permission } from "./modules/auth/permissions.js";
 
 export function createApp() {
   const app = express();
@@ -44,17 +45,21 @@ export function createApp() {
 
   const protectedRoutes = express.Router();
 
+  const authorizeModule = (read: Permission | readonly Permission[], manage: Permission | readonly Permission[] = read) =>
+    (request: express.Request, response: express.Response, next: express.NextFunction) =>
+      requirePermission(request.method === "GET" ? read : manage)(request, response, next);
+
   protectedRoutes.use(requireAuthentication);
-  protectedRoutes.use("/dashboard", dashboardRouter);
-  protectedRoutes.use("/products", productsRouter);
-  protectedRoutes.use("/barcodes", barcodesRouter);
-  protectedRoutes.use("/inventory", inventoryRouter);
-  protectedRoutes.use("/purchases", purchasesRouter);
-  protectedRoutes.use("/sales", salesRouter);
-  protectedRoutes.use("/customers", customersRouter);
-  protectedRoutes.use("/users", usersRouter);
+  protectedRoutes.use("/dashboard", authorizeModule("DASHBOARD_VIEW"), dashboardRouter);
+  protectedRoutes.use("/products", authorizeModule(["PRODUCTS_VIEW", "PRODUCTS_MANAGE"], "PRODUCTS_MANAGE"), productsRouter);
+  protectedRoutes.use("/barcodes", authorizeModule(["PRODUCTS_VIEW", "PRODUCTS_MANAGE"], "PRODUCTS_MANAGE"), barcodesRouter);
+  protectedRoutes.use("/inventory", authorizeModule(["INVENTORY_VIEW", "INVENTORY_MANAGE"], "INVENTORY_MANAGE"), inventoryRouter);
+  protectedRoutes.use("/purchases", authorizeModule(["PURCHASES_VIEW", "PURCHASES_MANAGE"], "PURCHASES_MANAGE"), purchasesRouter);
+  protectedRoutes.use("/sales", authorizeModule(["SALES_VIEW_OWN", "SALES_VIEW_ALL"], "SALES_MANAGE"), salesRouter);
+  protectedRoutes.use("/customers", authorizeModule(["CUSTOMERS_VIEW", "CUSTOMERS_MANAGE"], "CUSTOMERS_MANAGE"), customersRouter);
+  protectedRoutes.use("/users", requirePermission("USERS_MANAGE"), usersRouter);
   protectedRoutes.use("/notifications", notificationsRouter);
-  protectedRoutes.use("/cash", cashRouter);
+  protectedRoutes.use("/cash", authorizeModule(["CASH_VIEW", "CASH_MANAGE"], "CASH_MANAGE"), cashRouter);
   app.use("/api", protectedRoutes);
   app.use(
     (error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

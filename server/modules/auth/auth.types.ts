@@ -6,6 +6,7 @@ export type AuthenticatedUser = {
   email: string;
   fullName: string;
   role: UserRole;
+  permissions: string[];
 };
 export type LoginInput = {
   email: string;

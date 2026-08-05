@@ -1,6 +1,7 @@
 import { Router } from "express";
 import type { NextFunction, Response } from "express";
 import { z } from "zod";
+import { UserRole } from "@prisma/client";
 import type { AuthenticatedRequest } from "../auth/auth.middleware.js";
 import { InventoryError } from "../inventory/inventory.service.js";
 import { SaleError, salesService } from "./sales.service.js";
@@ -8,6 +9,7 @@ import { SaleError, salesService } from "./sales.service.js";
 const uuid = z.string().uuid();
 const companyId = (request: AuthenticatedRequest) => request.auth!.companyId;
 const userId = (request: AuthenticatedRequest) => request.auth!.sub;
+const role = (request: AuthenticatedRequest) => request.auth!.role as UserRole;
 const fail = (cause: unknown, response: Response, next: NextFunction) => {
   if (cause instanceof z.ZodError)
     return response
@@ -66,7 +68,8 @@ salesRouter.post("/customers", async (req, res, next) => {
 });
 salesRouter.get("/", async (req, res, next) => {
   try {
-    res.json(await salesService.list(companyId(req as AuthenticatedRequest)));
+    const auth = req as AuthenticatedRequest;
+    res.json(await salesService.list(companyId(auth), userId(auth), role(auth), auth.auth!.permissions));
   } catch (error) {
     fail(error, res, next);
   }
@@ -80,6 +83,7 @@ salesRouter.post("/", async (req, res, next) => {
           companyId(req as AuthenticatedRequest),
           userId(req as AuthenticatedRequest),
           saleSchema.parse(req.body),
+          role(req as AuthenticatedRequest),
         ),
       );
   } catch (error) {
@@ -89,8 +93,7 @@ salesRouter.post("/", async (req, res, next) => {
 salesRouter.get("/:id", async (req, res, next) => {
   try {
     const sale = await salesService.get(
-      companyId(req as AuthenticatedRequest),
-      uuid.parse(req.params.id),
+      companyId(req as AuthenticatedRequest), uuid.parse(req.params.id), userId(req as AuthenticatedRequest), role(req as AuthenticatedRequest), (req as AuthenticatedRequest).auth!.permissions,
     );
     if (!sale) return res.status(404).json({ message: "Venta no encontrada." });
     res.json(sale);
@@ -105,6 +108,7 @@ salesRouter.post("/:id/confirm", async (req, res, next) => {
         companyId(req as AuthenticatedRequest),
         userId(req as AuthenticatedRequest),
         uuid.parse(req.params.id),
+        role(req as AuthenticatedRequest),
       ),
     );
   } catch (error) {
@@ -127,6 +131,8 @@ salesRouter.post("/:id/payments", async (req, res, next) => {
           companyId(req as AuthenticatedRequest),
           uuid.parse(req.params.id),
           body,
+          userId(req as AuthenticatedRequest),
+          role(req as AuthenticatedRequest),
         ),
       );
   } catch (error) {
@@ -142,6 +148,7 @@ salesRouter.post("/:id/dispatch", async (req, res, next) => {
         userId(req as AuthenticatedRequest),
         uuid.parse(req.params.id),
         body.notes,
+        role(req as AuthenticatedRequest),
       ),
     );
   } catch (error) {
@@ -167,6 +174,7 @@ salesRouter.post("/:id/returns", async (req, res, next) => {
           userId(req as AuthenticatedRequest),
           uuid.parse(req.params.id),
           body,
+          role(req as AuthenticatedRequest),
         ),
       );
   } catch (error) {

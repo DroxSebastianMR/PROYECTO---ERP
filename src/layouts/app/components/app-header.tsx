@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Bell, CalendarDays, CheckCheck, ChevronDown, Mail, Menu, Search } from "lucide-react";
+import { Bell, CalendarDays, CheckCheck, Mail, Menu, Search } from "lucide-react";
 import { Link } from "react-router-dom";
+import { PATHS } from "@/app/router/constants/paths";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useNotifications } from "@/features/notifications/hooks/use-notifications";
 
@@ -106,15 +107,14 @@ export const AppHeader = ({ onMenuClick }: AppHeaderProps) => {
           <CalendarDays className="h-[18px] w-[18px]" />
         </button>
         <span className="mx-2 hidden h-7 w-px bg-slate-200 sm:block" />
-        <div className="flex items-center gap-2.5">
+        <Link to={PATHS.APP.PROFILE} className="flex items-center gap-2.5 rounded-lg p-1 transition hover:bg-slate-100">
           <div className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-slate-200 to-slate-400 text-[11px] font-bold text-slate-700">
             {initials}
           </div>
           <span className="hidden text-[13px] font-semibold md:block">
             {user?.fullName ?? "Usuario"}
           </span>
-          <ChevronDown className="h-4 w-4" />
-        </div>
+        </Link>
       </div>
     </header>
   );

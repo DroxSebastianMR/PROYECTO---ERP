@@ -80,7 +80,6 @@ export const StockAdjustmentModal = ({
           <Select value={type} onChange={(e) => setType(e.target.value as MovementType)}>
             <option value="IN">ENTRADA (+) - Ingreso por compra / devolución</option>
             <option value="OUT">SALIDA (-) - Salida por merma / daño / consumo</option>
-            <option value="ADJUSTMENT">RECUENTO EN FÍSICO (=) - Establecer nuevo stock</option>
           </Select>
         </div>
 

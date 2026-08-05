@@ -7,7 +7,7 @@ export const AppLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#f7f9fc] text-slate-900 lg:pl-[256px]">
+    <div className="app-desktop-compact min-h-screen bg-[#f7f9fc] text-slate-900 lg:pl-[256px]">
       <AppSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       {isSidebarOpen && (
         <button

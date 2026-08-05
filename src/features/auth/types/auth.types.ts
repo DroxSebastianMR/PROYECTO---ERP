@@ -17,6 +17,7 @@ export type AuthenticatedUser = {
   email: string;
   fullName: string;
   role: UserRole;
+  permissions: string[];
 };
 
 export type AuthTokens = {
@@ -41,4 +42,6 @@ export type RefreshResponse = AuthApiResponse;
 export type StoredAuthSession = {
   user: AuthenticatedUser;
   refreshToken: string;
+  /** Short-lived token used only to restore an already authenticated tab quickly. */
+  accessToken?: string;
 };

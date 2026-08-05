@@ -9,11 +9,11 @@ export const QueryProvider = ({ children }: { children: ReactNode }) => {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 60_000,
-            gcTime: 10 * 60_000,
-            refetchOnWindowFocus: true,
+            staleTime: 5 * 60_000,
+            gcTime: 30 * 60_000,
+            refetchOnWindowFocus: false,
             refetchOnReconnect: true,
-            retry: 1,
+            retry: 0,
           },
         },
       }),
@@ -27,10 +27,12 @@ export const QueryProvider = ({ children }: { children: ReactNode }) => {
       client={client}
       persistOptions={{
         persister,
-        maxAge: 10 * 60_000,
+        maxAge: 30 * 60_000,
         dehydrateOptions: {
           shouldDehydrateQuery: (query) =>
-            ["products", "inventory", "purchases", "sales"].includes(String(query.queryKey[0])),
+            ["products", "inventory", "purchases", "sales", "customers"].includes(
+              String(query.queryKey[0]),
+            ),
         },
       }}
     >

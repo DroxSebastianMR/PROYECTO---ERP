@@ -6,6 +6,8 @@ export const useNotifications = () => {
   const query = useQuery({
     queryKey: KEY,
     queryFn: notificationService.list,
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
     refetchInterval: 60_000,
   });
   const refresh = () => client.invalidateQueries({ queryKey: KEY });
