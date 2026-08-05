@@ -1,25 +1,10 @@
 import { PATHS } from "@/app/router/constants/paths";
 import type { UserRole } from "@/features/auth/types/auth.types";
 
-export const PERMISSIONS = ["DASHBOARD_VIEW", "PRODUCTS_VIEW", "PRODUCTS_MANAGE", "INVENTORY_VIEW", "INVENTORY_MANAGE", "PURCHASES_VIEW", "PURCHASES_MANAGE", "SALES_VIEW_OWN", "SALES_VIEW_ALL", "SALES_MANAGE", "CUSTOMERS_VIEW", "CUSTOMERS_MANAGE", "CASH_VIEW", "CASH_MANAGE", "USERS_MANAGE"] as const;
+export const PERMISSIONS = ["DASHBOARD_VIEW", "PRODUCTS_VIEW", "PRODUCTS_MANAGE", "INVENTORY_VIEW", "INVENTORY_MANAGE", "PURCHASES_VIEW", "PURCHASES_MANAGE", "SALES_VIEW_OWN", "SALES_VIEW_ALL", "SALES_MANAGE", "CUSTOMERS_VIEW", "CUSTOMERS_MANAGE", "CASH_VIEW", "CASH_MANAGE", "REPORTS_VIEW", "USERS_MANAGE"] as const;
 export type Permission = (typeof PERMISSIONS)[number];
-export const PERMISSION_LABELS: Record<Permission, string> = {
-  DASHBOARD_VIEW: "Ver panel principal", PRODUCTS_VIEW: "Ver productos", PRODUCTS_MANAGE: "Gestionar productos",
-  INVENTORY_VIEW: "Ver inventario", INVENTORY_MANAGE: "Gestionar inventario", PURCHASES_VIEW: "Ver compras", PURCHASES_MANAGE: "Gestionar compras",
-  SALES_VIEW_OWN: "Ver solo ventas propias", SALES_VIEW_ALL: "Ver todas las ventas", SALES_MANAGE: "Registrar y gestionar ventas",
-  CUSTOMERS_VIEW: "Ver clientes", CUSTOMERS_MANAGE: "Gestionar clientes", CASH_VIEW: "Ver caja", CASH_MANAGE: "Operar caja", USERS_MANAGE: "Gestionar usuarios y permisos",
-};
-export const ROLE_PERMISSION_DEFAULTS: Record<UserRole, readonly Permission[]> = {
-  ADMIN: PERMISSIONS, MANAGER: PERMISSIONS,
-  SALES_PURCHASING: ["SALES_VIEW_OWN", "SALES_MANAGE", "CUSTOMERS_VIEW", "CUSTOMERS_MANAGE", "INVENTORY_VIEW", "CASH_VIEW", "CASH_MANAGE"],
-  ACCOUNTANT: ["DASHBOARD_VIEW", "PURCHASES_VIEW", "SALES_VIEW_ALL", "CUSTOMERS_VIEW", "CASH_VIEW"],
-  WAREHOUSE: ["PRODUCTS_VIEW", "INVENTORY_VIEW", "INVENTORY_MANAGE"],
-};
-const pathPermissions: Partial<Record<(typeof PATHS.APP)[keyof typeof PATHS.APP], readonly Permission[]>> = {
-  [PATHS.APP.DASHBOARD]: ["DASHBOARD_VIEW"], [PATHS.APP.PRODUCTS]: ["PRODUCTS_VIEW", "PRODUCTS_MANAGE"], [PATHS.APP.BARCODES]: ["PRODUCTS_VIEW", "PRODUCTS_MANAGE"],
-  [PATHS.APP.INVENTORY]: ["INVENTORY_VIEW", "INVENTORY_MANAGE"], [PATHS.APP.PURCHASES]: ["PURCHASES_VIEW", "PURCHASES_MANAGE"],
-  [PATHS.APP.SALES]: ["SALES_VIEW_OWN", "SALES_VIEW_ALL"], [PATHS.APP.NEW_SALE]: ["SALES_MANAGE"], [PATHS.APP.CUSTOMERS]: ["CUSTOMERS_VIEW", "CUSTOMERS_MANAGE"],
-  [PATHS.APP.USERS]: ["USERS_MANAGE"], [PATHS.APP.CASH]: ["CASH_VIEW", "CASH_MANAGE"],
-};
+export const PERMISSION_LABELS: Record<Permission, string> = { DASHBOARD_VIEW: "Ver panel principal", PRODUCTS_VIEW: "Ver productos", PRODUCTS_MANAGE: "Gestionar productos", INVENTORY_VIEW: "Ver inventario", INVENTORY_MANAGE: "Gestionar inventario", PURCHASES_VIEW: "Ver compras", PURCHASES_MANAGE: "Gestionar compras", SALES_VIEW_OWN: "Ver solo ventas propias", SALES_VIEW_ALL: "Ver todas las ventas", SALES_MANAGE: "Registrar y gestionar ventas", CUSTOMERS_VIEW: "Ver clientes", CUSTOMERS_MANAGE: "Gestionar clientes", CASH_VIEW: "Ver caja", CASH_MANAGE: "Operar caja", REPORTS_VIEW: "Consultar y exportar reportes", USERS_MANAGE: "Gestionar usuarios y permisos" };
+export const ROLE_PERMISSION_DEFAULTS: Record<UserRole, readonly Permission[]> = { ADMIN: PERMISSIONS, MANAGER: PERMISSIONS, SALES_PURCHASING: ["SALES_VIEW_OWN", "SALES_MANAGE", "CUSTOMERS_VIEW", "CUSTOMERS_MANAGE", "INVENTORY_VIEW", "CASH_VIEW", "CASH_MANAGE"], ACCOUNTANT: ["DASHBOARD_VIEW", "PURCHASES_VIEW", "SALES_VIEW_ALL", "CUSTOMERS_VIEW", "CASH_VIEW", "REPORTS_VIEW"], WAREHOUSE: ["PRODUCTS_VIEW", "INVENTORY_VIEW", "INVENTORY_MANAGE"] };
+const pathPermissions: Partial<Record<(typeof PATHS.APP)[keyof typeof PATHS.APP], readonly Permission[]>> = { [PATHS.APP.DASHBOARD]: ["DASHBOARD_VIEW"], [PATHS.APP.PRODUCTS]: ["PRODUCTS_VIEW", "PRODUCTS_MANAGE"], [PATHS.APP.BARCODES]: ["PRODUCTS_VIEW", "PRODUCTS_MANAGE"], [PATHS.APP.INVENTORY]: ["INVENTORY_VIEW", "INVENTORY_MANAGE"], [PATHS.APP.PURCHASES]: ["PURCHASES_VIEW", "PURCHASES_MANAGE"], [PATHS.APP.SALES]: ["SALES_VIEW_OWN", "SALES_VIEW_ALL"], [PATHS.APP.NEW_SALE]: ["SALES_MANAGE"], [PATHS.APP.CUSTOMERS]: ["CUSTOMERS_VIEW", "CUSTOMERS_MANAGE"], [PATHS.APP.REPORTS]: ["REPORTS_VIEW"], [PATHS.APP.USERS]: ["USERS_MANAGE"], [PATHS.APP.CASH]: ["CASH_VIEW", "CASH_MANAGE"] };
 export const hasAnyPermission = (permissions: readonly string[] | undefined, required: readonly Permission[]) => required.some((item) => permissions?.includes(item));
 export const permissionsForPath = (path: keyof typeof pathPermissions) => pathPermissions[path] ?? [];

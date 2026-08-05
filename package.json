@@ -17,6 +17,7 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
+    "db:reset:clienty": "tsx prisma/catalog-seed.ts",
     "db:seed:catalog": "tsx prisma/catalog-seed.ts",
     "db:seed:suppliers": "tsx prisma/suppliers-seed.ts",
     "db:studio": "prisma studio"

@@ -1,23 +1,8 @@
 import { UserRole } from "@prisma/client";
 import type { NextFunction, Response } from "express";
 import type { AuthenticatedRequest } from "./auth.middleware.js";
-
-export const PERMISSIONS = ["DASHBOARD_VIEW", "PRODUCTS_VIEW", "PRODUCTS_MANAGE", "INVENTORY_VIEW", "INVENTORY_MANAGE", "PURCHASES_VIEW", "PURCHASES_MANAGE", "SALES_VIEW_OWN", "SALES_VIEW_ALL", "SALES_MANAGE", "CUSTOMERS_VIEW", "CUSTOMERS_MANAGE", "CASH_VIEW", "CASH_MANAGE", "USERS_MANAGE"] as const;
+export const PERMISSIONS = ["DASHBOARD_VIEW", "PRODUCTS_VIEW", "PRODUCTS_MANAGE", "INVENTORY_VIEW", "INVENTORY_MANAGE", "PURCHASES_VIEW", "PURCHASES_MANAGE", "SALES_VIEW_OWN", "SALES_VIEW_ALL", "SALES_MANAGE", "CUSTOMERS_VIEW", "CUSTOMERS_MANAGE", "CASH_VIEW", "CASH_MANAGE", "REPORTS_VIEW", "USERS_MANAGE"] as const;
 export type Permission = (typeof PERMISSIONS)[number];
-export const ROLE_PERMISSION_DEFAULTS: Record<UserRole, readonly Permission[]> = {
-  ADMIN: PERMISSIONS, MANAGER: PERMISSIONS,
-  SALES_PURCHASING: ["SALES_VIEW_OWN", "SALES_MANAGE", "CUSTOMERS_VIEW", "CUSTOMERS_MANAGE", "INVENTORY_VIEW", "CASH_VIEW", "CASH_MANAGE"],
-  ACCOUNTANT: ["DASHBOARD_VIEW", "PURCHASES_VIEW", "SALES_VIEW_ALL", "CUSTOMERS_VIEW", "CASH_VIEW"],
-  WAREHOUSE: ["PRODUCTS_VIEW", "INVENTORY_VIEW", "INVENTORY_MANAGE"],
-};
-export const permissionsForUser = (role: UserRole, permissions: readonly string[]): Permission[] =>
-  (permissions.length ? permissions : ROLE_PERMISSION_DEFAULTS[role]).filter((permission): permission is Permission => PERMISSIONS.includes(permission as Permission));
-
-export const requirePermission = (required: Permission | readonly Permission[]) => (request: AuthenticatedRequest, response: Response, next: NextFunction) => {
-  const candidates = Array.isArray(required) ? required : [required];
-  const granted = request.auth ? permissionsForUser(request.auth.role, request.auth.permissions ?? []) : [];
-  if (!candidates.some((permission) => granted.includes(permission))) {
-    return response.status(403).json({ message: "No tienes permiso para realizar esta acción." });
-  }
-  next();
-};
+export const ROLE_PERMISSION_DEFAULTS: Record<UserRole, readonly Permission[]> = { ADMIN: PERMISSIONS, MANAGER: PERMISSIONS, SALES_PURCHASING: ["SALES_VIEW_OWN", "SALES_MANAGE", "CUSTOMERS_VIEW", "CUSTOMERS_MANAGE", "INVENTORY_VIEW", "CASH_VIEW", "CASH_MANAGE"], ACCOUNTANT: ["DASHBOARD_VIEW", "PURCHASES_VIEW", "SALES_VIEW_ALL", "CUSTOMERS_VIEW", "CASH_VIEW", "REPORTS_VIEW"], WAREHOUSE: ["PRODUCTS_VIEW", "INVENTORY_VIEW", "INVENTORY_MANAGE"] };
+export const permissionsForUser = (role: UserRole, permissions: readonly string[]): Permission[] => (permissions.length ? permissions : ROLE_PERMISSION_DEFAULTS[role]).filter((permission): permission is Permission => PERMISSIONS.includes(permission as Permission));
+export const requirePermission = (required: Permission | readonly Permission[]) => (request: AuthenticatedRequest, response: Response, next: NextFunction) => { const candidates = Array.isArray(required) ? required : [required]; const granted = request.auth ? permissionsForUser(request.auth.role, request.auth.permissions ?? []) : []; if (!candidates.some((permission) => granted.includes(permission))) return response.status(403).json({ message: "No tienes permiso para realizar esta acción." }); next(); };

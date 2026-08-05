@@ -1,5 +1,6 @@
 import "dotenv/config";
-import { MovementType, PrismaClient, TaxTreatment, WarehouseType } from "@prisma/client";
+import { MovementType, PrismaClient, TaxTreatment, UserRole, WarehouseType } from "@prisma/client";
+import { passwordService } from "../server/modules/auth/password.service.js";
 
 const prisma = new PrismaClient();
 
@@ -45,16 +46,46 @@ const items: CatalogItem[] = [
   { sku: "BEB002", category: "Refrescos", subcategory: "Piña", name: "Concordia Piña 500 ml", description: "Bebida refrescante sabor piña en botella descartable de 500 ml", brand: "Concordia", presentation: "Botella", unit: "UND", content: "500 ml", purchasePrice: 2, retailPrice: 3.3, wholesalePrice: 3, wholesaleMinQuantity: 12, initialStock: 70, minimumStock: 15, imageUrl: "https://aceleralastatic.nyc3.cdn.digitaloceanspaces.com/files/uploads/1499/1596824007-145-concordia-pina-500-jpg.jpg" },
 ];
 
-const run = async () => {
-  const company = process.env.SEED_COMPANY_TAX_ID
-    ? await prisma.company.findUnique({ where: { taxId: process.env.SEED_COMPANY_TAX_ID } })
-    : await prisma.company.findFirst();
-  if (!company) throw new Error("No existe empresa. Ejecuta primero db:seed.");
+const users = [
+  { fullName: "Ronald De la Cruz", email: "ronald@clienty.pe", role: UserRole.ADMIN },
+  { fullName: "Sebastian Mercado", email: "sebastian@clienty.pe", role: UserRole.SALES_PURCHASING },
+  { fullName: "Valeria Flores", email: "valeria@clienty.pe", role: UserRole.ACCOUNTANT },
+  { fullName: "Diego Ramírez", email: "diego@clienty.pe", role: UserRole.WAREHOUSE },
+] as const;
 
-  const user = await prisma.user.findFirst({ where: { companyId: company.id, isActive: true } });
-  if (!user) throw new Error("No existe un usuario activo.");
+const categoryCodes = new Map(
+  [...new Set(items.map((item) => item.category))].map((category, index) => [
+    category,
+    `CAT${String(index + 1).padStart(3, "0")}`,
+  ]),
+);
+
+const suppliers = [
+  { code: "PRV001", ruc: "20123456789", businessName: "Bebidas del Pacífico S.A.C.", tradeName: "Bebidas Pacífico", address: "Av. Industrial 450, Lima", phone: "01 458 9210", email: "ventas@bebidaspacifico.pe", contactName: "María Torres", paymentTermsDays: 15 },
+  { code: "PRV002", ruc: "20456789123", businessName: "Comercializadora Andina S.A.C.", tradeName: "Andina Comercial", address: "Jr. Los Olivos 820, Lima", phone: "01 617 3040", email: "pedidos@andina.pe", contactName: "Jorge Ramírez", paymentTermsDays: 30 },
+  { code: "PRV003", ruc: "20678912345", businessName: "Importadora Central E.I.R.L.", tradeName: "Importadora Central", address: "Av. Argentina 1290, Callao", phone: "01 720 1880", email: "compras@importadoracentral.pe", contactName: "Lucía Mendoza", paymentTermsDays: 7 },
+] as const;
+
+const customers = [
+  { code: "CLI-000001", customerType: "PERSONA_NATURAL", documentType: "DNI", document: "45892134", name: "María López", firstName: "María", lastName: "López", mobilePhone: "987654321", email: "maria.lopez@ejemplo.pe", category: "REGULAR" },
+  { code: "CLI-000002", customerType: "PERSONA_NATURAL", documentType: "DNI", document: "71239845", name: "Carlos Mendoza", firstName: "Carlos", lastName: "Mendoza", mobilePhone: "912345678", email: "carlos.mendoza@ejemplo.pe", category: "REGULAR" },
+  { code: "CLI-000003", customerType: "EMPRESA", documentType: "RUC", document: "20608912341", name: "Bodega San Martín S.A.C.", companyName: "Bodega San Martín S.A.C.", tradeName: "Bodega San Martín", companyPhone: "014528900", companyEmail: "compras@bodegasanmartin.pe", category: "MAYORISTA" },
+] as const;
+
+const run = async () => {
+  const taxId = process.env.SEED_COMPANY_TAX_ID ?? "20500000001";
+  const company = await prisma.company.upsert({
+    where: { taxId },
+    update: { name: "Clienty - Sistema de Ventas" },
+    create: { taxId, name: "Clienty - Sistema de Ventas" },
+  });
 
   await prisma.$transaction(async (tx) => {
+    await tx.cashCountDetail.deleteMany({ where: { cashCount: { cashSession: { companyId: company.id } } } });
+    await tx.cashCount.deleteMany({ where: { cashSession: { companyId: company.id } } });
+    await tx.cashMovement.deleteMany({ where: { companyId: company.id } });
+    await tx.cashSession.deleteMany({ where: { companyId: company.id } });
+    await tx.cashRegister.deleteMany({ where: { companyId: company.id } });
     await tx.supplierPayment.deleteMany({ where: { payable: { purchase: { companyId: company.id } } } });
     await tx.accountsPayable.deleteMany({ where: { purchase: { companyId: company.id } } });
     await tx.purchaseReceiptLine.deleteMany({ where: { receipt: { purchase: { companyId: company.id } } } });
@@ -76,17 +107,46 @@ const run = async () => {
     await tx.inventoryMovement.deleteMany({ where: { warehouse: { companyId: company.id } } });
     await tx.inventoryBatch.deleteMany({ where: { warehouse: { companyId: company.id } } });
     await tx.inventoryStock.deleteMany({ where: { warehouse: { companyId: company.id } } });
+    await tx.productBarcode.deleteMany({ where: { companyId: company.id } });
     await tx.productPresentation.deleteMany({ where: { companyId: company.id } });
     await tx.product.deleteMany({ where: { companyId: company.id } });
     await tx.productSubcategory.deleteMany({ where: { companyId: company.id } });
     await tx.productCategory.deleteMany({ where: { companyId: company.id } });
     await tx.productBrand.deleteMany({ where: { companyId: company.id } });
+    await tx.measurementUnit.deleteMany({ where: { companyId: company.id } });
+    await tx.warehouse.deleteMany({ where: { companyId: company.id } });
+    await tx.customer.deleteMany({ where: { companyId: company.id } });
+    await tx.supplier.deleteMany({ where: { companyId: company.id } });
+    await tx.notification.deleteMany({ where: { user: { companyId: company.id } } });
+    await tx.authSession.deleteMany({ where: { user: { companyId: company.id } } });
+    await tx.loginAudit.deleteMany({ where: { user: { companyId: company.id } } });
+    await tx.user.deleteMany({ where: { companyId: company.id } });
   }, { timeout: 30_000 });
 
+  const passwordHash = await passwordService.hash("Clienty2026!");
+  const seededUsers = await Promise.all(
+    users.map((seededUser) => prisma.user.create({
+      data: {
+        ...seededUser,
+        passwordHash,
+        companyId: company.id,
+        emailVerifiedAt: new Date(),
+        permissions: [],
+      },
+    })),
+  );
+  const user = seededUsers.find((seededUser) => seededUser.role === UserRole.ADMIN);
+  if (!user) throw new Error("No se pudo crear el usuario administrador.");
+
+  await Promise.all([
+    ...suppliers.map((supplier) => prisma.supplier.create({ data: { ...supplier, companyId: company.id } })),
+    ...customers.map((customer) => prisma.customer.create({ data: { ...customer, companyId: company.id, isActive: true, status: "ACTIVO" } })),
+  ]);
+
   await prisma.measurementUnit.upsert({
-    where: { companyId_code: { companyId: company.id, code: "UND" } },
-    update: { name: "Unidad", isActive: true },
-    create: { companyId: company.id, code: "UND", name: "Unidad" },
+    where: { companyId_code: { companyId: company.id, code: "UND001" } },
+    update: { name: "Unidad", abbreviation: "UND", isActive: true },
+    create: { companyId: company.id, code: "UND001", abbreviation: "UND", name: "Unidad" },
   });
 
   const warehouse = await prisma.warehouse.upsert({
@@ -99,7 +159,7 @@ const run = async () => {
     const category = await prisma.productCategory.upsert({
       where: { companyId_name: { companyId: company.id, name: item.category } },
       update: { isActive: true },
-      create: { companyId: company.id, name: item.category, description: `Catálogo de ${item.category.toLowerCase()}.` },
+      create: { companyId: company.id, code: categoryCodes.get(item.category)!, name: item.category, description: `Catálogo de ${item.category.toLowerCase()}.` },
     });
     const subcategory = await prisma.productSubcategory.upsert({
       where: { categoryId_name: { categoryId: category.id, name: item.subcategory } },
@@ -115,7 +175,7 @@ const run = async () => {
       data: {
         companyId: company.id,
         sku: item.sku,
-        barcode: `BC-${item.sku}`,
+        barcode: item.sku,
         name: item.name,
         description: item.description,
         brandId: brand.id,
@@ -132,6 +192,9 @@ const run = async () => {
         taxTreatment: TaxTreatment.TAXED,
         imageUrl: item.imageUrl,
       },
+    });
+    await prisma.productBarcode.create({
+      data: { companyId: company.id, productId: product.id, code: item.sku, isPrimary: true },
     });
     await prisma.inventoryStock.create({ data: { productId: product.id, warehouseId: warehouse.id, quantity: item.initialStock, reserved: 0, minimum: item.minimumStock, maximum: item.initialStock * 2 } });
     await prisma.inventoryMovement.create({
@@ -152,7 +215,7 @@ const run = async () => {
     });
   }
 
-  console.log(`Catálogo cargado: ${items.length} productos, ${new Set(items.map((item) => item.category)).size} categorías y stock inicial.`);
+  console.log(`Sistema reiniciado: ${seededUsers.length} usuarios, ${customers.length} clientes, ${suppliers.length} proveedores y ${items.length} productos.`);
 };
 
 run()

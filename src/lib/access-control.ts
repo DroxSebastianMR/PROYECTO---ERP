@@ -14,6 +14,7 @@ const rolePaths: Record<UserRole, readonly AppPath[]> = {
 
 export const canAccessPath = (user: Pick<AuthenticatedUser, "role" | "permissions"> | undefined, path: AppPath) => {
   if (!user || path === PATHS.APP.PROFILE) return Boolean(user);
+  if (user.role === UserRole.ADMIN || user.role === UserRole.MANAGER) return true;
   // Sessions created before granular permissions did not persist this field.
   const permissions = user.permissions?.length ? user.permissions : ROLE_PERMISSION_DEFAULTS[user.role];
   return hasAnyPermission(permissions, permissionsForPath(path));
