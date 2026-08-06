@@ -3,7 +3,7 @@ import { dashboardService } from "@/features/dashboard/services/dashboard.servic
 import type { DashboardData, DashboardPeriod } from "@/features/dashboard/types/dashboard.types";
 
 export const useDashboard = () => {
-  const [period, setPeriod] = useState<DashboardPeriod>("2024");
+  const [period, setPeriod] = useState<DashboardPeriod>(String(new Date().getFullYear()));
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);

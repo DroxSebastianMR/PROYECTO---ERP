@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   Barcode,
+  Eye,
   Minus,
   Plus,
   ScanBarcode,
@@ -18,6 +19,7 @@ import { SaleProcessingOverlay } from "@/features/sales/components/sale-processi
 import { SaleTicket } from "@/features/sales/components/sale-ticket";
 import { printSaleTicket } from "@/features/sales/services/sale-ticket-print.service";
 import { CustomerFormModal } from "@/features/customers/components/customer-form-modal";
+import { ProductDetailModal } from "@/features/products/components/product-detail-modal";
 import type { Product } from "@/features/products/types/product.types";
 import type { CreateCustomerInput, DocumentType } from "@/features/customers/types/customer.types";
 import type {
@@ -155,6 +157,7 @@ export const NewSaleForm = ({
   const [customerOpen, setCustomerOpen] = useState(false);
   const [completedSale, setCompletedSale] = useState<SaleReceipt | null>(null);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [detailProduct, setDetailProduct] = useState<Product | null>(null);
   const activeWarehouseId = warehouses[0]?.id || "";
   const warehouseName = warehouses.find((warehouse) => warehouse.id === activeWarehouseId)?.name;
   const available = useCallback(
@@ -382,9 +385,7 @@ export const NewSaleForm = ({
                     className={`flex min-h-52 flex-col rounded-2xl border bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-md ${low ? "border-amber-200" : "border-slate-200"}`}
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <span className="font-mono text-[11px] font-bold text-slate-400">
-                        {product.sku}
-                      </span>
+                      <div className="flex min-w-0 items-center gap-2"><span className="font-mono text-[11px] font-bold text-slate-400">{product.sku}</span><span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">UM: {product.unit}</span></div>
                       <span
                         className={`rounded-md px-2 py-1 text-[10px] font-bold ${stock <= 0 ? "bg-rose-50 text-rose-600" : low ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}
                       >
@@ -399,7 +400,7 @@ export const NewSaleForm = ({
                       </div>
                       <div className="min-w-0">
                         <h3 className="text-base font-bold leading-snug text-slate-900">{product.name}</h3>
-                        <p className="mt-1 text-xs text-slate-500">{product.brand} · {product.presentation ?? product.unit}</p>
+                        <p className="mt-1 text-xs text-slate-500">{product.brand} · {product.presentation ?? "Presentación base"}</p>
                       </div>
                     </div>
                     <div className="mt-auto flex items-end justify-between border-t border-slate-100 pt-4">
@@ -412,14 +413,7 @@ export const NewSaleForm = ({
                           Stock actual: <span className="font-bold text-slate-800">{stock}</span>
                         </p>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => addProduct(product)}
-                        disabled={stock <= 0}
-                        className="grid h-10 w-10 place-items-center rounded-full bg-blue-50 text-blue-700 transition hover:bg-blue-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        <Plus className="h-5 w-5" />
-                      </button>
+                      <div className="flex items-center gap-2"><button type="button" onClick={() => setDetailProduct(product)} className="grid h-10 w-10 place-items-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700" aria-label={`Ver detalle de ${product.name}`}><Eye className="h-4 w-4" /></button><button type="button" onClick={() => addProduct(product)} disabled={stock <= 0} className="grid h-10 w-10 place-items-center rounded-full bg-blue-50 text-blue-700 transition hover:bg-blue-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"><Plus className="h-5 w-5" /></button></div>
                     </div>
                   </article>
                 );
@@ -605,6 +599,7 @@ export const NewSaleForm = ({
         onSubmit={saveCustomer}
         onLookupDocument={onLookupCustomerDocument}
       />
+      <ProductDetailModal isOpen={Boolean(detailProduct)} product={detailProduct} onClose={() => setDetailProduct(null)} />
     </>
   );
 };

@@ -25,7 +25,7 @@ interface ProductDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   product: Product | null;
-  onEdit: (product: Product) => void;
+  onEdit?: (product: Product) => void;
 }
 
 export const ProductDetailModal = ({ isOpen, onClose, product, onEdit }: ProductDetailModalProps) => {
@@ -39,7 +39,7 @@ export const ProductDetailModal = ({ isOpen, onClose, product, onEdit }: Product
     <div className="space-y-6">
       <section className="flex flex-col gap-4 rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50/90 to-indigo-50/40 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-center gap-4"><div className="grid h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-blue-100 bg-white">{product.imageUrl ? <img src={product.imageUrl} alt={product.name} className="h-full w-full object-cover" /> : <span className="grid place-items-center bg-blue-600 text-white"><Boxes className="h-7 w-7" /></span>}</div><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className="rounded-md bg-white px-2 py-1 font-mono text-xs font-bold text-slate-600 shadow-sm">{product.sku}</span><ProductStatusBadge product={product} /></div><h3 className="mt-2 truncate text-lg font-bold text-slate-900">{product.name}</h3><p className="mt-0.5 text-sm text-slate-500">{product.brand || "Sin marca"}{product.presentation ? ` · ${product.presentation}` : ""}</p></div></div>
-        <Button onClick={() => { onClose(); onEdit(product); }} variant="ghost" className="shrink-0 border border-slate-200 bg-white shadow-sm hover:bg-slate-50">Editar producto</Button>
+        {onEdit && <Button onClick={() => { onClose(); onEdit(product); }} variant="ghost" className="shrink-0 border border-slate-200 bg-white shadow-sm hover:bg-slate-50">Editar producto</Button>}
       </section>
 
       <div className="grid gap-4 sm:grid-cols-2">

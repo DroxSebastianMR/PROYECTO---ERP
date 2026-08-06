@@ -10,7 +10,9 @@ type UploadedProductImage = {
 
 const getStorageConfig = () => {
   if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
-    throw new Error("Supabase Storage no está configurado. Define VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY.");
+    throw new Error(
+      "Supabase Storage no está configurado. Define VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY.",
+    );
   }
   return {
     baseUrl: env.SUPABASE_URL,
@@ -53,17 +55,24 @@ export const productImageStorage = {
       body: file,
     });
     if (!response.ok) {
-      const detail = await response.json().catch(() => null) as { message?: string } | null;
+      const detail = (await response.json().catch(() => null)) as { message?: string } | null;
       throw new Error(detail?.message ?? "No se pudo guardar la imagen en Supabase Storage.");
     }
-    return { path, publicUrl: `${baseUrl}/storage/v1/object/public/${encodeURIComponent(bucket)}/${path.split("/").map(encodeURIComponent).join("/")}` };
+    return {
+      path,
+      publicUrl: `${baseUrl}/storage/v1/object/public/${encodeURIComponent(bucket)}/${path.split("/").map(encodeURIComponent).join("/")}`,
+    };
   },
 
   async remove(path: string) {
     const { baseUrl, anonKey, bucket } = getStorageConfig();
     await fetch(`${baseUrl}/storage/v1/object/${encodeURIComponent(bucket)}`, {
       method: "DELETE",
-      headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}`, "Content-Type": "application/json" },
+      headers: {
+        apikey: anonKey,
+        Authorization: `Bearer ${anonKey}`,
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({ prefixes: [path] }),
     });
   },

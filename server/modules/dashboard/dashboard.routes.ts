@@ -1,10 +1,13 @@
 import { Router } from "express";
+import { z } from "zod";
+import type { AuthenticatedRequest } from "../auth/auth.middleware.js";
 import { dashboardService } from "./dashboard.service.js";
 
 export const dashboardRouter = Router();
-dashboardRouter.get("/summary", async (_request, response, next) => {
+dashboardRouter.get("/overview", async (request, response, next) => {
   try {
-    response.json(await dashboardService.getSummary());
+    const year = z.coerce.number().int().min(2020).max(2100).catch(new Date().getFullYear()).parse(request.query.year);
+    response.json(await dashboardService.getOverview((request as AuthenticatedRequest).auth!.companyId, year));
   } catch (error) {
     next(error);
   }

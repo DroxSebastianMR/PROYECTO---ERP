@@ -1,32 +1,13 @@
-export type DashboardPeriod = "2024" | "2025";
-
+export type DashboardPeriod = string;
 export type SalesPoint = { month: string; amount: number };
-export type PaymentMethod = { name: string; percentage: number; color: string };
+export type PaymentMethod = { name: string; percentage: number; color: string; transactions: number };
 export type SaleStatus = "Pagado" | "Pendiente" | "Anulado";
-export type RecentSale = {
-  id: string;
-  customer: string;
-  date: string;
-  amount: string;
-  status: SaleStatus;
-};
+export type RecentSale = { id: string; customer: string; date: string; amount: number; status: SaleStatus };
 export type ActivityKind = "client" | "purchase" | "alert" | "report";
-export type Activity = {
-  id: string;
-  kind: ActivityKind;
-  title: string;
-  detail: string;
-  timestamp: string;
-};
-export type StockAlert = {
-  id: string;
-  product: string;
-  sku: string;
-  warehouse: string;
-  quantity: string;
-  minimum: string;
-};
+export type Activity = { id: string; kind: ActivityKind; title: string; detail: string; timestamp: string };
+export type StockAlert = { id: string; product: string; sku: string; warehouse: string; quantity: number; minimum: number; unit: string };
 export type DashboardData = {
+  metrics: { todaySales: number; monthPurchases: number; products: number; customers: number; monthIncome: number; lowStock: number };
   sales: SalesPoint[];
   paymentMethods: PaymentMethod[];
   recentSales: RecentSale[];

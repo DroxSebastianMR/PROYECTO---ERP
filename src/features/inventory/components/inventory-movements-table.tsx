@@ -1,6 +1,7 @@
 import { ArrowDownRight, ArrowUpRight, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { InventoryMovementRecord } from "@/features/inventory/types/inventory.types";
+import { movementDirection, movementLabel } from "@/features/inventory/utils/movement-labels";
 
 interface InventoryMovementsTableProps {
   movements: InventoryMovementRecord[];
@@ -39,6 +40,9 @@ export const InventoryMovementsTable = ({ movements }: InventoryMovementsTablePr
               <th scope="col" className="px-6 py-4 font-semibold">
                 Referencia / Motivo
               </th>
+              <th scope="col" className="px-6 py-4 font-semibold">
+                Responsable
+              </th>
               <th scope="col" className="px-6 py-4 text-right font-semibold">
                 Fecha y Hora
               </th>
@@ -46,23 +50,24 @@ export const InventoryMovementsTable = ({ movements }: InventoryMovementsTablePr
           </thead>
           <tbody className="divide-y divide-slate-100">
             {movements.map((mov) => {
-              const isIN = mov.type === "IN";
-              const isOUT = mov.type === "OUT";
+              const direction = movementDirection(mov.type);
+              const isIN = direction === "in";
+              const isOUT = direction === "out";
 
               return (
                 <tr key={mov.id} className="transition hover:bg-slate-50/80">
                   <td className="whitespace-nowrap px-6 py-4">
                     {isIN ? (
                       <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200/60 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                        <ArrowDownRight className="h-3.5 w-3.5" /> Entrada
+                        <ArrowDownRight className="h-3.5 w-3.5" /> {movementLabel(mov.type)}
                       </span>
                     ) : isOUT ? (
                       <span className="inline-flex items-center gap-1 rounded-full border border-rose-200/60 bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700">
-                        <ArrowUpRight className="h-3.5 w-3.5" /> Salida
+                        <ArrowUpRight className="h-3.5 w-3.5" /> {movementLabel(mov.type)}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 rounded-full border border-purple-200/60 bg-purple-50 px-2.5 py-1 text-xs font-semibold text-purple-700">
-                        <RefreshCw className="h-3.5 w-3.5" /> Ajuste
+                        <RefreshCw className="h-3.5 w-3.5" /> {movementLabel(mov.type)}
                       </span>
                     )}
                   </td>
@@ -80,6 +85,7 @@ export const InventoryMovementsTable = ({ movements }: InventoryMovementsTablePr
                     <span className="text-xs font-normal text-slate-500">{mov.unit}</span>
                   </td>
                   <td className="px-6 py-4 text-slate-700">{mov.reference}</td>
+                  <td className="whitespace-nowrap px-6 py-4 text-slate-700">{mov.responsible || "Sistema Superior"}</td>
                   <td className="whitespace-nowrap px-6 py-4 text-right text-xs text-slate-500">
                     {new Date(mov.createdAt).toLocaleString("es-PE")}
                   </td>

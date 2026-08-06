@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
-import { ArrowDownRight, ArrowUpRight, CalendarDays, Download, Plus, Search, WalletCards } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Download, Plus, Search, WalletCards } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -32,9 +32,9 @@ export const CashMovementsTab = ({ current, movements, isSaving, onCreate }: { c
   return <>
     <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <Metric label="Saldo actual" value={money(current?.summary.expectedAmount ?? 0)} icon={<WalletCards className="h-5 w-5" />} tone="blue" detail="Disponible en caja" />
+      <Metric label="Caja inicial" value={money(current?.summary.openingAmount ?? 0)} icon={<WalletCards className="h-5 w-5" />} tone="blue" detail={current ? `Aperturada ${time(current.session.openedAt)}` : "Sin caja aperturada"} />
       <Metric label="Ingresos del día" value={money(income)} icon={<ArrowUpRight className="h-5 w-5" />} tone="green" detail="Ventas y otros ingresos" />
       <Metric label="Egresos del día" value={money(expense)} icon={<ArrowDownRight className="h-5 w-5" />} tone="red" detail="Pagos y salidas de dinero" />
-      <Metric label="Estado de caja" value={current ? "Caja abierta" : "Caja cerrada"} icon={<CalendarDays className="h-5 w-5" />} tone="blue" detail={current ? `Abierta desde ${time(current.session.openedAt)}` : "Abra una caja para operar"} />
     </section>
     <section className="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_20px_rgba(37,99,235,.03)]">
       <div className="flex flex-col gap-3 border-b border-slate-100 p-4 lg:flex-row lg:items-center">

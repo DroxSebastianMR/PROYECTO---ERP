@@ -14,8 +14,8 @@ export const PaymentMethods = ({ methods }: PaymentMethodsProps) => {
       >
         <div className="grid h-[104px] w-[104px] place-items-center rounded-full bg-white text-center sm:h-[126px] sm:w-[126px]">
           <div>
-            <p className="text-xl">1.2k</p>
-            <p className="text-[11px] text-slate-600">Txns</p>
+            <p className="text-xl">{methods.reduce((total, method) => total + method.transactions, 0)}</p>
+            <p className="text-[11px] text-slate-600">transacciones</p>
           </div>
         </div>
       </div>

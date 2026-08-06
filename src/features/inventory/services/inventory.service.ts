@@ -83,7 +83,7 @@ export const inventoryService = {
       resultingStock: item.resultingStock === null ? null : value(item.resultingStock),
       reference: item.documentRef || item.reference || item.reason || "Sin referencia",
       createdAt: item.createdAt,
-      responsible: item.createdBy?.fullName || "Sistema",
+      responsible: item.reference?.toLowerCase().includes("seed") ? "Sistema Superior" : item.createdBy?.fullName || "Sistema Superior",
     }));
   },
   async createAdjustment(input: StockAdjustmentInput): Promise<void> {

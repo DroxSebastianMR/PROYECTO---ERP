@@ -36,7 +36,7 @@ export const RecentSales = ({ sales, showAll, onToggle }: RecentSalesProps) => {
                 <td className="px-5 py-4">{sale.id}</td>
                 <td className="px-5 py-4">{sale.customer}</td>
                 <td className="px-5 py-4">{sale.date}</td>
-                <td className="px-5 py-4">{sale.amount}</td>
+                <td className="px-5 py-4">{new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" }).format(sale.amount)}</td>
                 <td className="px-5 py-4">
                   <span
                     className={`rounded-full border px-3 py-1 text-xs ${statusClasses[sale.status]}`}

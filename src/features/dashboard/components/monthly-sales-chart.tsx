@@ -14,8 +14,7 @@ export const MonthlySalesChart = ({ data, period, onPeriodChange }: MonthlySales
         onChange={(event) => onPeriodChange(event.target.value as DashboardPeriod)}
         className="w-full cursor-pointer rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 sm:w-auto"
       >
-        <option value="2024">2024</option>
-        <option value="2025">2025</option>
+        {[String(new Date().getFullYear()), String(new Date().getFullYear() - 1), String(new Date().getFullYear() - 2)].map((year) => <option key={year} value={year}>{year}</option>)}
       </select>
     </div>
     <div className="mt-5 flex h-[220px] min-w-0 sm:mt-7 sm:h-[305px]">
@@ -30,13 +29,13 @@ export const MonthlySalesChart = ({ data, period, onPeriodChange }: MonthlySales
           <button
             type="button"
             key={month}
-            title={`${month}: S/ ${amount}k`}
+            title={`${month}: S/ ${amount.toFixed(2)}`}
             className="flex h-full flex-1 flex-col justify-end outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-            aria-label={`Ventas de ${month}: S/ ${amount} mil`}
+            aria-label={`Ventas de ${month}: S/ ${amount}`}
           >
             <div
               className={`w-full rounded-t-sm transition-opacity hover:opacity-75 ${index === 5 ? "bg-blue-700" : amount === 0 ? "bg-slate-100" : "bg-blue-500/75"}`}
-              style={{ height: `${amount}%` }}
+              style={{ height: `${Math.max(0, Math.min(100, (amount / Math.max(...data.map((point) => point.amount), 1)) * 100))}%` }}
             />
             <span className="mt-2 text-center text-[9px] text-slate-500 sm:mt-3 sm:text-[11px]">{month}</span>
           </button>

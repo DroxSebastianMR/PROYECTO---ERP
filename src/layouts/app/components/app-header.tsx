@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, CalendarDays, CheckCheck, Mail, Menu, Search } from "lucide-react";
+import { Bell, CheckCheck, Mail, Menu, Search } from "lucide-react";
 import { Link } from "react-router-dom";
 import { PATHS } from "@/app/router/constants/paths";
 import { useAuth } from "@/features/auth/hooks/use-auth";
@@ -102,9 +102,6 @@ export const AppHeader = ({ onMenuClick }: AppHeaderProps) => {
         )}
         <button className="hidden sm:block">
           <Mail className="h-[18px] w-[18px]" />
-        </button>
-        <button className="hidden sm:block">
-          <CalendarDays className="h-[18px] w-[18px]" />
         </button>
         <span className="mx-2 hidden h-7 w-px bg-slate-200 sm:block" />
         <Link to={PATHS.APP.PROFILE} className="flex items-center gap-2.5 rounded-lg p-1 transition hover:bg-slate-100">

@@ -39,7 +39,8 @@ const mapProduct = (product: ProductApi): Product => ({
   costPrice: number(product.purchasePrice),
   salePrice: number(product.salePrice),
   wholesalePrice: product.wholesalePrice === null ? undefined : number(product.wholesalePrice),
-  wholesaleMinQuantity: product.wholesaleMinQuantity === null ? undefined : number(product.wholesaleMinQuantity),
+  wholesaleMinQuantity:
+    product.wholesaleMinQuantity === null ? undefined : number(product.wholesaleMinQuantity),
   totalStock: product.stocks?.reduce((total, stock) => total + number(stock.quantity), 0) ?? 0,
   minStock: product.stocks?.reduce((total, stock) => total + number(stock.minimum), 0) ?? 0,
   stocks: product.stocks?.map((stock) => ({
@@ -75,12 +76,18 @@ export const productService = {
     const data = await httpClient<ProductApi[]>("/products");
     return data.map(mapProduct);
   },
-  getMeasurementUnits: () => httpClient<import("@/features/products/types/product.types").MeasurementUnit[]>("/products/measurement-units"),
+  getMeasurementUnits: () =>
+    httpClient<import("@/features/products/types/product.types").MeasurementUnit[]>(
+      "/products/measurement-units",
+    ),
   createMeasurementUnit: (input: { code: string; name: string }) =>
-    httpClient<import("@/features/products/types/product.types").MeasurementUnit>("/products/measurement-units", {
-      method: "POST",
-      body: JSON.stringify(input),
-    }),
+    httpClient<import("@/features/products/types/product.types").MeasurementUnit>(
+      "/products/measurement-units",
+      {
+        method: "POST",
+        body: JSON.stringify(input),
+      },
+    ),
   async createProduct(input: CreateProductInput): Promise<Product> {
     return mapProduct(
       await httpClient<ProductApi>("/products", {
