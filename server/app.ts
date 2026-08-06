@@ -3,7 +3,7 @@ import cors from "cors";
 import { env } from "./config/env.js";
 import { dashboardRouter } from "./modules/dashboard/dashboard.routes.js";
 import { authRouter } from "./modules/auth/auth.routes.js";
-import { productsRouter } from "./modules/products/products.routes.js";
+import { productsRouter } from "./modules/products/routes/products.routes.js";
 import { inventoryRouter } from "./modules/inventory/inventory.routes.js";
 import { purchasesRouter } from "./modules/purchases/purchases.routes.js";
 import { salesRouter } from "./modules/sales/sales.routes.js";
