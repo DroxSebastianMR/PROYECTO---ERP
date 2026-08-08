@@ -8,18 +8,31 @@ interface CashTenderInputProps {
   received: string;
   onChange: (value: string) => void;
   compact?: boolean;
+  showChange?: boolean;
 }
 
-export const CashTenderInput = ({ dueAmount, received, onChange, compact = false }: CashTenderInputProps) => {
+export const CashChangeSummary = ({ dueAmount, received }: Pick<CashTenderInputProps, "dueAmount" | "received">) => {
+  const receivedAmount = Number(received) || 0;
+  const change = Math.max(0, receivedAmount - dueAmount);
+
+  return (
+    <div className="mt-1 flex items-center justify-between gap-3 border-t border-emerald-100 pt-2">
+      <span className="text-[11px] font-bold uppercase tracking-wide text-emerald-700">Vuelto</span>
+      <span className="text-lg font-bold leading-none text-emerald-700">{money(change)}</span>
+    </div>
+  );
+};
+
+export const CashTenderInput = ({ dueAmount, received, onChange, compact = false, showChange = true }: CashTenderInputProps) => {
   const receivedAmount = Number(received) || 0;
   const change = Math.max(0, receivedAmount - dueAmount);
 
   if (compact) {
     return <div className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-2.5">
       <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-emerald-800"><Banknote className="h-3.5 w-3.5" /> Efectivo</div>
-      <div className="mt-1.5 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
+      <div className={`mt-1.5 grid items-end gap-2 ${showChange ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-1"}`}>
         <label className="min-w-0 text-[11px] font-medium text-slate-600"><span className="sr-only">Monto recibido</span><Input value={received} onChange={(event) => onChange(event.target.value)} inputMode="decimal" type="number" min={dueAmount} step="0.01" placeholder="Recibido" className="h-9 bg-white px-2 text-sm" /></label>
-        <div className="text-right"><p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">Vuelto</p><p className="text-base font-bold leading-5 text-emerald-700">{money(change)}</p></div>
+        {showChange && <div className="text-right"><p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">Vuelto</p><p className="text-base font-bold leading-5 text-emerald-700">{money(change)}</p></div>}
       </div>
       {receivedAmount > 0 && receivedAmount < dueAmount && <p className="mt-1.5 text-[11px] font-medium text-rose-600">Faltan {money(dueAmount - receivedAmount)}.</p>}
     </div>;

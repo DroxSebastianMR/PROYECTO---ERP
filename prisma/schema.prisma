@@ -142,6 +142,7 @@ model Company {
   cashRegisters CashRegister[]
   cashSessions CashSession[]
   cashMovements CashMovement[]
+  accessRoles AccessRole[]
 }
 
 model User {
@@ -186,6 +187,7 @@ model PermissionDefinition {
   updatedAt   DateTime         @updatedAt
   rolePermissions RolePermission[]
   userPermissions UserPermission[]
+  accessRolePermissions AccessRolePermission[]
 }
 
 model RolePermission {
@@ -780,6 +782,7 @@ model Purchase {
   document    PurchaseDocument?
   payable     AccountsPayable?
   @@unique([companyId, number])
+  @@index([companyId, createdAt])
 }
 
 model PurchaseItem {
@@ -797,6 +800,33 @@ model PurchaseItem {
   purchase    Purchase     @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
   product     Product      @relation(fields: [productId], references: [id], onDelete: Restrict)
   receiptLines PurchaseReceiptLine[]
+  @@index([purchaseId])
+}
+
+model AccessRole {
+  id          String       @id @default(uuid()) @db.Uuid
+  companyId   String       @db.Uuid
+  code        String
+  name        String
+  description String?
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  company     Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  permissions AccessRolePermission[]
+  @@unique([companyId, code])
+  @@unique([companyId, name])
+  @@index([companyId, isActive])
+}
+
+model AccessRolePermission {
+  accessRoleId String       @db.Uuid
+  permissionId String       @db.Uuid
+  createdAt    DateTime     @default(now())
+  accessRole   AccessRole   @relation(fields: [accessRoleId], references: [id], onDelete: Cascade)
+  permission   PermissionDefinition @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  @@id([accessRoleId, permissionId])
+  @@index([permissionId])
 }
 
 model Supplier {

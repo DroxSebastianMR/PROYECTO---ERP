@@ -16,7 +16,10 @@ export type SystemUser = {
 export type UserRoleDefinition = {
   role: ManagedUserRole;
   permissions: string[];
+  description?: string[];
 };
+
+export type AccessRoleDefinition = { id: string; code: string; name: string; description: string | null; isActive: boolean; permissions: string[] };
 
 export type CreateUserInput = {
   fullName: string;

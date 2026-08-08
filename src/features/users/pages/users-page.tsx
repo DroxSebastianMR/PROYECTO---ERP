@@ -9,7 +9,6 @@ import {
   RefreshCw,
   Search,
   ShieldCheck,
-  UserCog,
   UsersRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,6 +16,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useUsers } from "@/features/users/hooks/use-users";
 import { UserFormModal } from "@/features/users/components/user-form-modal";
+import { RoleManagementTab } from "@/features/users/components/role-management-tab";
 import { ROLE_LABELS, type ManagedUserRole } from "@/features/users/types/user.types";
 import { PERMISSION_LABELS, type Permission } from "@/lib/permissions";
 
@@ -31,6 +31,7 @@ const dateFormat = new Intl.DateTimeFormat("es-PE", { dateStyle: "medium", timeS
 
 export const UsersPage = () => {
   const state = useUsers();
+  const [moduleTab, setModuleTab] = useState<"users" | "roles">("users");
   const [permissionsTab, setPermissionsTab] = useState<"role" | "additional">("role");
   const rolePermissions = useMemo(
     () =>
@@ -91,12 +92,13 @@ export const UsersPage = () => {
           </Button>
         </div>
       </header>
+      <div className="mt-6 flex w-fit rounded-xl border border-slate-200 bg-white p-1"><button type="button" onClick={() => setModuleTab("users")} className={`rounded-lg px-4 py-2 text-sm font-semibold ${moduleTab === "users" ? "bg-blue-600 text-white shadow-sm" : "text-slate-600"}`}>Usuarios</button><button type="button" onClick={() => setModuleTab("roles")} className={`rounded-lg px-4 py-2 text-sm font-semibold ${moduleTab === "roles" ? "bg-blue-600 text-white shadow-sm" : "text-slate-600"}`}>Roles y permisos</button></div>
       {state.error && (
         <div className="mt-5 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
           {state.error}
         </div>
       )}
-      <section className="mt-6 grid gap-4 sm:grid-cols-3">
+      {moduleTab === "users" && <><section className="mt-6 grid gap-4 sm:grid-cols-3">
         {[
           ["Usuarios activos", metrics.active, UsersRound, "text-blue-600 bg-blue-50"],
           ["Administradores", metrics.admins, ShieldCheck, "text-violet-600 bg-violet-50"],
@@ -222,27 +224,8 @@ export const UsersPage = () => {
           </table>
         </div>
       </section>
-      <section className="mt-6 grid gap-4 md:grid-cols-3">
-        {state.roles.map((definition) => (
-          <article
-            key={definition.role}
-            className="rounded-xl border border-slate-200 bg-white p-5"
-          >
-            <div className="flex items-center gap-2">
-              <UserCog className="h-5 w-5 text-blue-600" />
-              <h2 className="font-semibold text-slate-900">{ROLE_LABELS[definition.role]}</h2>
-            </div>
-            <ul className="mt-4 space-y-2 text-sm text-slate-600">
-              {definition.permissions.map((permission) => (
-                <li key={permission} className="flex gap-2">
-                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-blue-600" />
-                  {PERMISSION_LABELS[permission as Permission] ?? permission}
-                </li>
-              ))}
-            </ul>
-          </article>
-        ))}
-      </section>
+      </>}
+      {moduleTab === "roles" && <section className="mt-6"><RoleManagementTab roles={state.roles} permissions={state.permissions} accessRoles={state.accessRoles} isSaving={state.isSubmitting} onUpdateRole={state.updateRolePermissions} onCreateRole={state.createAccessRole} /></section>}
       <UserFormModal
         isOpen={state.isFormOpen}
         onClose={() => state.setIsFormOpen(false)}

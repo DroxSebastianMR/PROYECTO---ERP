@@ -51,6 +51,23 @@ router.get("/permissions", async (request, response, next) => {
     sendError(error, response, next);
   }
 });
+router.put("/roles/:role/permissions", async (request, response, next) => {
+  try {
+    const role = roleSchema.parse(request.params.role);
+    const body = z.object({ permissions: z.array(z.string().refine((permission) => PERMISSIONS.includes(permission as (typeof PERMISSIONS)[number]), "Permiso no válido.")) }).parse(request.body);
+    response.json(await usersService.updateRolePermissions(role, body.permissions));
+  } catch (error) { sendError(error, response, next); }
+});
+router.get("/access-roles", async (request, response, next) => {
+  try { response.json(await usersService.listAccessRoles((request as AuthenticatedRequest).auth!.companyId)); }
+  catch (error) { sendError(error, response, next); }
+});
+router.post("/access-roles", async (request, response, next) => {
+  try {
+    const body = z.object({ name: z.string().trim().min(3).max(80), description: z.string().trim().max(220).optional(), permissions: z.array(z.string().refine((permission) => PERMISSIONS.includes(permission as (typeof PERMISSIONS)[number]), "Permiso no válido.")) }).parse(request.body);
+    response.status(201).json(await usersService.createAccessRole((request as AuthenticatedRequest).auth!.companyId, body));
+  } catch (error) { sendError(error, response, next); }
+});
 router.get("/", async (request, response, next) => {
   try {
     const auth = request as AuthenticatedRequest;

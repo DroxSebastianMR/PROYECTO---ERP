@@ -56,6 +56,14 @@ export const permissionService = {
     }
   },
 
+  async replaceRolePermissions(role: UserRole, codes: readonly string[]) {
+    const definitions = await prisma.permissionDefinition.findMany({ where: { code: { in: normalize(codes) }, isActive: true }, select: { id: true } });
+    await prisma.$transaction([
+      prisma.rolePermission.deleteMany({ where: { role } }),
+      ...(definitions.length ? [prisma.rolePermission.createMany({ data: definitions.map(({ id: permissionId }) => ({ role, permissionId })) })] : []),
+    ]);
+  },
+
   async replaceUserAdditionalPermissions(userId: string, codes: readonly string[]) {
     const normalized = normalize(codes);
     const definitions = await prisma.permissionDefinition.findMany({

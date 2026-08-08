@@ -19,6 +19,13 @@ type MovementInput = {
   documentRef?: string;
   batchId?: string;
 };
+
+type PurchaseReceiptMovementInput = {
+  productId: string;
+  warehouseId: string;
+  quantity: number;
+  documentRef?: string;
+};
 const incoming = new Set<MovementType>([
   "IN",
   "INITIAL",
@@ -159,6 +166,43 @@ export const inventoryService = {
         where: { id: input.batchId },
         data: { quantity: { increment: delta } },
       });
+    return { movement, stock };
+  },
+  async recordPurchaseReceipt(
+    transaction: Prisma.TransactionClient,
+    userId: string,
+    input: PurchaseReceiptMovementInput,
+  ) {
+    const stock = await transaction.inventoryStock.upsert({
+      where: stockKey(input.productId, input.warehouseId),
+      create: {
+        productId: input.productId,
+        warehouseId: input.warehouseId,
+        quantity: input.quantity,
+        minimum: 0,
+        reserved: 0,
+      },
+      update: { quantity: { increment: input.quantity } },
+      select: { quantity: true },
+    });
+    const resultingStock = Number(stock.quantity);
+    const previousStock = resultingStock - input.quantity;
+    const movement = await transaction.inventoryMovement.create({
+      data: {
+        productId: input.productId,
+        warehouseId: input.warehouseId,
+        type: MovementType.PURCHASE_RECEIPT,
+        quantity: input.quantity,
+        quantityIn: input.quantity,
+        quantityOut: 0,
+        previousStock,
+        resultingStock,
+        documentRef: input.documentRef?.trim() || null,
+        reason: "Recepción de compra",
+        reference: "Recepción de compra",
+        createdById: userId,
+      },
+    });
     return { movement, stock };
   },
   async transfer(

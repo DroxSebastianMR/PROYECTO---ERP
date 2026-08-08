@@ -15,6 +15,7 @@ type Props = {
   roles: UserRoleDefinition[];
 };
 export const UserFormModal = ({ isOpen, isSubmitting, onClose, onSubmit, roles }: Props) => {
+  const [activeTab, setActiveTab] = useState<"account" | "permissions">("account");
   const [form, setForm] = useState<CreateUserInput>({
     fullName: "",
     email: "",
@@ -29,6 +30,7 @@ export const UserFormModal = ({ isOpen, isSubmitting, onClose, onSubmit, roles }
     try {
       await onSubmit(form);
       setForm({ fullName: "", email: "", password: "", role: "SALES_PURCHASING", permissions: [] });
+      setActiveTab("account");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "No se pudo crear el usuario.");
     }
@@ -47,7 +49,8 @@ export const UserFormModal = ({ isOpen, isSubmitting, onClose, onSubmit, roles }
             {error}
           </p>
         )}
-        <label className="block text-sm font-medium text-slate-700">
+        <div className="grid grid-cols-2 rounded-xl bg-slate-100 p-1"><button type="button" onClick={() => setActiveTab("account")} className={`rounded-lg px-3 py-2 text-sm font-semibold ${activeTab === "account" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500"}`}>Datos de cuenta</button><button type="button" onClick={() => setActiveTab("permissions")} className={`rounded-lg px-3 py-2 text-sm font-semibold ${activeTab === "permissions" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500"}`}>Permisos adicionales</button></div>
+        {activeTab === "account" && <><label className="block text-sm font-medium text-slate-700">
           Nombre completo
           <Input
             required
@@ -97,8 +100,8 @@ export const UserFormModal = ({ isOpen, isSubmitting, onClose, onSubmit, roles }
             <option value="MANAGER">Supervisor</option>
             <option value="WAREHOUSE">Almacén</option>
           </select>
-        </label>
-        <fieldset>
+        </label></>}
+        {activeTab === "permissions" && <fieldset>
           <legend className="text-sm font-medium text-slate-700">Permisos adicionales</legend>
           <p className="mt-1 text-xs text-slate-500">El rol aporta sus accesos base desde la base de datos. Marca solo los accesos extra para este usuario.</p>
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -115,14 +118,14 @@ export const UserFormModal = ({ isOpen, isSubmitting, onClose, onSubmit, roles }
               </label>
             ))}
           </div>
-        </fieldset>
+        </fieldset>}
         <div className="flex justify-end gap-3 pt-2">
           <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting}>
             Cancelar
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type={activeTab === "account" ? "submit" : "button"} onClick={activeTab === "permissions" ? () => setActiveTab("account") : undefined} disabled={isSubmitting}>
             <UserPlus className="mr-2 h-4 w-4" />
-            {isSubmitting ? "Creando..." : "Crear usuario"}
+            {isSubmitting ? "Creando..." : activeTab === "permissions" ? "Revisar datos" : "Crear usuario"}
           </Button>
         </div>
       </form>

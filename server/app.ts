@@ -5,7 +5,7 @@ import { dashboardRouter } from "./modules/dashboard/dashboard.routes.js";
 import { authRouter } from "./modules/auth/auth.routes.js";
 import { productsRouter } from "./modules/products/routes/products.routes.js";
 import { inventoryRouter } from "./modules/inventory/inventory.routes.js";
-import { purchasesRouter } from "./modules/purchases/purchases.routes.js";
+import { purchasesRouter } from "./modules/purchases/routes/purchases.routes.js";
 import { salesRouter } from "./modules/sales/sales.routes.js";
 import { usersRouter } from "./modules/users/users.routes.js";
 import { notificationsRouter } from "./modules/notifications/notifications.routes.js";

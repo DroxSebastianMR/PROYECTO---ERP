@@ -16,7 +16,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { SaleProcessingOverlay } from "@/features/sales/components/sale-processing-overlay";
-import { CashTenderInput } from "@/features/sales/components/cash-tender-input";
+import { CashChangeSummary, CashTenderInput } from "@/features/sales/components/cash-tender-input";
 import { SaleTicket } from "@/features/sales/components/sale-ticket";
 import { printSaleTicket } from "@/features/sales/services/sale-ticket-print.service";
 import { CustomerFormModal } from "@/features/customers/components/customer-form-modal";
@@ -479,9 +479,9 @@ export const NewSaleForm = ({
                   <UserRound className="h-4 w-4" />
                 </Button>
               </div>
-              <div className={isCashPayment ? "grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_190px]" : ""}>
+              <div className={isCashPayment ? "grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_150px]" : ""}>
                 <PaymentPicker method={paymentMethod} isSplit={isSplitPayment} splitCount={paymentSplits.length} onSelect={(method) => { if (requiresBankTransfer && method !== "BANK_TRANSFER") { alert("Esta venta debe cobrarse por transferencia bancaria."); return; } setPaymentMethod(method); setIsSplitPayment(false); setCashReceived(""); }} onConfigure={() => { if (requiresBankTransfer) { alert("Esta venta no admite pago combinado porque supera S/ 2,000.00."); return; } setPaymentMethod("CASH"); setIsPaymentModalOpen(true); }} />
-                {isCashPayment && <CashTenderInput dueAmount={total} received={cashReceived} onChange={setCashReceived} compact />}
+                {isCashPayment && <CashTenderInput dueAmount={total} received={cashReceived} onChange={setCashReceived} compact showChange={false} />}
               </div>
               {requiresCustomerDni && <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">Desde S/ 700.00 debes seleccionar un cliente con DNI.</p>}
               {requiresBankTransfer && <p className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-800">Por superar S/ 2,000.00, esta venta se cobrará por transferencia bancaria.</p>}
@@ -531,9 +531,18 @@ export const NewSaleForm = ({
                             >
                               <Minus className="h-3.5 w-3.5" />
                             </button>
-                            <span className="w-8 text-center text-sm font-semibold">
-                              {line.quantity}
-                            </span>
+                            <Input
+                              aria-label={`Cantidad de ${line.product.name}`}
+                              type="number"
+                              min="1"
+                              max={available(line.product)}
+                              step="1"
+                              inputMode="numeric"
+                              value={line.quantity}
+                              onChange={(event) => setQuantity(line.product, Number.parseInt(event.target.value, 10) || 1)}
+                              onBlur={(event) => setQuantity(line.product, Number.parseInt(event.target.value, 10) || 1)}
+                              className="h-8 w-11 rounded-none border-y-0 px-1 text-center text-sm font-semibold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                            />
                             <button
                               type="button"
                               onClick={() => setQuantity(line.product, line.quantity + 1)}
@@ -573,6 +582,7 @@ export const NewSaleForm = ({
                   {money(total)}
                 </span>
               </div>
+              {isCashPayment && <CashChangeSummary dueAmount={total} received={cashReceived} />}
               <div className="mt-5 grid grid-cols-2 gap-3">
                 <Button
                   type="button"
