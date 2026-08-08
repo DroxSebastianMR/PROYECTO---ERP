@@ -1,8 +1,10 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BadgeCheck,
+  CheckCircle2,
   CircleUserRound,
   Eye,
+  LockKeyhole,
   Plus,
   RefreshCw,
   Search,
@@ -20,13 +22,30 @@ import { PERMISSION_LABELS, type Permission } from "@/lib/permissions";
 
 const roleTone: Record<ManagedUserRole, string> = {
   ADMIN: "bg-blue-100 text-blue-700",
+  MANAGER: "bg-cyan-100 text-cyan-700",
   SALES_PURCHASING: "bg-emerald-100 text-emerald-700",
   ACCOUNTANT: "bg-violet-100 text-violet-700",
+  WAREHOUSE: "bg-amber-100 text-amber-700",
 };
 const dateFormat = new Intl.DateTimeFormat("es-PE", { dateStyle: "medium", timeStyle: "short" });
 
 export const UsersPage = () => {
   const state = useUsers();
+  const [permissionsTab, setPermissionsTab] = useState<"role" | "additional">("role");
+  const rolePermissions = useMemo(
+    () =>
+      state.roles.find((definition) => definition.role === state.permissionsUser?.role)
+        ?.permissions ?? [],
+    [state.permissionsUser?.role, state.roles],
+  );
+  const availableAdditionalPermissions = useMemo(
+    () => state.permissions.filter((permission) => !rolePermissions.includes(permission)),
+    [rolePermissions, state.permissions],
+  );
+
+  useEffect(() => {
+    if (state.permissionsUser) setPermissionsTab("role");
+  }, [state.permissionsUser?.id]);
   const metrics = useMemo(
     () => ({
       active: state.allUsers.filter((item) => item.isActive).length,
@@ -111,7 +130,7 @@ export const UsersPage = () => {
             />
           </div>
           <div className="flex max-w-full gap-1 overflow-x-auto rounded-lg border border-slate-200 bg-slate-50 p-1">
-            {(["ALL", "ADMIN", "SALES_PURCHASING", "ACCOUNTANT"] as const).map((role) => (
+            {(["ALL", "ADMIN", "MANAGER", "SALES_PURCHASING", "ACCOUNTANT", "WAREHOUSE"] as const).map((role) => (
               <button
                 key={role}
                 type="button"
@@ -162,6 +181,8 @@ export const UsersPage = () => {
                       <option value="ADMIN">Administrador</option>
                       <option value="SALES_PURCHASING">Vendedor</option>
                       <option value="ACCOUNTANT">Contador</option>
+                      <option value="MANAGER">Supervisor</option>
+                      <option value="WAREHOUSE">Almacén</option>
                     </select>
                   </td>
                   <td className="px-5 py-4">
@@ -227,33 +248,84 @@ export const UsersPage = () => {
         onClose={() => state.setIsFormOpen(false)}
         onSubmit={state.createUser}
         isSubmitting={state.isSubmitting}
+        roles={state.roles}
       />
       <Dialog
         isOpen={!!state.permissionsUser}
         onClose={() => state.setPermissionsUser(null)}
         title={`Permisos de ${state.permissionsUser?.fullName ?? ""}`}
+        maxWidth="xl"
         description="Los permisos se asignan de forma segura según el rol."
       >
-        <div className="space-y-3">
-          {state.permissions.map((permission) => (
-            <label key={permission} className="flex cursor-pointer items-center gap-3 rounded-lg bg-blue-50 px-3 py-3 text-sm text-blue-900">
-              <input
-                type="checkbox"
-                checked={state.permissionsUser?.permissions.includes(permission) ?? false}
-                disabled={state.isSubmitting}
-                onChange={(event) => {
-                  const user = state.permissionsUser;
-                  if (!user) return;
-                  if (!event.target.checked && user.permissions.length === 1) return;
-                  const permissions = event.target.checked ? [...user.permissions, permission] : user.permissions.filter((item) => item !== permission);
-                  state.setPermissionsUser({ ...user, permissions });
-                  void state.updateUser(user.id, { permissions });
-                }}
-                className="h-4 w-4 rounded border-slate-300 text-blue-600"
-              />
-              {PERMISSION_LABELS[permission as Permission] ?? permission}
-            </label>
-          ))}
+        <div className="space-y-5">
+          <div className="grid grid-cols-2 rounded-xl bg-slate-100 p-1">
+            <button
+              type="button"
+              onClick={() => setPermissionsTab("role")}
+              className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${permissionsTab === "role" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+            >
+              <LockKeyhole className="h-4 w-4" />
+              Permisos del rol ({rolePermissions.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setPermissionsTab("additional")}
+              className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${permissionsTab === "additional" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+            >
+              <Plus className="h-4 w-4" />
+              Acciones adicionales ({state.permissionsUser?.additionalPermissions.length ?? 0})
+            </button>
+          </div>
+
+          {permissionsTab === "role" ? (
+            <div>
+              <p className="mb-3 text-sm text-slate-500">
+                Estos accesos los recibe por su rol y no se pueden quitar desde este usuario.
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {rolePermissions.map((permission) => (
+                  <div key={permission} className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-500">
+                    <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
+                    <span className="font-medium text-slate-700">
+                      {PERMISSION_LABELS[permission as Permission] ?? permission}
+                    </span>
+                    <span className="ml-auto shrink-0 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Por rol</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div>
+              <p className="mb-3 text-sm text-slate-500">
+                Agrega acciones puntuales sin modificar los permisos base del rol.
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {availableAdditionalPermissions.map((permission) => (
+                  <label key={permission} className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 transition hover:border-blue-200 hover:bg-blue-50">
+                    <input
+                      type="checkbox"
+                      checked={state.permissionsUser?.additionalPermissions.includes(permission) ?? false}
+                      disabled={state.isSubmitting}
+                      onChange={(event) => {
+                        const user = state.permissionsUser;
+                        if (!user) return;
+                        const permissions = event.target.checked ? [...user.additionalPermissions, permission] : user.additionalPermissions.filter((item) => item !== permission);
+                        state.setPermissionsUser({ ...user, additionalPermissions: permissions });
+                        void state.updateUser(user.id, { permissions });
+                      }}
+                      className="h-4 w-4 shrink-0 rounded border-slate-300 text-blue-600"
+                    />
+                    {PERMISSION_LABELS[permission as Permission] ?? permission}
+                  </label>
+                ))}
+              </div>
+              {!availableAdditionalPermissions.length && (
+                <p className="rounded-lg bg-slate-50 p-4 text-center text-sm text-slate-500">
+                  Este rol ya incluye todas las acciones disponibles.
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </Dialog>
     </div>

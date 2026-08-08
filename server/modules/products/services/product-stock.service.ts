@@ -18,7 +18,13 @@ export const productStockService = {
     const minimumStock = minimum ?? Number(current?.minimum ?? 0);
     await productsRepository.upsertStock(transaction, {
       where: { productId_warehouseId: { productId, warehouseId: warehouse.id } },
-      create: { productId, warehouseId: warehouse.id, quantity, minimum: minimumStock, reserved: 0 },
+      create: {
+        productId,
+        warehouseId: warehouse.id,
+        quantity,
+        minimum: minimumStock,
+        reserved: 0,
+      },
       update: { quantity, minimum: minimumStock },
     });
 

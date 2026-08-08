@@ -9,7 +9,7 @@ const uuid = z.string().uuid();
 const companyId = (request: AuthenticatedRequest) => request.auth!.companyId;
 const userId = (request: AuthenticatedRequest) => request.auth!.sub;
 const ensurePermission = (request: AuthenticatedRequest, response: Response, permission: CashPermission) => {
-  if (canUseCashPermission(request.auth!.role, permission)) return true;
+  if (canUseCashPermission(request.auth!.permissions, permission)) return true;
   response.status(403).json({ message: `No cuenta con el permiso ${permission}.` }); return false;
 };
 const fail = (error: unknown, response: Response, next: NextFunction) => {

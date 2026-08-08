@@ -17,7 +17,7 @@ export const productMastersService = {
   },
 
   async updateCategory(companyId: string, id: string, input: CategoryUpdateInput) {
-    if (!await productsRepository.findCategory(companyId, id)) {
+    if (!(await productsRepository.findCategory(companyId, id))) {
       throw new ProductCatalogError("Categoría no encontrada.", 404);
     }
     return productsRepository.updateCategory(id, {
@@ -27,7 +27,8 @@ export const productMastersService = {
   },
 
   listBrands: (companyId: string) => productsRepository.listBrands(companyId),
-  createBrand: (companyId: string, name: string) => productsRepository.createBrand(companyId, name.trim()),
+  createBrand: (companyId: string, name: string) =>
+    productsRepository.createBrand(companyId, name.trim()),
   listMeasurementUnits: (companyId: string) => productsRepository.listMeasurementUnits(companyId),
 
   async createMeasurementUnit(companyId: string, code: string, name: string) {
@@ -40,7 +41,7 @@ export const productMastersService = {
   },
 
   async updateMeasurementUnit(companyId: string, id: string, input: MeasurementUnitUpdateInput) {
-    if (!await productsRepository.findMeasurementUnit(companyId, id)) {
+    if (!(await productsRepository.findMeasurementUnit(companyId, id))) {
       throw new ProductCatalogError("Unidad de medida no encontrada.", 404);
     }
     return productsRepository.updateMeasurementUnit(id, {

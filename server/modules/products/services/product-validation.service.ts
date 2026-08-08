@@ -8,7 +8,11 @@ export const productValidationService = {
   async ensureBarcodeAvailable(companyId: string, barcode?: string | null, productId?: string) {
     const value = normalizeProductText(barcode);
     if (!value) return;
-    const [product, presentation] = await productsRepository.findBarcodeConflict(companyId, value, productId);
+    const [product, presentation] = await productsRepository.findBarcodeConflict(
+      companyId,
+      value,
+      productId,
+    );
     if (product || presentation) {
       throw new ProductCatalogError("El código de barras ya está registrado.", 409);
     }

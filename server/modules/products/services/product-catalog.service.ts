@@ -33,33 +33,42 @@ export const productCatalogService = {
     const classification = await productClassificationService.resolve(companyId, input);
     const sku = await productIdentifiersService.nextSku(companyId, classification.categoryName);
 
-    return prisma.$transaction(async (transaction) => {
-      const product = await productsRepository.createProduct(transaction, {
-        data: {
+    return prisma.$transaction(
+      async (transaction) => {
+        const product = await productsRepository.createProduct(transaction, {
+          data: {
+            companyId,
+            sku,
+            barcode: normalizeProductText(input.barcode),
+            name: input.name.trim(),
+            categoryId: classification.categoryId,
+            brandId: classification.brandId,
+            unit: input.unit,
+            presentation: normalizeProductText(input.presentation),
+            purchasePrice: input.purchasePrice,
+            salePrice: input.salePrice,
+            wholesalePrice: input.wholesalePrice,
+            wholesaleMinQuantity: input.wholesaleMinQuantity,
+            taxTreatment: input.taxTreatment,
+            imageUrl: normalizeProductText(input.imageUrl),
+            description: normalizeProductText(input.description),
+            presentations: input.presentations?.length
+              ? { create: presentationsData(companyId, input.presentations) }
+              : undefined,
+          },
+          include: productInclude,
+        });
+        await productStockService.syncPrimaryStock(
+          transaction,
           companyId,
-          sku,
-          barcode: normalizeProductText(input.barcode),
-          name: input.name.trim(),
-          categoryId: classification.categoryId,
-          brandId: classification.brandId,
-          unit: input.unit,
-          presentation: normalizeProductText(input.presentation),
-          purchasePrice: input.purchasePrice,
-          salePrice: input.salePrice,
-          wholesalePrice: input.wholesalePrice,
-          wholesaleMinQuantity: input.wholesaleMinQuantity,
-          taxTreatment: input.taxTreatment,
-          imageUrl: normalizeProductText(input.imageUrl),
-          description: normalizeProductText(input.description),
-          presentations: input.presentations?.length
-            ? { create: presentationsData(companyId, input.presentations) }
-            : undefined,
-        },
-        include: productInclude,
-      });
-      await productStockService.syncPrimaryStock(transaction, companyId, product.id, input.initialStock, input.minStock);
-      return productsRepository.findProductById(transaction, product.id);
-    }, { maxWait: 10_000, timeout: 20_000 });
+          product.id,
+          input.initialStock,
+          input.minStock,
+        );
+        return productsRepository.findProductById(transaction, product.id);
+      },
+      { maxWait: 10_000, timeout: 20_000 },
+    );
   },
 
   async update(companyId: string, id: string, input: ProductInput) {
@@ -68,34 +77,43 @@ export const productCatalogService = {
     await productValidationService.validatePresentations(companyId, input.presentations, id);
     const classification = await productClassificationService.resolve(companyId, input);
 
-    return prisma.$transaction(async (transaction) => {
-      if (input.presentations) await productsRepository.deletePresentations(transaction, id);
-      const product = await productsRepository.updateProduct(transaction, {
-        where: { id },
-        data: {
-          sku: existing.sku,
-          barcode: normalizeProductText(input.barcode),
-          name: input.name.trim(),
-          categoryId: classification.categoryId,
-          brandId: classification.brandId,
-          unit: input.unit,
-          presentation: normalizeProductText(input.presentation),
-          purchasePrice: input.purchasePrice,
-          salePrice: input.salePrice,
-          wholesalePrice: input.wholesalePrice,
-          wholesaleMinQuantity: input.wholesaleMinQuantity,
-          taxTreatment: input.taxTreatment,
-          imageUrl: normalizeProductText(input.imageUrl),
-          description: normalizeProductText(input.description),
-          ...(input.presentations
-            ? { presentations: { create: presentationsData(companyId, input.presentations) } }
-            : {}),
-        },
-        include: productInclude,
-      });
-      await productStockService.syncPrimaryStock(transaction, companyId, id, input.initialStock, input.minStock);
-      return productsRepository.findProductById(transaction, product.id);
-    }, { maxWait: 10_000, timeout: 20_000 });
+    return prisma.$transaction(
+      async (transaction) => {
+        if (input.presentations) await productsRepository.deletePresentations(transaction, id);
+        const product = await productsRepository.updateProduct(transaction, {
+          where: { id },
+          data: {
+            sku: existing.sku,
+            barcode: normalizeProductText(input.barcode),
+            name: input.name.trim(),
+            categoryId: classification.categoryId,
+            brandId: classification.brandId,
+            unit: input.unit,
+            presentation: normalizeProductText(input.presentation),
+            purchasePrice: input.purchasePrice,
+            salePrice: input.salePrice,
+            wholesalePrice: input.wholesalePrice,
+            wholesaleMinQuantity: input.wholesaleMinQuantity,
+            taxTreatment: input.taxTreatment,
+            imageUrl: normalizeProductText(input.imageUrl),
+            description: normalizeProductText(input.description),
+            ...(input.presentations
+              ? { presentations: { create: presentationsData(companyId, input.presentations) } }
+              : {}),
+          },
+          include: productInclude,
+        });
+        await productStockService.syncPrimaryStock(
+          transaction,
+          companyId,
+          id,
+          input.initialStock,
+          input.minStock,
+        );
+        return productsRepository.findProductById(transaction, product.id);
+      },
+      { maxWait: 10_000, timeout: 20_000 },
+    );
   },
 
   async setStatus(companyId: string, id: string, isActive: boolean) {

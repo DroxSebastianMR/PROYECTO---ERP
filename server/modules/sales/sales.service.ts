@@ -4,7 +4,7 @@ import {
   SaleDocumentType,
   SalePaymentMethod,
   SaleStatus,
-  UserRole,
+  type UserRole,
   type Prisma,
 } from "@prisma/client";
 import { prisma } from "../../lib/prisma.js";
@@ -42,9 +42,9 @@ const toMoney = (value: number) => Math.round(value * 100) / 100;
 const DNI_REQUIRED_FROM = 700;
 const BANK_TRANSFER_REQUIRED_ABOVE = 2000;
 const hasValidDni = (document?: string | null) => /^\d{8}$/.test(document?.trim() ?? "");
-const saleScope = (companyId: string, userId?: string, role?: UserRole, permissions?: readonly string[]) => ({
+const saleScope = (companyId: string, userId?: string, _role?: UserRole, permissions?: readonly string[]) => ({
   companyId,
-  ...((permissions?.includes("SALES_VIEW_OWN") && !permissions.includes("SALES_VIEW_ALL")) || role === UserRole.SALES_PURCHASING ? userId ? { createdById: userId } : {} : {}),
+  ...(permissions?.includes("sales.history.view_own") && !permissions.includes("sales.history.view_all") ? userId ? { createdById: userId } : {} : {}),
 });
 
 const calculate = (items: SaleInput["items"]) =>
@@ -117,15 +117,15 @@ const recordSaleDispatches = async (
 };
 
 export const salesService = {
-  list(companyId: string, userId?: string, role?: UserRole, permissions?: readonly string[]) {
+  list(companyId: string, userId?: string, _role?: UserRole, permissions?: readonly string[]) {
     return prisma.sale.findMany({
-      where: saleScope(companyId, userId, role, permissions),
+      where: saleScope(companyId, userId, _role, permissions),
       include: includeSale,
       orderBy: { createdAt: "desc" },
     });
   },
-  get(companyId: string, id: string, userId?: string, role?: UserRole, permissions?: readonly string[]) {
-    return prisma.sale.findFirst({ where: { id, ...saleScope(companyId, userId, role, permissions) }, include: includeSale });
+  get(companyId: string, id: string, userId?: string, _role?: UserRole, permissions?: readonly string[]) {
+    return prisma.sale.findFirst({ where: { id, ...saleScope(companyId, userId, _role, permissions) }, include: includeSale });
   },
   listCustomers(companyId: string) {
     return prisma.customer.findMany({
@@ -149,8 +149,8 @@ export const salesService = {
       data: { companyId, code: `CLI-${String(count + 1).padStart(6, "0")}`, ...input },
     });
   },
-  async create(companyId: string, userId: string, input: SaleInput, role?: UserRole) {
-    if (role === UserRole.SALES_PURCHASING) {
+  async create(companyId: string, userId: string, input: SaleInput, _role?: unknown) {
+    if (!input.warehouseId) {
       const primaryWarehouse = await prisma.warehouse.findFirst({
         where: { companyId, isActive: true, isPrimary: true },
         select: { id: true },

@@ -1,16 +1,16 @@
 import { Router } from "express";
 import type { NextFunction, Response } from "express";
 import { z } from "zod";
-import { UserRole } from "@prisma/client";
 import type { AuthenticatedRequest } from "../auth/auth.middleware.js";
+import { hasPermission } from "../auth/permissions.js";
 import { InventoryError, inventoryService } from "./inventory.service.js";
 
 const id = z.string().uuid();
 const companyId = (request: AuthenticatedRequest) => request.auth!.companyId;
 const userId = (request: AuthenticatedRequest) => request.auth!.sub;
 const canMutateInventory = (request: AuthenticatedRequest, response: Response) => {
-  if (request.auth?.role !== UserRole.SALES_PURCHASING) return true;
-  response.status(403).json({ message: "El rol Vendedor solo puede consultar el inventario." });
+  if (hasPermission(request.auth?.permissions, "inventory.adjustments.manage")) return true;
+  response.status(403).json({ message: "No tienes permiso para modificar inventario." });
   return false;
 };
 const handleError = (error: unknown, response: Response, next: NextFunction) => {

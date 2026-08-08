@@ -18,11 +18,13 @@ export const productsRepository = {
         companyId,
         ...(isActive === undefined ? {} : { isActive }),
         ...(search
-          ? { OR: [
-            { name: { contains: search, mode: "insensitive" } },
-            { sku: { contains: search, mode: "insensitive" } },
-            { barcode: { contains: search, mode: "insensitive" } },
-          ] }
+          ? {
+              OR: [
+                { name: { contains: search, mode: "insensitive" } },
+                { sku: { contains: search, mode: "insensitive" } },
+                { barcode: { contains: search, mode: "insensitive" } },
+              ],
+            }
           : {}),
       },
       include: productInclude,
@@ -36,7 +38,9 @@ export const productsRepository = {
 
   findBarcodeConflict(companyId: string, barcode: string, productId?: string) {
     return Promise.all([
-      prisma.product.findFirst({ where: { companyId, barcode, ...(productId ? { id: { not: productId } } : {}) } }),
+      prisma.product.findFirst({
+        where: { companyId, barcode, ...(productId ? { id: { not: productId } } : {}) },
+      }),
       prisma.productPresentation.findFirst({ where: { companyId, barcode } }),
     ]);
   },
@@ -74,7 +78,10 @@ export const productsRepository = {
   },
 
   listSkus(companyId: string, prefix: string) {
-    return prisma.product.findMany({ where: { companyId, sku: { startsWith: prefix } }, select: { sku: true } });
+    return prisma.product.findMany({
+      where: { companyId, sku: { startsWith: prefix } },
+      select: { sku: true },
+    });
   },
 
   createProduct(client: DatabaseClient, data: Prisma.ProductCreateArgs) {
@@ -94,11 +101,16 @@ export const productsRepository = {
   },
 
   findPrimaryWarehouse(client: DatabaseClient, companyId: string) {
-    return client.warehouse.findFirst({ where: { companyId, isActive: true }, orderBy: { isPrimary: "desc" } });
+    return client.warehouse.findFirst({
+      where: { companyId, isActive: true },
+      orderBy: { isPrimary: "desc" },
+    });
   },
 
   findStock(client: DatabaseClient, productId: string, warehouseId: string) {
-    return client.inventoryStock.findUnique({ where: { productId_warehouseId: { productId, warehouseId } } });
+    return client.inventoryStock.findUnique({
+      where: { productId_warehouseId: { productId, warehouseId } },
+    });
   },
 
   upsertStock(client: DatabaseClient, data: Prisma.InventoryStockUpsertArgs) {
@@ -115,7 +127,14 @@ export const productsRepository = {
 
   findProductUsage(id: string) {
     return prisma.product.findFirst({
-      where: { id, OR: [{ saleItems: { some: {} } }, { purchaseItems: { some: {} } }, { movements: { some: {} } }] },
+      where: {
+        id,
+        OR: [
+          { saleItems: { some: {} } },
+          { purchaseItems: { some: {} } },
+          { movements: { some: {} } },
+        ],
+      },
     });
   },
 
@@ -125,9 +144,24 @@ export const productsRepository = {
 
   history(id: string) {
     return Promise.all([
-      prisma.purchaseItem.findMany({ where: { productId: id }, include: { purchase: true }, orderBy: { purchase: { createdAt: "desc" } }, take: 50 }),
-      prisma.saleItem.findMany({ where: { productId: id }, include: { sale: true }, orderBy: { sale: { createdAt: "desc" } }, take: 50 }),
-      prisma.inventoryMovement.findMany({ where: { productId: id }, include: { warehouse: true }, orderBy: { createdAt: "desc" }, take: 100 }),
+      prisma.purchaseItem.findMany({
+        where: { productId: id },
+        include: { purchase: true },
+        orderBy: { purchase: { createdAt: "desc" } },
+        take: 50,
+      }),
+      prisma.saleItem.findMany({
+        where: { productId: id },
+        include: { sale: true },
+        orderBy: { sale: { createdAt: "desc" } },
+        take: 50,
+      }),
+      prisma.inventoryMovement.findMany({
+        where: { productId: id },
+        include: { warehouse: true },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+      }),
     ]);
   },
 

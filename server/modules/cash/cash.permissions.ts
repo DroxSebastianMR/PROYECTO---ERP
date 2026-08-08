@@ -1,13 +1,13 @@
-import type { UserRole } from "@prisma/client";
+import { hasPermission, type Permission } from "../auth/permissions.js";
 
 export type CashPermission = "CAJA_APERTURA" | "CAJA_ARQUEO" | "CAJA_CIERRE" | "CAJA_MOVIMIENTO";
 
-const allowedRoles: Record<CashPermission, UserRole[]> = {
-  CAJA_APERTURA: ["ADMIN", "MANAGER", "SALES_PURCHASING"],
-  CAJA_ARQUEO: ["ADMIN", "MANAGER", "SALES_PURCHASING", "ACCOUNTANT"],
-  CAJA_CIERRE: ["ADMIN", "MANAGER", "SALES_PURCHASING", "ACCOUNTANT"],
-  CAJA_MOVIMIENTO: ["ADMIN", "MANAGER", "SALES_PURCHASING", "ACCOUNTANT"],
+const requiredPermission: Record<CashPermission, Permission> = {
+  CAJA_APERTURA: "cash.sessions.manage",
+  CAJA_ARQUEO: "cash.sessions.manage",
+  CAJA_CIERRE: "cash.sessions.manage",
+  CAJA_MOVIMIENTO: "cash.movements.manage",
 };
 
-export const canUseCashPermission = (role: UserRole, permission: CashPermission) =>
-  allowedRoles[permission].includes(role);
+export const canUseCashPermission = (permissions: readonly string[], permission: CashPermission) =>
+  hasPermission(permissions, requiredPermission[permission]);

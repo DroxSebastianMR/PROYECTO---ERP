@@ -12,10 +12,10 @@ export const productClassificationService = {
       ? await productsRepository.findCategory(companyId, input.categoryId)
       : categoryName
         ? await productsRepository.upsertCategory(
-          companyId,
-          categoryName,
-          await productIdentifiersService.nextMasterCode(companyId, "CAT"),
-        )
+            companyId,
+            categoryName,
+            await productIdentifiersService.nextMasterCode(companyId, "CAT"),
+          )
         : null;
     if (input.categoryId && !category) {
       throw new ProductCatalogError("La categoría seleccionada no existe.", 404);

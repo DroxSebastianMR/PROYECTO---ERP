@@ -11,8 +11,11 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import type { PurchaseStatus } from "@/features/purchases/types/purchase.types";
+import { useAuth } from "@/features/auth/hooks/use-auth";
+import { can } from "@/lib/access-control";
 
 export const PurchasesPage = () => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"purchases" | "suppliers">("purchases");
   const {
     purchases,
@@ -53,6 +56,10 @@ export const PurchasesPage = () => {
     );
   }
 
+  const canViewPurchases = can(user ?? undefined, "purchases.orders.access");
+  const canViewSuppliers = can(user ?? undefined, "purchases.suppliers.access");
+  const selectedTab = activeTab === "purchases" && !canViewPurchases ? "suppliers" : activeTab;
+
   return (
     <div className="mx-auto max-w-[1480px] p-4 sm:p-6 lg:p-7">
       {/* Header */}
@@ -69,15 +76,15 @@ export const PurchasesPage = () => {
       </header>
 
       <nav className="mt-6 flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1.5">
-        <button type="button" onClick={() => setActiveTab("purchases")} className={`flex shrink-0 items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold ${activeTab === "purchases" ? "bg-blue-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}>
+        {canViewPurchases && <button type="button" onClick={() => setActiveTab("purchases")} className={`flex shrink-0 items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold ${selectedTab === "purchases" ? "bg-blue-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}>
           <ShoppingCart className="h-4 w-4" /> Compras
-        </button>
-        <button type="button" onClick={() => setActiveTab("suppliers")} className={`flex shrink-0 items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold ${activeTab === "suppliers" ? "bg-blue-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}>
+        </button>}
+        {canViewSuppliers && <button type="button" onClick={() => setActiveTab("suppliers")} className={`flex shrink-0 items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold ${selectedTab === "suppliers" ? "bg-blue-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}>
           Proveedores
-        </button>
+        </button>}
       </nav>
 
-      {activeTab === "suppliers" ? <SupplierMasterTab /> : <>
+      {selectedTab === "suppliers" ? <SupplierMasterTab /> : <>
 
       {/* Metrics */}
       <section className="mt-6">

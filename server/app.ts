@@ -50,16 +50,16 @@ export function createApp() {
       requirePermission(request.method === "GET" ? read : manage)(request, response, next);
 
   protectedRoutes.use(requireAuthentication);
-  protectedRoutes.use("/dashboard", authorizeModule("DASHBOARD_VIEW"), dashboardRouter);
-  protectedRoutes.use("/products", authorizeModule(["PRODUCTS_VIEW", "PRODUCTS_MANAGE"], "PRODUCTS_MANAGE"), productsRouter);
-  protectedRoutes.use("/barcodes", authorizeModule(["PRODUCTS_VIEW", "PRODUCTS_MANAGE"], "PRODUCTS_MANAGE"), barcodesRouter);
-  protectedRoutes.use("/inventory", authorizeModule(["INVENTORY_VIEW", "INVENTORY_MANAGE"], "INVENTORY_MANAGE"), inventoryRouter);
-  protectedRoutes.use("/purchases", authorizeModule(["PURCHASES_VIEW", "PURCHASES_MANAGE"], "PURCHASES_MANAGE"), purchasesRouter);
-  protectedRoutes.use("/sales", authorizeModule(["SALES_VIEW_OWN", "SALES_VIEW_ALL"], "SALES_MANAGE"), salesRouter);
-  protectedRoutes.use("/customers", authorizeModule(["CUSTOMERS_VIEW", "CUSTOMERS_MANAGE"], "CUSTOMERS_MANAGE"), customersRouter);
-  protectedRoutes.use("/users", requirePermission("USERS_MANAGE"), usersRouter);
+  protectedRoutes.use("/dashboard", authorizeModule("dashboard.access"), dashboardRouter);
+  protectedRoutes.use("/products", authorizeModule("products.access", "products.catalog.manage"), productsRouter);
+  protectedRoutes.use("/barcodes", authorizeModule("products.access", "products.barcodes.manage"), barcodesRouter);
+  protectedRoutes.use("/inventory", authorizeModule("inventory.access", "inventory.adjustments.manage"), inventoryRouter);
+  protectedRoutes.use("/purchases", authorizeModule("purchases.access", "purchases.orders.manage"), purchasesRouter);
+  protectedRoutes.use("/sales", authorizeModule(["sales.access", "sales.history.access"], "sales.new_sale.create"), salesRouter);
+  protectedRoutes.use("/customers", authorizeModule("customers.access", "customers.manage"), customersRouter);
+  protectedRoutes.use("/users", requirePermission("users.manage"), usersRouter);
   protectedRoutes.use("/notifications", notificationsRouter);
-  protectedRoutes.use("/cash", authorizeModule(["CASH_VIEW", "CASH_MANAGE"], "CASH_MANAGE"), cashRouter);
+  protectedRoutes.use("/cash", authorizeModule("cash.access", "cash.sessions.manage"), cashRouter);
   app.use("/api", protectedRoutes);
   app.use(
     (error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
