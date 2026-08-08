@@ -3,6 +3,7 @@ import { Download, Boxes, ArrowDownUp, ShoppingCart, FileBarChart, ReceiptText }
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MultiSelectFilter } from "@/components/ui/multi-select-filter";
 import { Select } from "@/components/ui/select";
 import { inventoryService } from "@/features/inventory/services/inventory.service";
 import { purchaseService } from "@/features/purchases/services/purchase.service";
@@ -11,35 +12,49 @@ import { movementLabel } from "@/features/inventory/utils/movement-labels";
 import { excelExportService } from "@/lib/excel-export.service";
 
 type ReportType = "stock" | "movements" | "purchases" | "sales";
+
 const cards = [
   { id: "stock", title: "Stock actual", text: "Existencias valorizadas por producto.", icon: Boxes, tone: "bg-emerald-50 text-emerald-600" },
   { id: "movements", title: "Movimientos de inventario", text: "Entradas, salidas y ajustes registrados.", icon: ArrowDownUp, tone: "bg-amber-50 text-amber-600" },
   { id: "purchases", title: "Compras", text: "Compras por proveedor, fecha y estado.", icon: ShoppingCart, tone: "bg-violet-50 text-violet-600" },
-  { id: "sales", title: "Ventas", text: "Ventas por fecha, cliente y estado de pago.", icon: ReceiptText, tone: "bg-blue-50 text-blue-600" },
+  { id: "sales", title: "Ventas", text: "Ventas por fecha, cliente, vendedor y estado.", icon: ReceiptText, tone: "bg-blue-50 text-blue-600" },
 ] as const;
+
 const money = (amount: number) => new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" }).format(amount);
 const matchesDate = (value: string, from: string, to: string) => (!from || value.slice(0, 10) >= from) && (!to || value.slice(0, 10) <= to);
 
 export const ReportsPage = () => {
-  const [type, setType] = useState<ReportType>("stock"); const [search, setSearch] = useState(""); const [from, setFrom] = useState(""); const [to, setTo] = useState(""); const [status, setStatus] = useState("ALL");
+  const [type, setType] = useState<ReportType>("stock");
+  const [search, setSearch] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [status, setStatus] = useState("ALL");
+  const [selectedSellers, setSelectedSellers] = useState<string[]>([]);
   const stocksQuery = useQuery({ queryKey: ["reports", "stocks"], queryFn: inventoryService.getStocks, staleTime: 60_000 });
   const movementsQuery = useQuery({ queryKey: ["reports", "movements"], queryFn: inventoryService.getMovements, staleTime: 60_000 });
   const purchasesQuery = useQuery({ queryKey: ["reports", "purchases"], queryFn: purchaseService.getPurchases, staleTime: 60_000 });
   const salesQuery = useQuery({ queryKey: ["reports", "sales"], queryFn: saleService.getSales, staleTime: 30_000 });
   const term = search.toLowerCase();
+  const sellers = useMemo(() => [...new Set((salesQuery.data ?? []).map((sale) => sale.createdBy).filter(Boolean))].sort(), [salesQuery.data]);
   const stocks = useMemo(() => (stocksQuery.data ?? []).filter((row) => `${row.sku} ${row.productName} ${row.warehouseName}`.toLowerCase().includes(term) && (status === "ALL" || status === "LOW" && row.quantity <= row.minimum || status === "AVAILABLE" && row.quantity > row.minimum)), [stocksQuery.data, term, status]);
   const movements = useMemo(() => (movementsQuery.data ?? []).filter((row) => `${row.sku} ${row.productName} ${row.warehouseName} ${row.type}`.toLowerCase().includes(term) && matchesDate(row.createdAt, from, to)), [movementsQuery.data, term, from, to]);
   const purchases = useMemo(() => (purchasesQuery.data ?? []).filter((row) => `${row.number} ${row.supplierName}`.toLowerCase().includes(term) && (status === "ALL" || row.status === status) && matchesDate(row.purchasedAt ?? row.createdAt, from, to)), [purchasesQuery.data, term, status, from, to]);
-  const sales = useMemo(() => (salesQuery.data ?? []).filter((row) => `${row.number} ${row.customerName} ${row.createdBy}`.toLowerCase().includes(term) && (status === "ALL" || row.status === status) && matchesDate(row.createdAt, from, to)), [salesQuery.data, term, status, from, to]);
+  const sales = useMemo(() => (salesQuery.data ?? []).filter((row) => `${row.number} ${row.customerName} ${row.createdBy}`.toLowerCase().includes(term) && (status === "ALL" || row.status === status) && (!selectedSellers.length || selectedSellers.includes(row.createdBy)) && matchesDate(row.createdAt, from, to)), [salesQuery.data, term, status, selectedSellers, from, to]);
   const card = cards.find((item) => item.id === type)!;
+  const visibleRows = type === "stock" ? stocks : type === "movements" ? movements : type === "purchases" ? purchases : sales;
+
   const exportCurrent = () => {
     if (type === "stock") return excelExportService.exportCsv("reporte-stock", [{ header: "SKU", value: (row) => row.sku }, { header: "Producto", value: (row) => row.productName }, { header: "Almacén", value: (row) => row.warehouseName }, { header: "Stock", value: (row) => row.quantity }, { header: "Mínimo", value: (row) => row.minimum }, { header: "Unidad", value: (row) => row.unit }, { header: "Valorizado", value: (row) => row.quantity * row.unitCost }], stocks);
     if (type === "movements") return excelExportService.exportCsv("reporte-movimientos", [{ header: "Fecha", value: (row) => row.createdAt }, { header: "Tipo", value: (row) => movementLabel(row.type) }, { header: "SKU", value: (row) => row.sku }, { header: "Producto", value: (row) => row.productName }, { header: "Cantidad", value: (row) => row.quantity }, { header: "Referencia", value: (row) => row.reference }, { header: "Responsable", value: (row) => row.responsible || "Sistema Superior" }], movements);
     if (type === "purchases") return excelExportService.exportCsv("reporte-compras", [{ header: "N° compra", value: (row) => row.number }, { header: "Proveedor", value: (row) => row.supplierName }, { header: "Fecha", value: (row) => row.purchasedAt ?? row.createdAt }, { header: "Estado", value: (row) => row.status }, { header: "Total", value: (row) => row.total }], purchases);
     return excelExportService.exportCsv("reporte-ventas", [{ header: "N° venta", value: (row) => row.number }, { header: "Fecha", value: (row) => row.createdAt }, { header: "Cliente", value: (row) => row.customerName }, { header: "Vendedor", value: (row) => row.createdBy }, { header: "Pago", value: (row) => row.paymentMethod }, { header: "Estado", value: (row) => row.status }, { header: "Total", value: (row) => row.total }], sales);
   };
-  const visibleRows = type === "stock" ? stocks : type === "movements" ? movements : type === "purchases" ? purchases : sales;
-  return <div className="mx-auto max-w-[1480px] p-4 sm:p-6 lg:p-7"><header><h1 className="flex items-center gap-2.5 text-2xl font-bold tracking-[-.045em] text-slate-900 sm:text-[30px]"><FileBarChart className="h-8 w-8 text-blue-600" />Reportes</h1><p className="mt-1 text-[15px] text-slate-600">Consulta información operativa y exporta los resultados para análisis.</p></header><section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">{cards.map((item) => { const Icon = item.icon; return <button key={item.id} type="button" onClick={() => { setType(item.id); setStatus("ALL"); }} className={`rounded-xl border bg-white p-5 text-left shadow-[0_8px_20px_rgba(37,99,235,.03)] transition hover:border-blue-300 ${type === item.id ? "border-blue-500 ring-2 ring-blue-100" : "border-slate-200"}`}><span className={`grid h-10 w-10 place-items-center rounded-xl ${item.tone}`}><Icon className="h-5 w-5" /></span><h2 className="mt-4 font-bold text-slate-900">{item.title}</h2><p className="mt-1 text-sm text-slate-500">{item.text}</p></button>; })}</section><section className="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_20px_rgba(37,99,235,.03)]"><div className="flex flex-col gap-4 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-between"><h2 className="font-bold text-slate-900">{card.title}</h2><Button variant="outline" onClick={exportCurrent} className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"><Download className="mr-2 h-4 w-4" />Exportar Excel</Button></div><div className="grid gap-3 border-b border-slate-100 p-4 md:grid-cols-4"><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={type === "sales" ? "Buscar venta, cliente o vendedor..." : type === "purchases" ? "Buscar proveedor o compra..." : "Buscar producto o código..."} /><Input type="date" value={from} onChange={(event) => setFrom(event.target.value)} /><Input type="date" value={to} onChange={(event) => setTo(event.target.value)} /><ReportStatus type={type} value={status} onChange={setStatus} /></div><ReportTable type={type} rows={visibleRows} /></section></div>;
+
+  return <div className="mx-auto max-w-[1480px] p-4 sm:p-6 lg:p-7">
+    <header><h1 className="flex items-center gap-2.5 text-2xl font-bold tracking-[-.045em] text-slate-900 sm:text-[30px]"><FileBarChart className="h-8 w-8 text-blue-600" />Reportes</h1><p className="mt-1 text-[15px] text-slate-600">Consulta información operativa y exporta los resultados para análisis.</p></header>
+    <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">{cards.map((item) => { const Icon = item.icon; return <button key={item.id} type="button" onClick={() => { setType(item.id); setStatus("ALL"); setSelectedSellers([]); }} className={`rounded-xl border bg-white p-5 text-left shadow-[0_8px_20px_rgba(37,99,235,.03)] transition hover:border-blue-300 ${type === item.id ? "border-blue-500 ring-2 ring-blue-100" : "border-slate-200"}`}><span className={`grid h-10 w-10 place-items-center rounded-xl ${item.tone}`}><Icon className="h-5 w-5" /></span><h2 className="mt-4 font-bold text-slate-900">{item.title}</h2><p className="mt-1 text-sm text-slate-500">{item.text}</p></button>; })}</section>
+    <section className="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_8px_20px_rgba(37,99,235,.03)]"><div className="flex flex-col gap-4 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-between"><h2 className="font-bold text-slate-900">{card.title}</h2><Button variant="outline" onClick={exportCurrent} className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"><Download className="mr-2 h-4 w-4" />Exportar Excel</Button></div><div className={`grid gap-3 border-b border-slate-100 p-4 ${type === "sales" ? "md:grid-cols-5" : "md:grid-cols-4"}`}><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={type === "sales" ? "Buscar venta, cliente o vendedor..." : type === "purchases" ? "Buscar proveedor o compra..." : "Buscar producto o código..."} /><Input type="date" value={from} onChange={(event) => setFrom(event.target.value)} /><Input type="date" value={to} onChange={(event) => setTo(event.target.value)} /><ReportStatus type={type} value={status} onChange={setStatus} />{type === "sales" && <MultiSelectFilter items={sellers} selectedItems={selectedSellers} onChange={setSelectedSellers} label="Filtrar vendedores" emptyLabel="Todos los vendedores" searchPlaceholder="Buscar vendedor..." selectedLabel={(count) => `${count} vendedor${count === 1 ? "" : "es"}`} />}</div><ReportTable type={type} rows={visibleRows} /></section>
+  </div>;
 };
 
 const ReportStatus = ({ type, value, onChange }: { type: ReportType; value: string; onChange: (value: string) => void }) => type === "stock" ? <Select value={value} onChange={(event) => onChange(event.target.value)}><option value="ALL">Todo el stock</option><option value="AVAILABLE">Stock disponible</option><option value="LOW">Stock bajo</option></Select> : type === "purchases" ? <Select value={value} onChange={(event) => onChange(event.target.value)}><option value="ALL">Todos los estados</option><option value="RECEIVED">Recibida</option><option value="PAID">Pagada</option></Select> : type === "sales" ? <Select value={value} onChange={(event) => onChange(event.target.value)}><option value="ALL">Todos los estados</option><option value="PAID">Pagada</option><option value="PENDING_PAYMENT">Pendiente de pago</option><option value="CANCELLED">Anulada</option></Select> : <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">Movimientos registrados</div>;
