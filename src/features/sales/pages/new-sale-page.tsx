@@ -25,13 +25,13 @@ export const NewSalePage = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 px-4 py-5 sm:px-6 sm:py-7 lg:px-10">
-      <header className="mx-auto mb-6 max-w-[1180px] px-1">
+      <header className="mx-auto mb-6 max-w-[1440px] px-1">
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">Nueva venta</h1>
         <p className="mt-1 text-sm text-slate-600">
           Registra, cobra y descuenta el stock de la venta en un solo flujo.
         </p>
       </header>
-      <div className="mx-auto max-w-[1180px]">
+      <div className="mx-auto max-w-[1440px]">
         <NewSaleForm
           onCancel={() => navigate(PATHS.APP.SALES)}
           onSubmit={handleCreateSale}

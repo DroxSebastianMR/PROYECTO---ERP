@@ -16,6 +16,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { SaleProcessingOverlay } from "@/features/sales/components/sale-processing-overlay";
+import { CashTenderInput } from "@/features/sales/components/cash-tender-input";
 import { SaleTicket } from "@/features/sales/components/sale-ticket";
 import { printSaleTicket } from "@/features/sales/services/sale-ticket-print.service";
 import { CustomerFormModal } from "@/features/customers/components/customer-form-modal";
@@ -32,7 +33,7 @@ import type {
 } from "@/features/sales/types/sale.types";
 
 type CartLine = { product: Product; quantity: number };
-type PaymentSplit = { method: Exclude<SalePaymentMethod, "CREDIT">; amount: string };
+type PaymentSplit = { method: Exclude<SalePaymentMethod, "CREDIT">; amount: string; received?: string };
 interface NewSaleFormProps {
   onCancel: () => void;
   onSubmit: (data: CreateSaleInput) => Promise<SaleReceipt>;
@@ -152,6 +153,7 @@ export const NewSaleForm = ({
   const [isSplitPayment, setIsSplitPayment] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [paymentSplits, setPaymentSplits] = useState<PaymentSplit[]>([{ method: "CASH", amount: "" }]);
+  const [cashReceived, setCashReceived] = useState("");
   const documentType: SaleDocumentType = "RECEIPT";
   const [cart, setCart] = useState<CartLine[]>([]);
   const [customerOpen, setCustomerOpen] = useState(false);
@@ -251,6 +253,20 @@ export const NewSaleForm = ({
     0,
   );
   const splitTotal = paymentSplits.reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0);
+  const selectedCustomer = customers.find((customer) => customer.id === customerId);
+  const isCashPayment = !isSplitPayment && paymentMethod === "CASH";
+  const cashReceivedAmount = Number(cashReceived) || 0;
+  const requiresCustomerDni = total >= 700;
+  const requiresBankTransfer = total > 2000;
+  const hasIncompleteCashTender = paymentSplits.some(
+    (payment) => payment.method === "CASH" && Boolean(payment.received) && Number(payment.received) < Number(payment.amount),
+  );
+
+  useEffect(() => {
+    if (!requiresBankTransfer) return;
+    setPaymentMethod("BANK_TRANSFER");
+    setIsSplitPayment(false);
+  }, [requiresBankTransfer]);
   const saveCustomer = async (input: CreateCustomerInput) => {
     const customer = await onCreateCustomer(input);
     setCustomerId(customer.id);
@@ -266,8 +282,24 @@ export const NewSaleForm = ({
       alert("Selecciona un cliente para registrar una venta a crédito.");
       return;
     }
+    if (requiresCustomerDni && !/^\d{8}$/.test(selectedCustomer?.document?.trim() ?? "")) {
+      alert("Las ventas desde S/ 700.00 requieren seleccionar un cliente con DNI válido.");
+      return;
+    }
+    if (requiresBankTransfer && paymentMethod !== "BANK_TRANSFER") {
+      alert("Las ventas mayores a S/ 2,000.00 deben cobrarse por transferencia bancaria.");
+      return;
+    }
+    if (isCashPayment && cashReceivedAmount < total) {
+      alert("Ingresa el monto recibido en efectivo para calcular el vuelto.");
+      return;
+    }
     if (isSplitPayment && Math.abs(splitTotal - total) > 0.009) {
       alert("La suma de los pagos combinados debe coincidir con el total de la venta.");
+      return;
+    }
+    if (isSplitPayment && hasIncompleteCashTender) {
+      alert("El efectivo recibido debe cubrir el monto asignado a ese medio de pago.");
       return;
     }
     setIsConfirmOpen(true);
@@ -314,7 +346,7 @@ export const NewSaleForm = ({
   return (
     <>
       <SaleProcessingOverlay isOpen={isSubmitting} />
-      <form onSubmit={requestSaleConfirmation} className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <form onSubmit={requestSaleConfirmation} className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_440px]">
         <main className="space-y-6">
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_8px_24px_rgba(37,99,235,.04)]">
             <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -422,7 +454,7 @@ export const NewSaleForm = ({
           </section>
         </main>
         <aside className="xl:sticky xl:top-[76px] xl:h-[calc(100vh-92px)] xl:self-start">
-          <section className="flex h-full min-h-[620px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          <section className="flex h-full min-h-[720px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white">
             <header className="flex items-center justify-between border-b border-slate-200 px-5 py-5">
               <div className="flex items-center gap-2">
                 <ShoppingBasket className="h-5 w-5 text-blue-600" />
@@ -447,7 +479,10 @@ export const NewSaleForm = ({
                   <UserRound className="h-4 w-4" />
                 </Button>
               </div>
-              <PaymentPicker method={paymentMethod} isSplit={isSplitPayment} splitCount={paymentSplits.length} onSelect={(method) => { setPaymentMethod(method); setIsSplitPayment(false); }} onConfigure={() => { setPaymentMethod("CASH"); setIsPaymentModalOpen(true); }} />
+              <PaymentPicker method={paymentMethod} isSplit={isSplitPayment} splitCount={paymentSplits.length} onSelect={(method) => { if (requiresBankTransfer && method !== "BANK_TRANSFER") { alert("Esta venta debe cobrarse por transferencia bancaria."); return; } setPaymentMethod(method); setIsSplitPayment(false); setCashReceived(""); }} onConfigure={() => { if (requiresBankTransfer) { alert("Esta venta no admite pago combinado porque supera S/ 2,000.00."); return; } setPaymentMethod("CASH"); setIsPaymentModalOpen(true); }} />
+              {requiresCustomerDni && <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">Desde S/ 700.00 debes seleccionar un cliente con DNI.</p>}
+              {requiresBankTransfer && <p className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-800">Por superar S/ 2,000.00, esta venta se cobrará por transferencia bancaria.</p>}
+              {isCashPayment && <CashTenderInput dueAmount={total} received={cashReceived} onChange={setCashReceived} compact />}
               {false && paymentMethod !== "CREDIT" && <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-3">
                 <div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold text-slate-800">Pago combinado</p><p className="text-xs text-slate-500">Divide el total entre efectivo y medios digitales.</p></div><button type="button" onClick={() => setIsSplitPayment((value) => !value)} className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${isSplitPayment ? "bg-blue-600 text-white" : "border border-blue-200 bg-white text-blue-700"}`}>{isSplitPayment ? "Activo" : "Dividir pago"}</button></div>
                 {isSplitPayment && <div className="mt-3 space-y-2">{paymentSplits.map((payment, index) => <div key={index} className="grid grid-cols-[1fr_110px_auto] gap-2"><Select value={payment.method} onChange={(event) => setPaymentSplits((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, method: event.target.value as PaymentSplit["method"] } : item))}><option value="CASH">Efectivo · físico</option><option value="YAPE_PLIN">Yape / Plin · digital</option><option value="BANK_TRANSFER">Transferencia · digital</option><option value="CARD">Tarjeta · digital</option></Select><Input type="number" min="0.01" step="0.01" value={payment.amount} onChange={(event) => setPaymentSplits((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, amount: event.target.value } : item))} placeholder="S/ 0.00" />{paymentSplits.length > 1 && <button type="button" onClick={() => setPaymentSplits((items) => items.filter((_, itemIndex) => itemIndex !== index))} className="text-xs font-semibold text-rose-600">Quitar</button>}</div>)}<div className="flex items-center justify-between pt-1 text-xs"><button type="button" onClick={() => setPaymentSplits((items) => [...items, { method: "YAPE_PLIN", amount: "" }])} className="font-semibold text-blue-700">+ Agregar medio</button><span className={Math.abs(splitTotal - total) < 0.009 ? "font-semibold text-emerald-700" : "font-semibold text-amber-700"}>Asignado {money(splitTotal)} · Falta {money(Math.max(0, total - splitTotal))}</span></div></div>}
@@ -559,7 +594,7 @@ export const NewSaleForm = ({
         </aside>
       </form>
       <Dialog isOpen={isPaymentModalOpen} onClose={() => setIsPaymentModalOpen(false)} title="Combinar medios de pago" description="Distribuye el total entre efectivo y medios digitales." maxWidth="md">
-        <div className="space-y-4"><div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3"><div className="flex justify-between text-sm font-semibold text-slate-700"><span>Total de venta</span><span className="text-blue-700">{money(total)}</span></div><div className={`mt-2 flex justify-between text-xs font-semibold ${Math.abs(splitTotal - total) < 0.009 ? "text-emerald-700" : "text-amber-700"}`}><span>Asignado {money(splitTotal)}</span><span>Falta {money(Math.max(0, total - splitTotal))}</span></div></div><div className="space-y-3">{paymentSplits.map((payment, index) => <div key={index} className="grid grid-cols-[1fr_120px_auto] gap-2"><Select value={payment.method} onChange={(event) => setPaymentSplits((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, method: event.target.value as PaymentSplit["method"] } : item))}><option value="CASH">Efectivo · físico</option><option value="YAPE_PLIN">Yape / Plin · digital</option><option value="BANK_TRANSFER">Transferencia · digital</option><option value="CARD">Tarjeta · digital</option></Select><Input type="number" min="0.01" step="0.01" value={payment.amount} onChange={(event) => setPaymentSplits((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, amount: event.target.value } : item))} placeholder="S/ 0.00" />{paymentSplits.length > 1 ? <button type="button" onClick={() => setPaymentSplits((items) => items.filter((_, itemIndex) => itemIndex !== index))} className="text-xs font-semibold text-rose-600">Quitar</button> : <span />}</div>)}</div><button type="button" onClick={() => setPaymentSplits((items) => [...items, { method: "YAPE_PLIN", amount: "" }])} className="text-sm font-semibold text-blue-700">+ Agregar medio de pago</button><div className="flex justify-end gap-3 border-t border-slate-100 pt-4"><Button type="button" variant="ghost" onClick={() => setIsPaymentModalOpen(false)}>Cancelar</Button><Button type="button" disabled={Math.abs(splitTotal - total) > 0.009} onClick={() => { setIsSplitPayment(true); setIsPaymentModalOpen(false); }}>Aplicar pago combinado</Button></div></div>
+        <div className="space-y-4"><div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3"><div className="flex justify-between text-sm font-semibold text-slate-700"><span>Total de venta</span><span className="text-blue-700">{money(total)}</span></div><div className={`mt-2 flex justify-between text-xs font-semibold ${Math.abs(splitTotal - total) < 0.009 ? "text-emerald-700" : "text-amber-700"}`}><span>Asignado {money(splitTotal)}</span><span>Falta {money(Math.max(0, total - splitTotal))}</span></div></div><div className="space-y-3">{paymentSplits.map((payment, index) => <div key={index} className="space-y-2"><div className="grid grid-cols-[1fr_120px_auto] gap-2"><Select value={payment.method} onChange={(event) => setPaymentSplits((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, method: event.target.value as PaymentSplit["method"] } : item))}><option value="CASH">Efectivo · físico</option><option value="YAPE_PLIN">Yape / Plin · digital</option><option value="BANK_TRANSFER">Transferencia · digital</option><option value="CARD">Tarjeta · digital</option></Select><Input type="number" min="0.01" step="0.01" value={payment.amount} onChange={(event) => setPaymentSplits((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, amount: event.target.value } : item))} placeholder="S/ 0.00" />{paymentSplits.length > 1 ? <button type="button" onClick={() => setPaymentSplits((items) => items.filter((_, itemIndex) => itemIndex !== index))} className="text-xs font-semibold text-rose-600">Quitar</button> : <span />}</div>{payment.method === "CASH" && <CashTenderInput dueAmount={Number(payment.amount) || 0} received={payment.received ?? ""} onChange={(received) => setPaymentSplits((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, received } : item))} compact />}</div>)}</div><button type="button" onClick={() => setPaymentSplits((items) => [...items, { method: "YAPE_PLIN", amount: "" }])} className="text-sm font-semibold text-blue-700">+ Agregar medio de pago</button><div className="flex justify-end gap-3 border-t border-slate-100 pt-4"><Button type="button" variant="ghost" onClick={() => setIsPaymentModalOpen(false)}>Cancelar</Button><Button type="button" disabled={Math.abs(splitTotal - total) > 0.009 || hasIncompleteCashTender} onClick={() => { setIsSplitPayment(true); setIsPaymentModalOpen(false); }}>Aplicar pago combinado</Button></div></div>
       </Dialog>
       <Dialog isOpen={isConfirmOpen} onClose={() => setIsConfirmOpen(false)} title="Confirmar venta" description="Revisa el resumen antes de confirmar el cobro y descontar el stock." maxWidth="md">
         <div className="space-y-4">
