@@ -42,15 +42,19 @@ export const UserFormModal = ({ isOpen, isSubmitting, onClose, onSubmit, roles }
       title="Nuevo usuario"
       description="Crea una cuenta y asigna el nivel de acceso inicial."
       maxWidth="md"
+      headerClassName="relative overflow-hidden border-b-0 bg-gradient-to-r from-blue-800 via-blue-700 to-indigo-700 px-6 py-5"
+      titleClassName="text-white"
+      descriptionClassName="text-blue-100"
+      headerIcon={<span className="grid h-10 w-10 place-items-center rounded-xl border border-white/20 bg-white/10 text-blue-100"><UserPlus className="h-5 w-5" /></span>}
     >
-      <form onSubmit={submit} className="space-y-4">
+      <form onSubmit={submit} className="space-y-5">
         {error && (
           <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
             {error}
           </p>
         )}
         <div className="grid grid-cols-2 rounded-xl bg-slate-100 p-1"><button type="button" onClick={() => setActiveTab("account")} className={`rounded-lg px-3 py-2 text-sm font-semibold ${activeTab === "account" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500"}`}>Datos de cuenta</button><button type="button" onClick={() => setActiveTab("permissions")} className={`rounded-lg px-3 py-2 text-sm font-semibold ${activeTab === "permissions" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500"}`}>Permisos adicionales</button></div>
-        {activeTab === "account" && <><label className="block text-sm font-medium text-slate-700">
+        {activeTab === "account" && <div className="space-y-4 rounded-xl border border-slate-100 bg-slate-50/60 p-4"><label className="block text-sm font-medium text-slate-700">
           Nombre completo
           <Input
             required
@@ -100,8 +104,8 @@ export const UserFormModal = ({ isOpen, isSubmitting, onClose, onSubmit, roles }
             <option value="MANAGER">Supervisor</option>
             <option value="WAREHOUSE">Almacén</option>
           </select>
-        </label></>}
-        {activeTab === "permissions" && <fieldset>
+        </label></div>}
+        {activeTab === "permissions" && <fieldset className="rounded-xl border border-blue-100 bg-blue-50/40 p-4">
           <legend className="text-sm font-medium text-slate-700">Permisos adicionales</legend>
           <p className="mt-1 text-xs text-slate-500">El rol aporta sus accesos base desde la base de datos. Marca solo los accesos extra para este usuario.</p>
           <div className="mt-3 grid gap-2 sm:grid-cols-2">

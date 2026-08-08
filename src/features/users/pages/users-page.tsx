@@ -33,6 +33,8 @@ export const UsersPage = () => {
   const state = useUsers();
   const [moduleTab, setModuleTab] = useState<"users" | "roles">("users");
   const [permissionsTab, setPermissionsTab] = useState<"role" | "additional">("role");
+  const [additionalPermissionsDraft, setAdditionalPermissionsDraft] = useState<string[]>([]);
+  const [permissionsSaved, setPermissionsSaved] = useState(false);
   const rolePermissions = useMemo(
     () =>
       state.roles.find((definition) => definition.role === state.permissionsUser?.role)
@@ -45,8 +47,20 @@ export const UsersPage = () => {
   );
 
   useEffect(() => {
-    if (state.permissionsUser) setPermissionsTab("role");
+    if (state.permissionsUser) {
+      setPermissionsTab("role");
+      setAdditionalPermissionsDraft(state.permissionsUser.additionalPermissions);
+      setPermissionsSaved(false);
+    }
   }, [state.permissionsUser?.id]);
+
+  const saveAdditionalPermissions = async () => {
+    const user = state.permissionsUser;
+    if (!user) return;
+
+    await state.updateUser(user.id, { permissions: additionalPermissionsDraft });
+    setPermissionsSaved(true);
+  };
   const metrics = useMemo(
     () => ({
       active: state.allUsers.filter((item) => item.isActive).length,
@@ -77,15 +91,6 @@ export const UsersPage = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="ghost"
-            onClick={() => void state.refresh()}
-            disabled={state.isRefreshing}
-            className="border border-slate-200 bg-white text-slate-700"
-          >
-            <RefreshCw className={`mr-2 h-4 w-4 ${state.isRefreshing ? "animate-spin" : ""}`} />
-            Actualizar
-          </Button>
           <Button onClick={() => state.setIsFormOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Nuevo usuario
@@ -239,6 +244,10 @@ export const UsersPage = () => {
         title={`Permisos de ${state.permissionsUser?.fullName ?? ""}`}
         maxWidth="xl"
         description="Los permisos se asignan de forma segura según el rol."
+        headerClassName="relative overflow-hidden border-b-0 bg-gradient-to-r from-blue-800 via-blue-700 to-indigo-700 px-6 py-5"
+        titleClassName="text-white"
+        descriptionClassName="text-blue-100"
+        headerIcon={<span className="grid h-10 w-10 place-items-center rounded-xl border border-white/20 bg-white/10 text-white"><ShieldCheck className="h-5 w-5" /></span>}
       >
         <div className="space-y-5">
           <div className="grid grid-cols-2 rounded-xl bg-slate-100 p-1">
@@ -287,14 +296,15 @@ export const UsersPage = () => {
                   <label key={permission} className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 transition hover:border-blue-200 hover:bg-blue-50">
                     <input
                       type="checkbox"
-                      checked={state.permissionsUser?.additionalPermissions.includes(permission) ?? false}
+                      checked={additionalPermissionsDraft.includes(permission)}
                       disabled={state.isSubmitting}
                       onChange={(event) => {
-                        const user = state.permissionsUser;
-                        if (!user) return;
-                        const permissions = event.target.checked ? [...user.additionalPermissions, permission] : user.additionalPermissions.filter((item) => item !== permission);
-                        state.setPermissionsUser({ ...user, additionalPermissions: permissions });
-                        void state.updateUser(user.id, { permissions });
+                        setPermissionsSaved(false);
+                        setAdditionalPermissionsDraft((permissions) =>
+                          event.target.checked
+                            ? [...permissions, permission]
+                            : permissions.filter((item) => item !== permission),
+                        );
                       }}
                       className="h-4 w-4 shrink-0 rounded border-slate-300 text-blue-600"
                     />
@@ -306,6 +316,22 @@ export const UsersPage = () => {
                 <p className="rounded-lg bg-slate-50 p-4 text-center text-sm text-slate-500">
                   Este rol ya incluye todas las acciones disponibles.
                 </p>
+              )}
+              {!!availableAdditionalPermissions.length && (
+                <div className="mt-5 flex flex-wrap items-center justify-end gap-3 border-t border-slate-100 pt-4">
+                  {permissionsSaved && (
+                    <span className="text-xs font-medium text-emerald-700">
+                      Permisos guardados correctamente.
+                    </span>
+                  )}
+                  <Button
+                    type="button"
+                    onClick={() => void saveAdditionalPermissions()}
+                    disabled={state.isSubmitting}
+                  >
+                    {state.isSubmitting ? "Guardando..." : "Guardar permisos"}
+                  </Button>
+                </div>
               )}
             </div>
           )}

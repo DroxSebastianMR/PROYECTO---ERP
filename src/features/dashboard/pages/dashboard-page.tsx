@@ -20,7 +20,7 @@ export const DashboardPage = () => {
   const { data } = dashboard;
   return <div className="mx-auto max-w-[1480px] p-4 sm:p-6 lg:p-7">
     <header><h1 className="text-2xl font-bold tracking-[-.045em] sm:text-[30px]">Dashboard</h1><p className="mt-1 text-[15px] text-slate-700">Bienvenido nuevamente, {user?.fullName ?? "usuario"}.</p></header>
-    <section className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+    <section className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-5">
       <MetricCard title="Ventas del día" value={money(data.metrics.todaySales)} Icon={Store} />
       <MetricCard title="Ventas del mes" value={money(data.metrics.monthIncome)} Icon={CreditCard} />
       <MetricCard title="Valor del stock" value={money(data.metrics.stockValue)} Icon={Boxes} />
