@@ -18,8 +18,11 @@ import { ProductFormModal } from "@/features/products/components/product-form-mo
 import { ProductDetailModal } from "@/features/products/components/product-detail-modal";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/features/auth/hooks/use-auth";
+import { can } from "@/lib/access-control";
 
 export const ProductsPage = () => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"products" | "categories" | "units" | "barcodes">(
     "products",
   );
@@ -69,11 +72,13 @@ export const ProductsPage = () => {
   }
 
   const tabs = [
-    { id: "products", label: "Productos", icon: Package },
+    { id: "products", label: "Productos", icon: Package, permission: "products.catalog.access" },
     { id: "categories", label: "Categorías", icon: Layers },
     { id: "units", label: "Unidad de medida", icon: Ruler },
     { id: "barcodes", label: "Códigos de barras", icon: Barcode },
   ] as const;
+  const tabPermissions = { products: "products.catalog.access", categories: "products.categories.access", units: "products.units.access", barcodes: "products.barcodes.access" } as const;
+  const visibleTabs = tabs.filter((tab) => can(user ?? undefined, tabPermissions[tab.id]));
   if (activeTab !== "products")
     return (
       <div className="mx-auto max-w-[1480px] p-4 sm:p-6 lg:p-7">
@@ -87,7 +92,7 @@ export const ProductsPage = () => {
           </p>
         </header>
         <nav className="mt-6 flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1.5">
-          {tabs.map(({ id, label, icon: Icon }) => (
+          {visibleTabs.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setActiveTab(id)}
@@ -124,7 +129,7 @@ export const ProductsPage = () => {
         </div>
       </header>
       <nav className="mt-6 flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1.5">
-        {tabs.map(({ id, label, icon: Icon }) => (
+        {visibleTabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             onClick={() => setActiveTab(id)}

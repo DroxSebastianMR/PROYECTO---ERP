@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/hooks/use-auth";
-import { ROLE_PERMISSION_DEFAULTS } from "@/lib/permissions";
+import { can } from "@/lib/access-control";
 
 const tabs = [
   { id: "stocks", label: "Stock actual", icon: Boxes }, { id: "movements", label: "Movimientos", icon: ArrowLeftRight },
@@ -23,9 +23,9 @@ export const InventoryPage = () => {
   const inventory = useInventory();
   const { activeTab, setActiveTab, stocks, movements, warehouses, primaryWarehouse, isLoading, searchQuery, setSearchQuery, warehouseFilter, setWarehouseFilter, stockLevelFilter, setStockLevelFilter, warehousesList, metrics, pagination, isAdjustmentOpen, setIsAdjustmentOpen, selectedStockItem, isWarehouseOpen, setIsWarehouseOpen, isSubmitting, isCreatingWarehouse, isListTab, handleOpenAdjustment, handleSaveAdjustment, handleCreateWarehouse } = inventory;
   if (isLoading) return <div className="mx-auto max-w-[1480px] p-4 sm:p-6 lg:p-7"><div className="flex h-64 items-center justify-center text-sm text-slate-500"><RefreshCw className="mr-2 h-4 w-4 animate-spin text-blue-600" />Cargando inventario de la empresa...</div></div>;
-  const permissions = user?.permissions?.length ? user.permissions : user ? ROLE_PERMISSION_DEFAULTS[user.role] : [];
-  const canManageInventory = permissions.includes("INVENTORY_MANAGE");
-  const visibleTabs = canManageInventory ? tabs : tabs.filter((tab) => tab.id === "stocks" || tab.id === "movements");
+  const canManageInventory = can(user ?? undefined, "inventory.adjustments.manage");
+  const tabPermission = { stocks: "inventory.stock.access", movements: "inventory.movements.access", transfers: "inventory.transfers.access", adjustments: "inventory.adjustments.access", warehouses: "inventory.warehouses.access" } as const;
+  const visibleTabs = tabs.filter((tab) => can(user ?? undefined, tabPermission[tab.id]));
   const resetFilters = () => { setSearchQuery(""); setWarehouseFilter("ALL"); setStockLevelFilter("ALL"); };
   const showWarehouseFilter = activeTab !== "stocks" && activeTab !== "warehouses";
   return <div className="mx-auto max-w-[1480px] p-4 sm:p-6 lg:p-7"><header><h1 className="flex items-center gap-2.5 text-2xl font-bold tracking-[-.045em] text-slate-900 sm:gap-3 sm:text-[30px]"><Warehouse className="h-8 w-8 text-blue-600" />Almacén e Inventario</h1><p className="mt-1 text-[15px] text-slate-600">Control de existencias, movimientos y ubicaciones de la empresa.</p></header><section className="mt-6"><InventoryMetrics metrics={metrics} /></section>

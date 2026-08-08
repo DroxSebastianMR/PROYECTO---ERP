@@ -4,7 +4,7 @@ import {
   SaleDocumentType,
   SalePaymentMethod,
   SaleStatus,
-  UserRole,
+  type UserRole,
   type Prisma,
 } from "@prisma/client";
 import { prisma } from "../../lib/prisma.js";
@@ -39,9 +39,12 @@ const includeSale = {
   returns: { include: { lines: true } },
 } satisfies Prisma.SaleInclude;
 const toMoney = (value: number) => Math.round(value * 100) / 100;
-const saleScope = (companyId: string, userId?: string, role?: UserRole, permissions?: readonly string[]) => ({
+const DNI_REQUIRED_FROM = 700;
+const BANK_TRANSFER_REQUIRED_ABOVE = 2000;
+const hasValidDni = (document?: string | null) => /^\d{8}$/.test(document?.trim() ?? "");
+const saleScope = (companyId: string, userId?: string, _role?: UserRole, permissions?: readonly string[]) => ({
   companyId,
-  ...((permissions?.includes("SALES_VIEW_OWN") && !permissions.includes("SALES_VIEW_ALL")) || role === UserRole.SALES_PURCHASING ? userId ? { createdById: userId } : {} : {}),
+  ...(permissions?.includes("sales.history.view_own") && !permissions.includes("sales.history.view_all") ? userId ? { createdById: userId } : {} : {}),
 });
 
 const calculate = (items: SaleInput["items"]) =>
@@ -114,15 +117,15 @@ const recordSaleDispatches = async (
 };
 
 export const salesService = {
-  list(companyId: string, userId?: string, role?: UserRole, permissions?: readonly string[]) {
+  list(companyId: string, userId?: string, _role?: UserRole, permissions?: readonly string[]) {
     return prisma.sale.findMany({
-      where: saleScope(companyId, userId, role, permissions),
+      where: saleScope(companyId, userId, _role, permissions),
       include: includeSale,
       orderBy: { createdAt: "desc" },
     });
   },
-  get(companyId: string, id: string, userId?: string, role?: UserRole, permissions?: readonly string[]) {
-    return prisma.sale.findFirst({ where: { id, ...saleScope(companyId, userId, role, permissions) }, include: includeSale });
+  get(companyId: string, id: string, userId?: string, _role?: UserRole, permissions?: readonly string[]) {
+    return prisma.sale.findFirst({ where: { id, ...saleScope(companyId, userId, _role, permissions) }, include: includeSale });
   },
   listCustomers(companyId: string) {
     return prisma.customer.findMany({
@@ -146,8 +149,8 @@ export const salesService = {
       data: { companyId, code: `CLI-${String(count + 1).padStart(6, "0")}`, ...input },
     });
   },
-  async create(companyId: string, userId: string, input: SaleInput, role?: UserRole) {
-    if (role === UserRole.SALES_PURCHASING) {
+  async create(companyId: string, userId: string, input: SaleInput, _role?: unknown) {
+    if (!input.warehouseId) {
       const primaryWarehouse = await prisma.warehouse.findFirst({
         where: { companyId, isActive: true, isPrimary: true },
         select: { id: true },
@@ -190,6 +193,12 @@ export const salesService = {
     ]);
     if (!warehouse) throw new SaleError("Almacén de venta inválido.", 404);
     if (input.customerId && !customer) throw new SaleError("Cliente inválido.", 404);
+    if (amount.total >= DNI_REQUIRED_FROM && !hasValidDni(customer?.document))
+      throw new SaleError("Las ventas desde S/ 700.00 requieren un cliente con DNI válido.", 422);
+    if (amount.total > BANK_TRANSFER_REQUIRED_ABOVE && input.paymentMethod !== SalePaymentMethod.BANK_TRANSFER)
+      throw new SaleError("Las ventas mayores a S/ 2,000.00 deben pagarse mediante transferencia bancaria.", 422);
+    if (amount.total > BANK_TRANSFER_REQUIRED_ABOVE && payments.some((payment) => payment.method !== SalePaymentMethod.BANK_TRANSFER))
+      throw new SaleError("Las ventas mayores a S/ 2,000.00 no admiten pagos combinados.", 422);
     if (input.paymentMethod === SalePaymentMethod.CREDIT && !customer)
       throw new SaleError("Una venta al crédito requiere cliente.");
     if (input.paymentMethod === SalePaymentMethod.CREDIT && !input.dueAt)

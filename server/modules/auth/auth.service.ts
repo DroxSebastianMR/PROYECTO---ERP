@@ -3,7 +3,7 @@ import { passwordService } from "./password.service.js";
 import { tokenService } from "./token.service.js";
 import { env } from "../../config/env.js";
 import type { AuthenticatedUser, LoginInput } from "./auth.types.js";
-import { permissionsForUser } from "./permissions.js";
+import { permissionService } from "./permission.service.js";
 
 export class AuthError extends Error {
   constructor(
@@ -13,20 +13,20 @@ export class AuthError extends Error {
     super(message);
   }
 }
-const toAuthenticatedUser = (user: {
+const toAuthenticatedUser = async (user: {
   id: string;
   companyId: string;
   email: string;
   fullName: string;
   role: AuthenticatedUser["role"];
   permissions: string[];
-}): AuthenticatedUser => ({
+}): Promise<AuthenticatedUser> => ({
   id: user.id,
   companyId: user.companyId,
   email: user.email,
   fullName: user.fullName,
   role: user.role,
-  permissions: permissionsForUser(user.role, user.permissions),
+  permissions: await permissionService.resolveEffectivePermissions(user),
 });
 
 export const authService = {
@@ -44,7 +44,7 @@ export const authService = {
         user?.lockedUntil && user.lockedUntil > new Date() ? 423 : 401,
       );
     }
-    const safeUser = toAuthenticatedUser(user);
+    const safeUser = await toAuthenticatedUser(user);
     const tokens = tokenService.createTokens(safeUser);
     await Promise.all([
       authRepository.registerSuccess(user.id, email, input.ipAddress, input.userAgent),
@@ -66,7 +66,7 @@ export const authService = {
     const session = await authRepository.findActiveSessionByRefreshHash(refreshHash);
     if (!session || !session.user.isActive) throw new AuthError("Sesión inválida o expirada.", 401);
 
-    const user = toAuthenticatedUser(session.user);
+    const user = await toAuthenticatedUser(session.user);
     const tokens = tokenService.createTokens(user);
     await authRepository.revokeSession(refreshHash);
     await authRepository.createSession(
