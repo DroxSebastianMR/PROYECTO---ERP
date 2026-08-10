@@ -4,6 +4,7 @@ import {
   SaleDocumentType,
   SalePaymentMethod,
   SaleStatus,
+  TaxTreatment,
   type UserRole,
   type Prisma,
 } from "@prisma/client";
@@ -47,14 +48,17 @@ const saleScope = (companyId: string, userId?: string, _role?: UserRole, permiss
   ...(permissions?.includes("sales.history.view_own") && !permissions.includes("sales.history.view_all") ? userId ? { createdById: userId } : {} : {}),
 });
 
-const calculate = (items: SaleInput["items"]) =>
+type SaleCalculationItem = SaleInput["items"][number] & { taxTreatment: TaxTreatment };
+
+const calculate = (items: SaleCalculationItem[]) =>
   items.reduce(
     (total, item) => {
       const gross = item.quantity * item.unitPrice - (item.discount ?? 0);
-      const subtotal = gross / 1.18;
+      const isTaxed = item.taxTreatment === TaxTreatment.TAXED;
+      const subtotal = isTaxed ? gross / 1.18 : gross;
       return {
         subtotal: total.subtotal + subtotal,
-        tax: total.tax + gross - subtotal,
+        tax: total.tax + (isTaxed ? gross - subtotal : 0),
         discount: total.discount + (item.discount ?? 0),
         total: total.total + gross,
       };
@@ -165,34 +169,37 @@ export const salesService = {
     if (existing)
       return prisma.sale.findFirstOrThrow({ where: { id: existing.id, companyId }, include: includeSale });
 
-    const amount = calculate(input.items);
-    const payments = input.paymentMethod === SalePaymentMethod.CREDIT
-      ? []
-      : input.payments?.length
-        ? input.payments
-        : [
-            {
-              method: input.paymentMethod as "CASH" | "BANK_TRANSFER" | "CARD" | "YAPE_PLIN",
-              amount: amount.total,
-            },
-          ];
     const productIds = [...new Set(input.items.map((item) => item.productId))];
-    const requiresOpenCashSession = payments.some((payment) => payment.method === SalePaymentMethod.CASH);
-    const [warehouse, customer, productCount, openCashSession] = await Promise.all([
+    const [warehouse, customer, products] = await Promise.all([
       prisma.warehouse.findFirst({ where: { id: input.warehouseId, companyId, isActive: true } }),
       input.customerId
         ? prisma.customer.findFirst({ where: { id: input.customerId, companyId, isActive: true } })
         : null,
-      prisma.product.count({ where: { companyId, isActive: true, id: { in: productIds } } }),
-      requiresOpenCashSession
-        ? prisma.cashSession.findFirst({
-            where: { companyId, status: CashSessionStatus.OPEN },
-            select: { id: true },
-          })
-        : null,
+      prisma.product.findMany({
+        where: { companyId, isActive: true, id: { in: productIds } },
+        select: { id: true, taxTreatment: true },
+      }),
     ]);
     if (!warehouse) throw new SaleError("Almacén de venta inválido.", 404);
     if (input.customerId && !customer) throw new SaleError("Cliente inválido.", 404);
+    if (products.length !== productIds.length)
+      throw new SaleError("Uno o más productos no son válidos.", 404);
+
+    const taxTreatmentByProductId = new Map(products.map((product) => [product.id, product.taxTreatment]));
+    const itemsWithTaxTreatment = input.items.map((item) => ({
+      ...item,
+      taxTreatment: taxTreatmentByProductId.get(item.productId)!,
+    }));
+    const amount = calculate(itemsWithTaxTreatment);
+    const payments = input.paymentMethod === SalePaymentMethod.CREDIT
+      ? []
+      : input.payments?.length
+        ? input.payments
+        : [{ method: input.paymentMethod as "CASH" | "BANK_TRANSFER" | "CARD" | "YAPE_PLIN", amount: amount.total }];
+    const requiresOpenCashSession = payments.some((payment) => payment.method === SalePaymentMethod.CASH);
+    const openCashSession = requiresOpenCashSession
+      ? await prisma.cashSession.findFirst({ where: { companyId, status: CashSessionStatus.OPEN }, select: { id: true } })
+      : null;
     if (amount.total >= DNI_REQUIRED_FROM && !hasValidDni(customer?.document))
       throw new SaleError("Las ventas desde S/ 700.00 requieren un cliente con DNI válido.", 422);
     if (amount.total > BANK_TRANSFER_REQUIRED_ABOVE && input.paymentMethod !== SalePaymentMethod.BANK_TRANSFER)
@@ -207,8 +214,6 @@ export const salesService = {
       throw new SaleError("Una venta al crédito no puede combinar métodos de pago.");
     if (requiresOpenCashSession && !openCashSession)
       throw new SaleError("Debe abrir una caja antes de registrar ventas en efectivo.", 409);
-    if (productCount !== productIds.length)
-      throw new SaleError("Uno o más productos no son válidos.", 404);
     if (payments.length && Math.abs(payments.reduce((sum, payment) => sum + payment.amount, 0) - amount.total) > 0.009)
       throw new SaleError("La suma de los pagos debe coincidir con el total de la venta.");
     if (customer && input.paymentMethod === SalePaymentMethod.CREDIT) {
@@ -244,12 +249,12 @@ export const salesService = {
             discountAmount: toMoney(amount.discount),
             total: toMoney(amount.total),
             items: {
-              create: input.items.map((item) => ({
+              create: itemsWithTaxTreatment.map((item) => ({
                 productId: item.productId,
                 quantity: item.quantity,
                 unitPrice: item.unitPrice,
                 discount: item.discount ?? 0,
-                taxRate: 18,
+                taxRate: item.taxTreatment === TaxTreatment.TAXED ? 18 : 0,
                 subtotal: toMoney(item.quantity * item.unitPrice - (item.discount ?? 0)),
               })),
             },

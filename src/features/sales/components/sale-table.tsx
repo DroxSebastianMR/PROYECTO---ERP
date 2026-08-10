@@ -101,7 +101,7 @@ export const SaleTable = ({ sales, onView, onPrint }: SaleTableProps) => {
                       <button
                         onClick={() => onPrint(sale)}
                         className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-blue-50 hover:text-blue-600"
-                        title="Ver comprobante"
+                        title="Vista previa del ticket"
                       >
                         <Printer className="h-4 w-4" />
                       </button>

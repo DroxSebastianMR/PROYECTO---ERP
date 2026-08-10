@@ -4,6 +4,7 @@ import {
   CheckCircle2,
   CircleUserRound,
   Eye,
+  Mail,
   LockKeyhole,
   Plus,
   RefreshCw,
@@ -32,9 +33,11 @@ const dateFormat = new Intl.DateTimeFormat("es-PE", { dateStyle: "medium", timeS
 export const UsersPage = () => {
   const state = useUsers();
   const [moduleTab, setModuleTab] = useState<"users" | "roles">("users");
-  const [permissionsTab, setPermissionsTab] = useState<"role" | "additional">("role");
+  const [permissionsTab, setPermissionsTab] = useState<"role" | "additional" | "recovery">("role");
   const [additionalPermissionsDraft, setAdditionalPermissionsDraft] = useState<string[]>([]);
   const [permissionsSaved, setPermissionsSaved] = useState(false);
+  const [recoveryDraft, setRecoveryDraft] = useState({ personalEmail: "", dni: "" });
+  const [recoverySaved, setRecoverySaved] = useState(false);
   const rolePermissions = useMemo(
     () =>
       state.roles.find((definition) => definition.role === state.permissionsUser?.role)
@@ -51,6 +54,11 @@ export const UsersPage = () => {
       setPermissionsTab("role");
       setAdditionalPermissionsDraft(state.permissionsUser.additionalPermissions);
       setPermissionsSaved(false);
+      setRecoveryDraft({
+        personalEmail: state.permissionsUser.personalEmail ?? "",
+        dni: state.permissionsUser.dni ?? "",
+      });
+      setRecoverySaved(false);
     }
   }, [state.permissionsUser?.id]);
 
@@ -60,6 +68,12 @@ export const UsersPage = () => {
 
     await state.updateUser(user.id, { permissions: additionalPermissionsDraft });
     setPermissionsSaved(true);
+  };
+  const saveRecoveryDetails = async () => {
+    const user = state.permissionsUser;
+    if (!user) return;
+    await state.updateUser(user.id, recoveryDraft);
+    setRecoverySaved(true);
   };
   const metrics = useMemo(
     () => ({
@@ -250,7 +264,7 @@ export const UsersPage = () => {
         headerIcon={<span className="grid h-10 w-10 place-items-center rounded-xl border border-white/20 bg-white/10 text-white"><ShieldCheck className="h-5 w-5" /></span>}
       >
         <div className="space-y-5">
-          <div className="grid grid-cols-2 rounded-xl bg-slate-100 p-1">
+          <div className="grid rounded-xl bg-slate-100 p-1 sm:grid-cols-3">
             <button
               type="button"
               onClick={() => setPermissionsTab("role")}
@@ -266,6 +280,14 @@ export const UsersPage = () => {
             >
               <Plus className="h-4 w-4" />
               Acciones adicionales ({state.permissionsUser?.additionalPermissions.length ?? 0})
+            </button>
+            <button
+              type="button"
+              onClick={() => setPermissionsTab("recovery")}
+              className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${permissionsTab === "recovery" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+            >
+              <Mail className="h-4 w-4" />
+              Recuperación
             </button>
           </div>
 
@@ -286,7 +308,7 @@ export const UsersPage = () => {
                 ))}
               </div>
             </div>
-          ) : (
+          ) : permissionsTab === "additional" ? (
             <div>
               <p className="mb-3 text-sm text-slate-500">
                 Agrega acciones puntuales sin modificar los permisos base del rol.
@@ -333,6 +355,29 @@ export const UsersPage = () => {
                   </Button>
                 </div>
               )}
+            </div>
+          ) : (
+            <div className="space-y-4 rounded-xl border border-blue-100 bg-blue-50/40 p-4">
+              <div>
+                <p className="font-semibold text-slate-800">Datos de recuperación</p>
+                <p className="mt-1 text-sm text-slate-500">El enlace de recuperación se enviará únicamente al correo personal registrado.</p>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="text-sm font-medium text-slate-700">
+                  Correo personal
+                  <Input type="email" value={recoveryDraft.personalEmail} onChange={(event) => { setRecoverySaved(false); setRecoveryDraft((draft) => ({ ...draft, personalEmail: event.target.value })); }} placeholder="nombre@gmail.com" className="mt-1.5" />
+                </label>
+                <label className="text-sm font-medium text-slate-700">
+                  DNI
+                  <Input inputMode="numeric" maxLength={8} value={recoveryDraft.dni} onChange={(event) => { setRecoverySaved(false); setRecoveryDraft((draft) => ({ ...draft, dni: event.target.value.replace(/\D/g, "") })); }} placeholder="8 dígitos" className="mt-1.5" />
+                </label>
+              </div>
+              <div className="flex flex-wrap items-center justify-end gap-3 border-t border-blue-100 pt-4">
+                {recoverySaved && <span className="text-xs font-medium text-emerald-700">Datos de recuperación guardados.</span>}
+                <Button type="button" onClick={() => void saveRecoveryDetails()} disabled={state.isSubmitting || !recoveryDraft.personalEmail || recoveryDraft.dni.length !== 8}>
+                  {state.isSubmitting ? "Guardando..." : "Guardar datos"}
+                </Button>
+              </div>
             </div>
           )}
         </div>

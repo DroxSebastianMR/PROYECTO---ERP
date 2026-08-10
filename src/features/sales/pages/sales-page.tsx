@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { ChevronLeft, ChevronRight, RefreshCw, Tag, Search, Plus, RotateCcw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { PATHS } from "@/app/router/constants/paths";
@@ -5,15 +6,16 @@ import { useSales } from "@/features/sales/hooks/use-sales";
 import { SaleMetrics } from "@/features/sales/components/sale-metrics";
 import { SaleTable } from "@/features/sales/components/sale-table";
 import { SaleDetailModal } from "@/features/sales/components/sale-detail-modal";
+import { SaleTicketPreviewModal } from "@/features/sales/components/sale-ticket-preview-modal";
 import { SaleTicket } from "@/features/sales/components/sale-ticket";
-import { printSaleTicket } from "@/features/sales/services/sale-ticket-print.service";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import type { SaleStatus } from "@/features/sales/types/sale.types";
+import type { SaleReceipt, SaleStatus } from "@/features/sales/types/sale.types";
 
 export const SalesPage = () => {
   const navigate = useNavigate();
+  const [ticketPreviewSale, setTicketPreviewSale] = useState<SaleReceipt | null>(null);
   const {
     sales,
     isLoading,
@@ -119,7 +121,7 @@ export const SalesPage = () => {
         <SaleTable
           sales={sales}
           onView={handleOpenDetailModal}
-          onPrint={(sale) => printSaleTicket(`sale-ticket-${sale.id}`)}
+          onPrint={setTicketPreviewSale}
         />
         <div className="hidden" aria-hidden="true">
           {sales.map((sale) => <SaleTicket key={sale.id} sale={sale} id={`sale-ticket-${sale.id}`} />)}
@@ -135,6 +137,7 @@ export const SalesPage = () => {
         onConfirm={handleConfirmSale}
         isSubmitting={isSubmitting}
       />
+      <SaleTicketPreviewModal sale={ticketPreviewSale} isOpen={Boolean(ticketPreviewSale)} onClose={() => setTicketPreviewSale(null)} />
     </div>
   );
 };

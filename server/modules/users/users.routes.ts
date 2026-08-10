@@ -12,6 +12,8 @@ const roleSchema = z.nativeEnum(UserRole);
 const createSchema = z.object({
   fullName: z.string().trim().min(3).max(120),
   email: z.string().trim().email().max(160),
+  personalEmail: z.string().trim().email().max(160),
+  dni: z.string().trim().regex(/^\d{8}$/, "El DNI debe tener 8 dígitos."),
   password: z.string().min(8).max(100),
   role: roleSchema,
   permissions: z.array(z.string().refine((permission) => PERMISSIONS.includes(permission as (typeof PERMISSIONS)[number]), "Permiso no válido.")).optional(),
@@ -19,6 +21,8 @@ const createSchema = z.object({
 const updateSchema = z
   .object({
     fullName: z.string().trim().min(3).max(120).optional(),
+    personalEmail: z.string().trim().email().max(160).nullable().optional(),
+    dni: z.string().trim().regex(/^\d{8}$/, "El DNI debe tener 8 dígitos.").nullable().optional(),
     role: roleSchema.optional(),
     isActive: z.boolean().optional(),
     permissions: z.array(z.string().refine((permission) => PERMISSIONS.includes(permission as (typeof PERMISSIONS)[number]), "Permiso no válido.")).optional(),
@@ -33,7 +37,7 @@ const sendError = (error: unknown, response: Response, next: NextFunction) => {
   if (error instanceof UsersError)
     return response.status(error.status).json({ message: error.message });
   if ((error as { code?: string }).code === "P2002")
-    return response.status(409).json({ message: "Ya existe un usuario con este correo." });
+    return response.status(409).json({ message: "Ya existe un usuario con este correo o DNI." });
   next(error);
 };
 

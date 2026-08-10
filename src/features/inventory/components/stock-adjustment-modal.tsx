@@ -3,6 +3,7 @@ import { AlertTriangle, Boxes } from "lucide-react";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/toast";
 import { Select } from "@/components/ui/select";
 import type {
   WarehouseStockItem,
@@ -25,6 +26,7 @@ export const StockAdjustmentModal = ({
   onSubmit,
   isSubmitting,
 }: StockAdjustmentModalProps) => {
+  const toast = useToast();
   const [type, setType] = useState<MovementType>("IN");
   const [quantity, setQuantity] = useState("1");
   const [reason, setReason] = useState("");
@@ -35,7 +37,7 @@ export const StockAdjustmentModal = ({
     e.preventDefault();
     const qtyNum = parseFloat(quantity);
     if (isNaN(qtyNum) || qtyNum <= 0) {
-      alert("Ingresa una cantidad válida mayor a 0");
+      toast.warning("Ingresa una cantidad válida mayor a 0.");
       return;
     }
 

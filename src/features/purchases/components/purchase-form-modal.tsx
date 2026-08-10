@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { useToast } from "@/components/ui/toast";
 import type { Product } from "@/features/products/types/product.types";
 import type {
   CreatePurchaseInput,
@@ -263,6 +264,7 @@ export const PurchaseFormModal = ({
   products,
   suppliers,
 }: PurchaseFormModalProps) => {
+  const toast = useToast();
   const [supplierId, setSupplierId] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PurchasePaymentMethod>("CASH");
   const [currency, setCurrency] = useState("PEN");
@@ -307,7 +309,7 @@ export const PurchaseFormModal = ({
         (item) => !item.productId || Number(item.quantity) <= 0 || Number(item.unitCost) < 0,
       )
     ) {
-      alert("Completa proveedor, comprobante y productos con cantidades válidas.");
+      toast.warning("Completa proveedor, comprobante y productos con cantidades válidas.");
       return;
     }
     try {
@@ -333,7 +335,7 @@ export const PurchaseFormModal = ({
       });
       onClose();
     } catch (error) {
-      alert(error instanceof Error ? error.message : "No se pudo registrar la compra. Revisa los datos e inténtalo nuevamente.");
+      toast.error(error instanceof Error ? error.message : "No se pudo registrar la compra. Revisa los datos e inténtalo nuevamente.");
     }
   };
   return (

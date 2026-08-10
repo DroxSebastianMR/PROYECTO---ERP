@@ -47,10 +47,18 @@ const items: CatalogItem[] = [
 ];
 
 const users = [
-  { fullName: "Ronald De la Cruz", email: "ronald@clienty.pe", role: UserRole.ADMIN },
-  { fullName: "Sebastian Mercado", email: "sebastian@clienty.pe", role: UserRole.SALES_PURCHASING },
-  { fullName: "Valeria Flores", email: "valeria@clienty.pe", role: UserRole.ACCOUNTANT },
-  { fullName: "Diego Ramírez", email: "diego@clienty.pe", role: UserRole.WAREHOUSE },
+  {
+    fullName: "Ronald De la Cruz",
+    email: "ronald.delacruz@clienty.pe",
+    role: UserRole.ADMIN,
+  },
+  {
+    fullName: "Sebastian Mercado",
+    email: "sebastian.mercado@clienty.pe",
+    personalEmail: "josrojmer@gmail.com",
+    dni: "70345678",
+    role: UserRole.ADMIN,
+  },
 ] as const;
 
 const categoryCodes = new Map(
@@ -118,6 +126,7 @@ const run = async () => {
     await tx.customer.deleteMany({ where: { companyId: company.id } });
     await tx.supplier.deleteMany({ where: { companyId: company.id } });
     await tx.notification.deleteMany({ where: { user: { companyId: company.id } } });
+    await tx.passwordResetToken.deleteMany({ where: { user: { companyId: company.id } } });
     await tx.authSession.deleteMany({ where: { user: { companyId: company.id } } });
     await tx.loginAudit.deleteMany({ where: { user: { companyId: company.id } } });
     await tx.user.deleteMany({ where: { companyId: company.id } });

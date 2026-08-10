@@ -71,7 +71,7 @@ export const AppSidebar = ({ isOpen = false, onClose }: AppSidebarProps) => {
           onClick={onClose}
           className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-blue-700 text-sm font-medium text-white shadow-sm transition hover:bg-blue-800"
         >
-          <Plus className="h-[18px] w-[18px]" /> + Nueva Venta
+          <Plus className="h-[18px] w-[18px]" /> Nueva Venta
         </Link>}
       </div>
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 py-2">

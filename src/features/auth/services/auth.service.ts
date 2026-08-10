@@ -5,6 +5,8 @@ import type {
   AuthApiResponse,
   LoginCredentials,
   LoginResponse,
+  PasswordRecoveryInput,
+  PasswordResetInput,
   RefreshResponse,
 } from "@/features/auth/types/auth.types";
 
@@ -31,5 +33,13 @@ export const authService = {
       { refreshToken },
       { headers: { Authorization: `Bearer ${accessToken}` } },
     );
+  },
+
+  async requestPasswordRecovery(input: PasswordRecoveryInput): Promise<void> {
+    await apiClient.post<void, PasswordRecoveryInput>(API_ENDPOINTS.AUTH.PASSWORD_RECOVERY, input);
+  },
+
+  async resetPassword(input: PasswordResetInput): Promise<void> {
+    await apiClient.post<void, PasswordResetInput>(API_ENDPOINTS.AUTH.PASSWORD_RESET, input);
   },
 };

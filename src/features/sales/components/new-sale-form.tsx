@@ -15,9 +15,11 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { useToast } from "@/components/ui/toast";
 import { SaleProcessingOverlay } from "@/features/sales/components/sale-processing-overlay";
 import { CashChangeSummary, CashTenderInput } from "@/features/sales/components/cash-tender-input";
 import { SaleTicket } from "@/features/sales/components/sale-ticket";
+import { cashDrawerService } from "@/features/sales/services/cash-drawer.service";
 import { printSaleTicket } from "@/features/sales/services/sale-ticket-print.service";
 import { CustomerFormModal } from "@/features/customers/components/customer-form-modal";
 import { ProductDetailModal } from "@/features/products/components/product-detail-modal";
@@ -144,6 +146,7 @@ export const NewSaleForm = ({
   customers,
   warehouses,
 }: NewSaleFormProps) => {
+  const toast = useToast();
   const scannerRef = useRef<HTMLInputElement>(null);
   const idempotencyKeyRef = useRef<string | null>(null);
   const scanBufferRef = useRef({ value: "", lastKeyAt: 0 });
@@ -156,8 +159,10 @@ export const NewSaleForm = ({
   const [cashReceived, setCashReceived] = useState("");
   const documentType: SaleDocumentType = "RECEIPT";
   const [cart, setCart] = useState<CartLine[]>([]);
+  const [quantityDrafts, setQuantityDrafts] = useState<Record<string, string>>({});
   const [customerOpen, setCustomerOpen] = useState(false);
   const [completedSale, setCompletedSale] = useState<SaleReceipt | null>(null);
+  const [cashDrawerUnavailable, setCashDrawerUnavailable] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [detailProduct, setDetailProduct] = useState<Product | null>(null);
   const activeWarehouseId = warehouses[0]?.id || "";
@@ -212,7 +217,7 @@ export const NewSaleForm = ({
         entry.isActive && [entry.barcode, entry.sku].some((value) => value?.toLowerCase() === code),
     );
     if (product) addProduct(product);
-    else if (code) alert("No se encontró un producto activo con ese código.");
+    else if (code) toast.warning("No se encontró un producto activo con ese código.");
   };
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -243,6 +248,16 @@ export const NewSaleForm = ({
           : line,
       ),
     );
+  const commitQuantityDraft = (product: Product) => {
+    const draft = quantityDrafts[product.id];
+    if (draft === undefined) return;
+    setQuantity(product, Number.parseInt(draft, 10) || 1);
+    setQuantityDrafts((current) => {
+      const remaining = { ...current };
+      delete remaining[product.id];
+      return remaining;
+    });
+  };
   const total = cart.reduce(
     (sum, line) =>
       sum +
@@ -252,15 +267,18 @@ export const NewSaleForm = ({
           : line.product.salePrice),
     0,
   );
+  const igvAmount = cart.reduce((sum, line) => {
+    const unitPrice = line.quantity >= (line.product.wholesaleMinQuantity ?? 10) && line.product.wholesalePrice
+      ? line.product.wholesalePrice
+      : line.product.salePrice;
+    const lineTotal = line.quantity * unitPrice;
+    return (line.product.taxTreatment ?? "TAXED") === "TAXED" ? sum + lineTotal - lineTotal / 1.18 : sum;
+  }, 0);
   const splitTotal = paymentSplits.reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0);
   const selectedCustomer = customers.find((customer) => customer.id === customerId);
   const isCashPayment = !isSplitPayment && paymentMethod === "CASH";
-  const cashReceivedAmount = Number(cashReceived) || 0;
   const requiresCustomerDni = total >= 700;
   const requiresBankTransfer = total > 2000;
-  const hasIncompleteCashTender = paymentSplits.some(
-    (payment) => payment.method === "CASH" && Boolean(payment.received) && Number(payment.received) < Number(payment.amount),
-  );
 
   useEffect(() => {
     if (!requiresBankTransfer) return;
@@ -275,34 +293,40 @@ export const NewSaleForm = ({
   const requestSaleConfirmation = (event: FormEvent) => {
     event.preventDefault();
     if (!activeWarehouseId || !cart.length) {
-      alert("Agrega productos disponibles para procesar la venta.");
+      toast.warning("Agrega productos disponibles para procesar la venta.");
       return;
     }
     if (paymentMethod === "CREDIT" && !customerId) {
-      alert("Selecciona un cliente para registrar una venta a crédito.");
+      toast.warning("Selecciona un cliente para registrar una venta a crédito.");
       return;
     }
     if (requiresCustomerDni && !/^\d{8}$/.test(selectedCustomer?.document?.trim() ?? "")) {
-      alert("Las ventas desde S/ 700.00 requieren seleccionar un cliente con DNI válido.");
+      toast.warning("Las ventas desde S/ 700.00 requieren seleccionar un cliente con DNI válido.");
       return;
     }
     if (requiresBankTransfer && paymentMethod !== "BANK_TRANSFER") {
-      alert("Las ventas mayores a S/ 2,000.00 deben cobrarse por transferencia bancaria.");
-      return;
-    }
-    if (isCashPayment && cashReceivedAmount < total) {
-      alert("Ingresa el monto recibido en efectivo para calcular el vuelto.");
+      toast.warning("Las ventas mayores a S/ 2,000.00 deben cobrarse por transferencia bancaria.");
       return;
     }
     if (isSplitPayment && Math.abs(splitTotal - total) > 0.009) {
-      alert("La suma de los pagos combinados debe coincidir con el total de la venta.");
-      return;
-    }
-    if (isSplitPayment && hasIncompleteCashTender) {
-      alert("El efectivo recibido debe cubrir el monto asignado a ese medio de pago.");
+      toast.warning("La suma de los pagos combinados debe coincidir con el total de la venta.");
       return;
     }
     setIsConfirmOpen(true);
+  };
+  const completeSale = (sale: SaleReceipt) => {
+    setCashDrawerUnavailable(false);
+    setCart([]);
+    setQuantityDrafts({});
+    setCompletedSale(sale);
+    setIsConfirmOpen(false);
+    idempotencyKeyRef.current = null;
+
+    // The hardware request is deliberately detached from the transactional sale.
+    // A disconnected printer must never delay or invalidate a confirmed sale.
+    void cashDrawerService.openForCashSale(sale).then((result) => {
+      setCashDrawerUnavailable(result.status === "unavailable");
+    });
   };
   const processSale = async () => {
     const saleInput: CreateSaleInput = {
@@ -323,22 +347,16 @@ export const NewSaleForm = ({
     idempotencyKeyRef.current = saleInput.idempotencyKey;
     try {
       const sale = await onSubmit(saleInput);
-      setCart([]);
-      setCompletedSale(sale);
-      setIsConfirmOpen(false);
-      idempotencyKeyRef.current = null;
+      completeSale(sale);
     } catch (error) {
       try {
         // If the response was interrupted after commit, retrying the same key returns
         // the already confirmed sale instead of creating a duplicate.
         await new Promise((resolve) => window.setTimeout(resolve, 900));
         const sale = await onSubmit(saleInput);
-        setCart([]);
-        setCompletedSale(sale);
-        setIsConfirmOpen(false);
-        idempotencyKeyRef.current = null;
+        completeSale(sale);
       } catch {
-        alert(error instanceof Error ? error.message : "No se pudo procesar la venta.");
+        toast.error(error instanceof Error ? error.message : "No se pudo procesar la venta.");
       }
     }
   };
@@ -363,7 +381,7 @@ export const NewSaleForm = ({
               </div>
             </div>
             <div className="rounded-xl border-2 border-dashed border-blue-200 bg-blue-50/50 p-4">
-              <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="relative">
                 <div className="relative flex-1">
                   <Barcode className="absolute left-3 top-3 h-4 w-4 text-blue-600" />
                   <Input
@@ -380,14 +398,6 @@ export const NewSaleForm = ({
                     className="border-blue-200 bg-white pl-9"
                   />
                 </div>
-                <Button
-                  type="button"
-                  onClick={() => scannerRef.current?.focus()}
-                  className="gap-2 bg-blue-700 text-white hover:bg-blue-800"
-                >
-                  <ScanBarcode className="h-4 w-4" />
-                  Lector automático
-                </Button>
               </div>
               <p className="mt-2 text-[11px] text-blue-700">
                 El lector queda listo al enfocar el campo; cada lectura seguida de Enter agrega el
@@ -480,7 +490,7 @@ export const NewSaleForm = ({
                 </Button>
               </div>
               <div className={isCashPayment ? "grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_150px]" : ""}>
-                <PaymentPicker method={paymentMethod} isSplit={isSplitPayment} splitCount={paymentSplits.length} onSelect={(method) => { if (requiresBankTransfer && method !== "BANK_TRANSFER") { alert("Esta venta debe cobrarse por transferencia bancaria."); return; } setPaymentMethod(method); setIsSplitPayment(false); setCashReceived(""); }} onConfigure={() => { if (requiresBankTransfer) { alert("Esta venta no admite pago combinado porque supera S/ 2,000.00."); return; } setPaymentMethod("CASH"); setIsPaymentModalOpen(true); }} />
+                <PaymentPicker method={paymentMethod} isSplit={isSplitPayment} splitCount={paymentSplits.length} onSelect={(method) => { if (requiresBankTransfer && method !== "BANK_TRANSFER") { toast.warning("Esta venta debe cobrarse por transferencia bancaria."); return; } setPaymentMethod(method); setIsSplitPayment(false); setCashReceived(""); }} onConfigure={() => { if (requiresBankTransfer) { toast.warning("Esta venta no admite pago combinado porque supera S/ 2,000.00."); return; } setPaymentMethod("CASH"); setIsPaymentModalOpen(true); }} />
                 {isCashPayment && <CashTenderInput dueAmount={total} received={cashReceived} onChange={setCashReceived} compact showChange={false} />}
               </div>
               {requiresCustomerDni && <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">Desde S/ 700.00 debes seleccionar un cliente con DNI.</p>}
@@ -538,9 +548,9 @@ export const NewSaleForm = ({
                               max={available(line.product)}
                               step="1"
                               inputMode="numeric"
-                              value={line.quantity}
-                              onChange={(event) => setQuantity(line.product, Number.parseInt(event.target.value, 10) || 1)}
-                              onBlur={(event) => setQuantity(line.product, Number.parseInt(event.target.value, 10) || 1)}
+                              value={quantityDrafts[line.product.id] ?? String(line.quantity)}
+                              onChange={(event) => setQuantityDrafts((current) => ({ ...current, [line.product.id]: event.target.value.replace(/\D/g, "") }))}
+                              onBlur={() => commitQuantityDraft(line.product)}
                               className="h-8 w-11 rounded-none border-y-0 px-1 text-center text-sm font-semibold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                             />
                             <button
@@ -573,17 +583,25 @@ export const NewSaleForm = ({
                 </div>
               )}
             </div>
-            <footer className="border-t border-slate-200 bg-slate-50/70 p-5">
-              <div className="flex items-end justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Total a pagar
-                </span>
-                <span className="text-3xl font-bold tracking-tight text-blue-700">
-                  {money(total)}
-                </span>
+            <footer className="border-t border-slate-200 bg-gradient-to-b from-slate-50 to-blue-50/40 p-4 sm:p-5">
+              <div className="rounded-xl border border-blue-100 bg-white px-4 py-3 shadow-[0_4px_14px_rgba(37,99,235,0.04)]">
+                <div className="flex items-end justify-between gap-3">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                    Total a pagar
+                  </span>
+                  <span className="text-3xl font-bold tracking-tight text-blue-700">
+                    {money(total)}
+                  </span>
+                </div>
+                {igvAmount > 0 && (
+                  <div className="mt-2 flex items-center justify-between border-t border-blue-50 pt-2 text-xs">
+                    <span className="font-semibold uppercase tracking-wide text-slate-500">IGV incluido (18%)</span>
+                    <span className="font-bold text-blue-700">{money(igvAmount)}</span>
+                  </div>
+                )}
+                {isCashPayment && <CashChangeSummary dueAmount={total} received={cashReceived} />}
               </div>
-              {isCashPayment && <CashChangeSummary dueAmount={total} received={cashReceived} />}
-              <div className="mt-5 grid grid-cols-2 gap-3">
+              <div className="mt-4 grid grid-cols-2 gap-3">
                 <Button
                   type="button"
                   variant="ghost"
@@ -606,7 +624,7 @@ export const NewSaleForm = ({
         </aside>
       </form>
       <Dialog isOpen={isPaymentModalOpen} onClose={() => setIsPaymentModalOpen(false)} title="Combinar medios de pago" description="Distribuye el total entre efectivo y medios digitales." maxWidth="md">
-        <div className="space-y-4"><div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3"><div className="flex justify-between text-sm font-semibold text-slate-700"><span>Total de venta</span><span className="text-blue-700">{money(total)}</span></div><div className={`mt-2 flex justify-between text-xs font-semibold ${Math.abs(splitTotal - total) < 0.009 ? "text-emerald-700" : "text-amber-700"}`}><span>Asignado {money(splitTotal)}</span><span>Falta {money(Math.max(0, total - splitTotal))}</span></div></div><div className="space-y-3">{paymentSplits.map((payment, index) => <div key={index} className="space-y-2"><div className="grid grid-cols-[1fr_120px_auto] gap-2"><Select value={payment.method} onChange={(event) => setPaymentSplits((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, method: event.target.value as PaymentSplit["method"] } : item))}><option value="CASH">Efectivo · físico</option><option value="YAPE_PLIN">Yape / Plin · digital</option><option value="BANK_TRANSFER">Transferencia · digital</option><option value="CARD">Tarjeta · digital</option></Select><Input type="number" min="0.01" step="0.01" value={payment.amount} onChange={(event) => setPaymentSplits((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, amount: event.target.value } : item))} placeholder="S/ 0.00" />{paymentSplits.length > 1 ? <button type="button" onClick={() => setPaymentSplits((items) => items.filter((_, itemIndex) => itemIndex !== index))} className="text-xs font-semibold text-rose-600">Quitar</button> : <span />}</div>{payment.method === "CASH" && <CashTenderInput dueAmount={Number(payment.amount) || 0} received={payment.received ?? ""} onChange={(received) => setPaymentSplits((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, received } : item))} compact />}</div>)}</div><button type="button" onClick={() => setPaymentSplits((items) => [...items, { method: "YAPE_PLIN", amount: "" }])} className="text-sm font-semibold text-blue-700">+ Agregar medio de pago</button><div className="flex justify-end gap-3 border-t border-slate-100 pt-4"><Button type="button" variant="ghost" onClick={() => setIsPaymentModalOpen(false)}>Cancelar</Button><Button type="button" disabled={Math.abs(splitTotal - total) > 0.009 || hasIncompleteCashTender} onClick={() => { setIsSplitPayment(true); setIsPaymentModalOpen(false); }}>Aplicar pago combinado</Button></div></div>
+        <div className="space-y-4"><div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3"><div className="flex justify-between text-sm font-semibold text-slate-700"><span>Total de venta</span><span className="text-blue-700">{money(total)}</span></div><div className={`mt-2 flex justify-between text-xs font-semibold ${Math.abs(splitTotal - total) < 0.009 ? "text-emerald-700" : "text-amber-700"}`}><span>Asignado {money(splitTotal)}</span><span>Falta {money(Math.max(0, total - splitTotal))}</span></div></div><div className="space-y-3">{paymentSplits.map((payment, index) => <div key={index} className="space-y-2"><div className="grid grid-cols-[1fr_120px_auto] gap-2"><Select value={payment.method} onChange={(event) => setPaymentSplits((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, method: event.target.value as PaymentSplit["method"] } : item))}><option value="CASH">Efectivo · físico</option><option value="YAPE_PLIN">Yape / Plin · digital</option><option value="BANK_TRANSFER">Transferencia · digital</option><option value="CARD">Tarjeta · digital</option></Select><Input type="number" min="0.01" step="0.01" value={payment.amount} onChange={(event) => setPaymentSplits((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, amount: event.target.value } : item))} placeholder="S/ 0.00" />{paymentSplits.length > 1 ? <button type="button" onClick={() => setPaymentSplits((items) => items.filter((_, itemIndex) => itemIndex !== index))} className="text-xs font-semibold text-rose-600">Quitar</button> : <span />}</div>{payment.method === "CASH" && <CashTenderInput dueAmount={Number(payment.amount) || 0} received={payment.received ?? ""} onChange={(received) => setPaymentSplits((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, received } : item))} compact />}</div>)}</div><button type="button" onClick={() => setPaymentSplits((items) => [...items, { method: "YAPE_PLIN", amount: "" }])} className="text-sm font-semibold text-blue-700">+ Agregar medio de pago</button><div className="flex justify-end gap-3 border-t border-slate-100 pt-4"><Button type="button" variant="ghost" onClick={() => setIsPaymentModalOpen(false)}>Cancelar</Button><Button type="button" disabled={Math.abs(splitTotal - total) > 0.009} onClick={() => { setIsSplitPayment(true); setIsPaymentModalOpen(false); }}>Aplicar pago combinado</Button></div></div>
       </Dialog>
       <Dialog isOpen={isConfirmOpen} onClose={() => setIsConfirmOpen(false)} title="Confirmar venta" description="Revisa el resumen antes de confirmar el cobro y descontar el stock." maxWidth="md">
         <div className="space-y-4">
@@ -628,10 +646,25 @@ export const NewSaleForm = ({
       >
         <div className="space-y-5">
           {completedSale && <SaleTicket sale={completedSale} />}
+          {cashDrawerUnavailable && (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              La venta fue registrada. No se pudo comunicar con la gaveta local; verifica que el puente POS esté activo.
+            </p>
+          )}
           <p className="text-sm text-slate-600">¿Deseas imprimir el ticket de venta ahora?</p>
           <div className="flex justify-end gap-3">
             <Button type="button" variant="ghost" onClick={() => { setCompletedSale(null); onComplete(); }}>No imprimir</Button>
-            <Button type="button" className="gap-2" onClick={() => { printSaleTicket(); setCompletedSale(null); onComplete(); }}>
+            <Button type="button" className="gap-2" onClick={() => {
+              if (!completedSale) return;
+              void printSaleTicket(completedSale).then((printed) => {
+                if (!printed) {
+                  toast.error("No se pudo enviar el ticket a la impresora térmica local.");
+                  return;
+                }
+                setCompletedSale(null);
+                onComplete();
+              });
+            }}>
               <Printer className="h-4 w-4" /> Imprimir ticket
             </Button>
           </div>

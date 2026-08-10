@@ -4,6 +4,8 @@ export type SystemUser = {
   id: string;
   fullName: string;
   email: string;
+  personalEmail: string | null;
+  dni: string | null;
   role: ManagedUserRole;
   isActive: boolean;
   lastLoginAt: string | null;
@@ -24,6 +26,8 @@ export type AccessRoleDefinition = { id: string; code: string; name: string; des
 export type CreateUserInput = {
   fullName: string;
   email: string;
+  personalEmail: string;
+  dni: string;
   password: string;
   role: ManagedUserRole;
   permissions: string[];

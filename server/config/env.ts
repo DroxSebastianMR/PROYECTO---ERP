@@ -16,6 +16,16 @@ export const env = {
   JWT_SECRET: process.env.JWT_SECRET!,
   ACCESS_TOKEN_TTL: process.env.AUTH_ACCESS_TOKEN_TTL ?? "15m",
   REFRESH_TOKEN_DAYS: Number(process.env.AUTH_REFRESH_TOKEN_DAYS ?? 30),
+  PASSWORD_RESET_TOKEN_TTL_MINUTES: Number(process.env.PASSWORD_RESET_TOKEN_TTL_MINUTES ?? 30),
   JWT_ISSUER: process.env.JWT_ISSUER ?? "districorp-erp-api",
   JWT_AUDIENCE: process.env.JWT_AUDIENCE ?? "districorp-erp-web",
+  SMTP: {
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT ?? 587),
+    secure: process.env.SMTP_SECURE === "true",
+    username: process.env.SMTP_USERNAME,
+    password: process.env.SMTP_PASSWORD,
+    fromEmail: process.env.SMTP_FROM_EMAIL,
+    fromName: process.env.SMTP_FROM_NAME ?? "Clienty - Sistema de Ventas",
+  },
 };

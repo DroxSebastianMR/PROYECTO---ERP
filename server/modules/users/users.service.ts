@@ -26,6 +26,8 @@ const safeSelect = {
   id: true,
   fullName: true,
   email: true,
+  personalEmail: true,
+  dni: true,
   role: true,
   isActive: true,
   lastLoginAt: true,
@@ -58,17 +60,24 @@ export const usersService = {
 
   async create(
     companyId: string,
-    input: { fullName: string; email: string; password: string; role: UserRole; permissions?: string[] },
+    input: { fullName: string; email: string; personalEmail: string; dni: string; password: string; role: UserRole; permissions?: string[] },
   ) {
     const email = input.email.trim().toLowerCase();
-    const existing = await prisma.user.findUnique({ where: { email }, select: { id: true } });
-    if (existing) throw new UsersError("Ya existe un usuario con este correo.", 409);
+    const personalEmail = input.personalEmail.trim().toLowerCase();
+    const dni = input.dni.trim();
+    const existing = await prisma.user.findFirst({
+      where: { OR: [{ email }, { personalEmail }, { dni }] },
+      select: { id: true },
+    });
+    if (existing) throw new UsersError("Ya existe un usuario con este correo o DNI.", 409);
 
     const user = await prisma.user.create({
       data: {
         companyId,
         fullName: input.fullName.trim(),
         email,
+        personalEmail,
+        dni,
         passwordHash: await passwordService.hash(input.password),
         role: input.role,
       },
@@ -82,7 +91,7 @@ export const usersService = {
     companyId: string,
     actorId: string,
     id: string,
-    input: { fullName?: string; role?: UserRole; isActive?: boolean; permissions?: string[] },
+    input: { fullName?: string; personalEmail?: string | null; dni?: string | null; role?: UserRole; isActive?: boolean; permissions?: string[] },
   ) {
     const user = await prisma.user.findFirst({ where: { id, companyId }, select: { id: true, role: true, isActive: true } });
     if (!user) throw new UsersError("Usuario no encontrado.", 404);
@@ -99,6 +108,10 @@ export const usersService = {
       where: { id },
       data: {
         ...(input.fullName !== undefined ? { fullName: input.fullName.trim() } : {}),
+        ...(input.personalEmail !== undefined
+          ? { personalEmail: input.personalEmail?.trim().toLowerCase() || null }
+          : {}),
+        ...(input.dni !== undefined ? { dni: input.dni?.trim() || null } : {}),
         ...(input.role ? { role: input.role } : {}),
         ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
       },

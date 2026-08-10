@@ -18,6 +18,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { useToast } from "@/components/ui/toast";
 import { ProductFormStepper } from "@/features/products/components/product-form-stepper";
 import { productImageStorage } from "@/features/products/services/product-image-storage.service";
 import type {
@@ -48,6 +49,7 @@ export const ProductFormModal = ({
   onCreateMeasurementUnit,
   isSubmitting,
 }: ProductFormModalProps) => {
+  const toast = useToast();
   const isEditing = Boolean(product);
   const [activeStep, setActiveStep] = useState<1 | 2 | 3>(1);
   const [submitRequested, setSubmitRequested] = useState(false);
@@ -156,7 +158,7 @@ export const ProductFormModal = ({
     try {
       productImageStorage.validate(file);
     } catch (error) {
-      alert(error instanceof Error ? error.message : "La imagen seleccionada no es válida.");
+      toast.error(error instanceof Error ? error.message : "La imagen seleccionada no es válida.");
       return;
     }
     const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
@@ -200,14 +202,14 @@ export const ProductFormModal = ({
     const finalCategory = useCustomCategory ? customCategory.trim() : formData.category;
 
     if (!formData.name.trim() || !finalCategory) {
-      alert("Por favor completa los campos obligatorios: Nombre y Categoría.");
+      toast.warning("Completa los campos obligatorios: nombre y categoría.");
       setActiveStep(1);
       return;
     }
 
     const salePriceNum = parseFloat(formData.salePrice);
     if (isNaN(salePriceNum) || salePriceNum < 0) {
-      alert("El precio de venta debe ser un número positivo.");
+      toast.warning("El precio de venta debe ser un número positivo.");
       setActiveStep(2);
       return;
     }
@@ -239,7 +241,7 @@ export const ProductFormModal = ({
       if (pendingImage) clearPendingImage();
     } catch (error) {
       if (uploadedImage) await productImageStorage.remove(uploadedImage.path).catch(() => undefined);
-      alert(error instanceof Error ? error.message : "No se pudo registrar el producto.");
+      toast.error(error instanceof Error ? error.message : "No se pudo registrar el producto.");
     } finally {
       setIsUploadingImage(false);
     }

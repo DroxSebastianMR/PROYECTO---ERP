@@ -19,6 +19,8 @@ export const UserFormModal = ({ isOpen, isSubmitting, onClose, onSubmit, roles }
   const [form, setForm] = useState<CreateUserInput>({
     fullName: "",
     email: "",
+    personalEmail: "",
+    dni: "",
     password: "",
     role: "SALES_PURCHASING",
     permissions: [],
@@ -29,7 +31,7 @@ export const UserFormModal = ({ isOpen, isSubmitting, onClose, onSubmit, roles }
     setError(null);
     try {
       await onSubmit(form);
-      setForm({ fullName: "", email: "", password: "", role: "SALES_PURCHASING", permissions: [] });
+      setForm({ fullName: "", email: "", personalEmail: "", dni: "", password: "", role: "SALES_PURCHASING", permissions: [] });
       setActiveTab("account");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "No se pudo crear el usuario.");
@@ -72,7 +74,34 @@ export const UserFormModal = ({ isOpen, isSubmitting, onClose, onSubmit, roles }
             type="email"
             value={form.email}
             onChange={(event) => setForm({ ...form, email: event.target.value })}
-            placeholder="usuario@empresa.pe"
+            placeholder="usuario@clienty.pe"
+            className="mt-1.5"
+          />
+        </label>
+        <label className="block text-sm font-medium text-slate-700">
+          Correo personal para recuperación
+          <Input
+            required
+            type="email"
+            autoComplete="email"
+            value={form.personalEmail}
+            onChange={(event) => setForm({ ...form, personalEmail: event.target.value })}
+            placeholder="nombre@gmail.com"
+            className="mt-1.5"
+          />
+          <span className="mt-1.5 block text-xs font-normal text-slate-500">
+            Se utilizará únicamente para enviar el enlace de recuperación de contraseña.
+          </span>
+        </label>
+        <label className="block text-sm font-medium text-slate-700">
+          DNI
+          <Input
+            required
+            inputMode="numeric"
+            maxLength={8}
+            value={form.dni}
+            onChange={(event) => setForm({ ...form, dni: event.target.value.replace(/\D/g, "") })}
+            placeholder="8 dígitos"
             className="mt-1.5"
           />
         </label>

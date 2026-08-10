@@ -2,6 +2,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { Banknote, CircleDollarSign, Save, WalletCards } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/toast";
 import type { CurrentCash } from "@/features/cash/types/cash.types";
 
 const bills = [200, 100, 50, 20, 10];
@@ -10,6 +11,7 @@ const denominations = [...bills, ...coins];
 const money = (value: number) => new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" }).format(value);
 
 export const CashCountTab = ({ current, isSaving, onSave }: { current: CurrentCash; isSaving: boolean; onSave: (input: { denominations: Array<{ denomination: number; quantity: number }>; explanation?: string }) => Promise<unknown> }) => {
+  const toast = useToast();
   const [quantities, setQuantities] = useState<Record<number, number>>(() => Object.fromEntries(denominations.map((value) => [value, 0])));
   const [explanation, setExplanation] = useState("");
   const counted = useMemo(() => denominations.reduce((total, denomination) => total + denomination * quantities[denomination], 0), [quantities]);
@@ -22,7 +24,7 @@ export const CashCountTab = ({ current, isSaving, onSave }: { current: CurrentCa
       await onSave({ denominations: denominations.map((denomination) => ({ denomination, quantity: quantities[denomination] })), explanation: explanation.trim() || undefined });
       setExplanation("");
     } catch (error) {
-      alert(error instanceof Error ? error.message : "No se pudo guardar el arqueo.");
+      toast.error(error instanceof Error ? error.message : "No se pudo guardar el arqueo.");
     }
   };
 

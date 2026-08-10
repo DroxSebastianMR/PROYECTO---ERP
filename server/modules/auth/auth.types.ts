@@ -14,4 +14,13 @@ export type LoginInput = {
   ipAddress?: string;
   userAgent?: string;
 };
+
+export type PasswordRecoveryInput = {
+  identifier: string;
+};
+
+export type PasswordResetInput = {
+  token: string;
+  password: string;
+};
 export type AuthTokens = { accessToken: string; refreshToken: string; expiresIn: string };
