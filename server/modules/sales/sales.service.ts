@@ -177,7 +177,7 @@ export const salesService = {
         : null,
       prisma.product.findMany({
         where: { companyId, isActive: true, id: { in: productIds } },
-        select: { id: true, taxTreatment: true },
+        select: { id: true, taxTreatment: true, purchasePrice: true },
       }),
     ]);
     if (!warehouse) throw new SaleError("Almacén de venta inválido.", 404);
@@ -185,10 +185,11 @@ export const salesService = {
     if (products.length !== productIds.length)
       throw new SaleError("Uno o más productos no son válidos.", 404);
 
-    const taxTreatmentByProductId = new Map(products.map((product) => [product.id, product.taxTreatment]));
+    const productById = new Map(products.map((product) => [product.id, product]));
     const itemsWithTaxTreatment = input.items.map((item) => ({
       ...item,
-      taxTreatment: taxTreatmentByProductId.get(item.productId)!,
+      taxTreatment: productById.get(item.productId)!.taxTreatment,
+      unitCost: Number(productById.get(item.productId)!.purchasePrice ?? 0),
     }));
     const amount = calculate(itemsWithTaxTreatment);
     const payments = input.paymentMethod === SalePaymentMethod.CREDIT
@@ -253,6 +254,7 @@ export const salesService = {
                 productId: item.productId,
                 quantity: item.quantity,
                 unitPrice: item.unitPrice,
+                unitCost: toMoney(item.unitCost),
                 discount: item.discount ?? 0,
                 taxRate: item.taxTreatment === TaxTreatment.TAXED ? 18 : 0,
                 subtotal: toMoney(item.quantity * item.unitPrice - (item.discount ?? 0)),

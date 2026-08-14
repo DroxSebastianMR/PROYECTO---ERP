@@ -19,6 +19,7 @@ export interface SaleItem {
   unit: string;
   quantity: number;
   unitPrice: number;
+  unitCost: number;
   discount: number;
   subtotal: number;
 }
