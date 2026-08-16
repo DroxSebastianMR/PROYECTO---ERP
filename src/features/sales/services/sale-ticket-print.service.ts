@@ -47,6 +47,10 @@ const captureTicket = async (ticketId: string) => {
       cacheBust: true,
       pixelRatio: 3,
     });
+  } catch {
+    // The image is optional. A logo or external asset must never stop the
+    // thermal ticket from being delivered to the local POS bridge.
+    return undefined;
   } finally {
     printableTicket.remove();
   }

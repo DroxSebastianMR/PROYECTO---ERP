@@ -26,9 +26,13 @@ export const SaleTicketPreviewModal = ({ sale, isOpen, onClose }: SaleTicketPrev
   const zoom = zoomLevels[zoomIndex];
   const print = async () => {
     setIsPrinting(true);
-    const printed = await printSaleTicket(sale, ticketId);
-    setIsPrinting(false);
-    if (!printed) toast.error("No se pudo enviar el ticket a la impresora térmica local.");
+    try {
+      const printed = await printSaleTicket(sale, ticketId);
+      if (!printed) toast.error("No se pudo enviar el ticket a la impresora térmica local.");
+      else toast.success("Ticket enviado a la impresora térmica.");
+    } finally {
+      setIsPrinting(false);
+    }
   };
 
   return (

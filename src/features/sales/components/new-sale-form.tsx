@@ -164,6 +164,7 @@ export const NewSaleForm = ({
   const [completedSale, setCompletedSale] = useState<SaleReceipt | null>(null);
   const [cashDrawerUnavailable, setCashDrawerUnavailable] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isPrintingTicket, setIsPrintingTicket] = useState(false);
   const [detailProduct, setDetailProduct] = useState<Product | null>(null);
   const activeWarehouseId = warehouses[0]?.id || "";
   const warehouseName = warehouses.find((warehouse) => warehouse.id === activeWarehouseId)?.name;
@@ -654,18 +655,20 @@ export const NewSaleForm = ({
           <p className="text-sm text-slate-600">¿Deseas imprimir el ticket de venta ahora?</p>
           <div className="flex justify-end gap-3">
             <Button type="button" variant="ghost" onClick={() => { setCompletedSale(null); onComplete(); }}>No imprimir</Button>
-            <Button type="button" className="gap-2" onClick={() => {
+            <Button type="button" className="gap-2" disabled={isPrintingTicket} onClick={() => {
               if (!completedSale) return;
+              setIsPrintingTicket(true);
               void printSaleTicket(completedSale).then((printed) => {
                 if (!printed) {
                   toast.error("No se pudo enviar el ticket a la impresora térmica local.");
                   return;
                 }
+                toast.success("Ticket enviado a la impresora térmica.");
                 setCompletedSale(null);
                 onComplete();
-              });
+              }).finally(() => setIsPrintingTicket(false));
             }}>
-              <Printer className="h-4 w-4" /> Imprimir ticket
+              <Printer className="h-4 w-4" /> {isPrintingTicket ? "Enviando a impresora..." : "Imprimir ticket"}
             </Button>
           </div>
         </div>
