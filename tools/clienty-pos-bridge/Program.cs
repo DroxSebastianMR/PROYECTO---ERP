@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Sockets;
 using System.Globalization;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -13,8 +14,7 @@ var printerName = GetOption(args, "--printer") ?? defaultPrinterName;
 var drawerPin = GetOption(args, "--drawer-pin") == "5" ? (byte)1 : (byte)0;
 var allowedOrigins = GetAllowedOrigins();
 
-using var listener = new HttpListener();
-listener.Prefixes.Add(bridgeAddress);
+using var listener = new TcpListener(IPAddress.Loopback, 9415);
 listener.Start();
 
 Console.WriteLine("Clienty POS Bridge activo.");
@@ -23,81 +23,76 @@ Console.WriteLine($"Escuchando en: {bridgeAddress}");
 
 while (true)
 {
-  var context = await listener.GetContextAsync();
-  _ = Task.Run(() => HandleRequestAsync(context, printerName, drawerPin, allowedOrigins));
+  var client = await listener.AcceptTcpClientAsync();
+  _ = Task.Run(() => HandleRequestAsync(client, printerName, drawerPin, allowedOrigins));
 }
 
 static async Task HandleRequestAsync(
-  HttpListenerContext context,
+  TcpClient client,
   string printerName,
   byte drawerPin,
   HashSet<string> allowedOrigins)
 {
-  var request = context.Request;
-  var response = context.Response;
-  var origin = request.Headers["Origin"];
-
-  if (!string.IsNullOrWhiteSpace(origin) && !allowedOrigins.Contains(origin))
+  using (client)
   {
-    await WriteJsonAsync(response, 403, new { error = "Origen no autorizado." });
-    return;
-  }
+    using var stream = client.GetStream();
+    var request = await ReadRequestAsync(stream);
+    if (request is null) return;
 
-  if (!string.IsNullOrWhiteSpace(origin))
-  {
-    response.Headers["Access-Control-Allow-Origin"] = origin;
-    response.Headers["Vary"] = "Origin";
-    response.Headers["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS";
-    response.Headers["Access-Control-Allow-Headers"] = "Content-Type";
-  }
+    var origin = request.Origin;
 
-  if (request.HttpMethod == "OPTIONS")
-  {
-    response.StatusCode = 204;
-    response.Close();
-    return;
-  }
+    if (!string.IsNullOrWhiteSpace(origin) && !allowedOrigins.Contains(origin))
+    {
+      await WriteJsonAsync(stream, 403, new { error = "Origen no autorizado." });
+      return;
+    }
 
-  if (request.HttpMethod == "GET" && request.Url?.AbsolutePath == "/health")
-  {
-    await WriteJsonAsync(response, 200, new { status = "ok", printer = printerName });
-    return;
-  }
+    if (request.Method == "OPTIONS")
+    {
+      await WriteResponseAsync(stream, 204, null, origin);
+      return;
+    }
 
-  if (request.HttpMethod == "POST" && request.Url?.AbsolutePath == "/api/v1/receipts/print")
-  {
+    if (request.Method == "GET" && request.Path == "/health")
+    {
+      await WriteJsonAsync(stream, 200, new { status = "ok", printer = printerName }, origin);
+      return;
+    }
+
+    if (request.Method == "POST" && request.Path == "/api/v1/receipts/print")
+    {
     try
     {
-      var ticket = await JsonSerializer.DeserializeAsync<ReceiptPrintRequest>(request.InputStream, new JsonSerializerOptions
+      var ticket = JsonSerializer.Deserialize<ReceiptPrintRequest>(request.Body, new JsonSerializerOptions
       {
         PropertyNameCaseInsensitive = true,
       });
       if (ticket is null || string.IsNullOrWhiteSpace(ticket.Number) || ticket.Items is null || ticket.Items.Count == 0)
       {
-        await WriteJsonAsync(response, 400, new { error = "Ticket de venta inválido." });
+        await WriteJsonAsync(stream, 400, new { error = "Ticket de venta inválido." }, origin);
         return;
       }
 
       RawPrinter.PrintReceipt(printerName, ReceiptFormatter.Format(ticket), ticket.TicketImage);
-      await WriteJsonAsync(response, 200, new { status = "printed" });
+      await WriteJsonAsync(stream, 200, new { status = "printed" }, origin);
     }
     catch (Exception exception)
     {
       Console.Error.WriteLine($"No se pudo imprimir el ticket: {exception.Message}");
-      await WriteJsonAsync(response, 503, new { error = "No se pudo comunicar con la impresora." });
+      await WriteJsonAsync(stream, 503, new { error = "No se pudo comunicar con la impresora." }, origin);
     }
-    return;
-  }
+      return;
+    }
 
-  if (request.HttpMethod != "POST" || request.Url?.AbsolutePath != "/api/v1/cash-drawer/open")
-  {
-    await WriteJsonAsync(response, 404, new { error = "Ruta no encontrada." });
-    return;
-  }
+    if (request.Method != "POST" || request.Path != "/api/v1/cash-drawer/open")
+    {
+      await WriteJsonAsync(stream, 404, new { error = "Ruta no encontrada." }, origin);
+      return;
+    }
 
-  try
-  {
-    var payload = await JsonSerializer.DeserializeAsync<CashDrawerRequest>(request.InputStream, new JsonSerializerOptions
+    try
+    {
+    var payload = JsonSerializer.Deserialize<CashDrawerRequest>(request.Body, new JsonSerializerOptions
     {
       PropertyNameCaseInsensitive = true,
     });
@@ -105,17 +100,18 @@ static async Task HandleRequestAsync(
     var isManualOpen = payload?.Reason == "manual-cash-register";
     if (payload is null || (!isManualOpen && (!isCashPayment || string.IsNullOrWhiteSpace(payload.SaleId) || string.IsNullOrWhiteSpace(payload.SaleNumber))))
     {
-      await WriteJsonAsync(response, 400, new { error = "Solicitud de venta inválida." });
+      await WriteJsonAsync(stream, 400, new { error = "Solicitud de venta inválida." }, origin);
       return;
     }
 
     RawPrinter.SendDrawerPulse(printerName, drawerPin);
-    await WriteJsonAsync(response, 200, new { status = "opened" });
-  }
-  catch (Exception exception)
-  {
-    Console.Error.WriteLine($"No se pudo abrir la gaveta: {exception.Message}");
-    await WriteJsonAsync(response, 503, new { error = "No se pudo comunicar con la impresora." });
+    await WriteJsonAsync(stream, 200, new { status = "opened" }, origin);
+    }
+    catch (Exception exception)
+    {
+      Console.Error.WriteLine($"No se pudo abrir la gaveta: {exception.Message}");
+      await WriteJsonAsync(stream, 503, new { error = "No se pudo comunicar con la impresora." }, origin);
+    }
   }
 }
 
@@ -135,17 +131,50 @@ static string? GetOption(string[] args, string option)
   return index >= 0 && index + 1 < args.Length ? args[index + 1] : null;
 }
 
-static async Task WriteJsonAsync(HttpListenerResponse response, int statusCode, object body)
+static async Task<BridgeRequest?> ReadRequestAsync(NetworkStream stream)
 {
-  var json = JsonSerializer.Serialize(body);
-  var bytes = Encoding.UTF8.GetBytes(json);
-  response.StatusCode = statusCode;
-  response.ContentType = "application/json; charset=utf-8";
-  response.ContentLength64 = bytes.Length;
-  await response.OutputStream.WriteAsync(bytes);
-  response.Close();
+  using var reader = new StreamReader(stream, Encoding.UTF8, false, 8192, true);
+  var requestLine = await reader.ReadLineAsync();
+  if (string.IsNullOrWhiteSpace(requestLine)) return null;
+
+  var parts = requestLine.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+  if (parts.Length < 2) return null;
+  var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+  string? line;
+  while (!string.IsNullOrEmpty(line = await reader.ReadLineAsync()))
+  {
+    var separator = line.IndexOf(':');
+    if (separator > 0) headers[line[..separator].Trim()] = line[(separator + 1)..].Trim();
+  }
+
+  var contentLength = headers.TryGetValue("Content-Length", out var rawLength) && int.TryParse(rawLength, out var length) ? length : 0;
+  var body = new char[contentLength];
+  var read = 0;
+  while (read < contentLength)
+  {
+    var count = await reader.ReadAsync(body.AsMemory(read, contentLength - read));
+    if (count == 0) break;
+    read += count;
+  }
+
+  return new BridgeRequest(parts[0].ToUpperInvariant(), parts[1].Split('?')[0], headers.GetValueOrDefault("Origin"), new string(body, 0, read));
 }
 
+static Task WriteJsonAsync(NetworkStream stream, int statusCode, object body, string? origin = null) =>
+  WriteResponseAsync(stream, statusCode, JsonSerializer.Serialize(body), origin);
+
+static async Task WriteResponseAsync(NetworkStream stream, int statusCode, string? body, string? origin = null)
+{
+  var content = body ?? string.Empty;
+  var bytes = Encoding.UTF8.GetBytes(content);
+  var reason = statusCode switch { 200 => "OK", 204 => "No Content", 400 => "Bad Request", 403 => "Forbidden", 404 => "Not Found", 503 => "Service Unavailable", _ => "Error" };
+  var cors = string.IsNullOrWhiteSpace(origin) ? string.Empty : $"Access-Control-Allow-Origin: {origin}\r\nVary: Origin\r\nAccess-Control-Allow-Methods: POST, GET, OPTIONS\r\nAccess-Control-Allow-Headers: Content-Type\r\n";
+  var headers = $"HTTP/1.1 {statusCode} {reason}\r\nContent-Type: application/json; charset=utf-8\r\nContent-Length: {bytes.Length}\r\nConnection: close\r\n{cors}\r\n";
+  await stream.WriteAsync(Encoding.UTF8.GetBytes(headers));
+  if (bytes.Length > 0) await stream.WriteAsync(bytes);
+}
+
+file sealed record BridgeRequest(string Method, string Path, string? Origin, string Body);
 file sealed record CashDrawerRequest(string? SaleId, string? SaleNumber, string Reason);
 file sealed record ReceiptPrintRequest(
   string Number,

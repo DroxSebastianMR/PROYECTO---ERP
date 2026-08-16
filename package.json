@@ -4,9 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently -n api,web -c cyan,blue \"npm:dev:api\" \"npm:dev:web\"",
+    "dev": "concurrently -n api,web,pos -c cyan,blue,magenta \"npm:dev:api\" \"npm:dev:web\" \"npm:dev:pos\"",
     "dev:web": "vite",
     "dev:api": "tsx watch server/server.ts",
+    "dev:pos": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/clienty-pos-bridge/start-dev.ps1",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
