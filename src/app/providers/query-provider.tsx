@@ -30,7 +30,7 @@ export const QueryProvider = ({ children }: { children: ReactNode }) => {
         maxAge: 30 * 60_000,
         dehydrateOptions: {
           shouldDehydrateQuery: (query) =>
-            ["products", "inventory", "purchases", "sales", "customers"].includes(
+            ["products", "inventory", "purchases", "sales", "customers", "dashboard"].includes(
               String(query.queryKey[0]),
             ),
         },

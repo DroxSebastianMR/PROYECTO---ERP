@@ -107,7 +107,12 @@ export const authService = {
       await emailService.send({ to: { email: user.personalEmail }, ...template });
     } catch (error) {
       // Do not disclose account existence through this public endpoint.
-      console.error("Password recovery email could not be sent", error);
+      const cause = error instanceof Error && error.cause instanceof Error ? error.cause : error;
+      console.error("Password recovery email could not be sent", {
+        name: cause instanceof Error ? cause.name : "UnknownError",
+        message: cause instanceof Error ? cause.message : String(cause),
+        code: cause && typeof cause === "object" && "code" in cause ? String(cause.code) : undefined,
+      });
     }
   },
   async resetPassword(input: PasswordResetInput) {

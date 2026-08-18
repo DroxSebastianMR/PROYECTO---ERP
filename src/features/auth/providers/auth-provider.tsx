@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { authService } from "@/features/auth/services/auth.service";
 import {
   AUTH_SESSION_STORAGE_KEY,
@@ -28,6 +29,7 @@ const hasUsableAccessToken = (token?: string) => {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<AuthenticatedUser | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
   const [isSessionPromptOpen, setIsSessionPromptOpen] = useState(false);
@@ -36,6 +38,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const storedSession = authStorageService.get();
     const activeAccessToken = getAccessToken();
     authStorageService.clear();
+    queryClient.clear();
+    window.localStorage.removeItem("districorp.query-cache");
     setUser(null);
     setAccessToken(null);
 
@@ -45,7 +49,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch {
       // Local logout must always succeed, even if the server is unreachable.
     }
-  }, []);
+  }, [queryClient]);
 
   const login = useCallback(async (credentials: LoginCredentials) => {
     const response = await authService.login(credentials);
@@ -90,6 +94,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(response.user);
       } catch {
         authStorageService.clear();
+        queryClient.clear();
+        window.localStorage.removeItem("districorp.query-cache");
         setAccessToken(null);
       } finally {
         setIsInitializing(false);
@@ -97,7 +103,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     void restoreSession();
-  }, []);
+  }, [queryClient]);
 
   const keepSessionAlive = useCallback(async () => {
     const storedSession = authStorageService.get();

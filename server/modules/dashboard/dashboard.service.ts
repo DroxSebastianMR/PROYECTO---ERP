@@ -39,7 +39,13 @@ export const dashboardService = {
       prisma.customer.count({ where: { companyId, isActive: true } }),
       prisma.inventoryStock.findMany({
         where: { warehouse: { companyId }, product: { isActive: true } },
-        include: { product: true, warehouse: true },
+        select: {
+          id: true,
+          quantity: true,
+          minimum: true,
+          product: { select: { name: true, sku: true, unit: true, purchasePrice: true } },
+          warehouse: { select: { name: true } },
+        },
       }),
       prisma.sale.aggregate({
         where: { companyId, createdAt: { gte: today }, status: { in: paidStatuses } },
@@ -65,7 +71,13 @@ export const dashboardService = {
         where: { companyId },
         orderBy: { createdAt: "desc" },
         take: 10,
-        include: { customer: { select: { name: true } } },
+        select: {
+          number: true,
+          total: true,
+          status: true,
+          createdAt: true,
+          customer: { select: { name: true } },
+        },
       }),
       prisma.purchase.findMany({
         where: { companyId },

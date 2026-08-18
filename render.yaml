@@ -19,6 +19,21 @@ services:
         generateValue: true
       - key: CLIENT_URL
         sync: false
+      # Configure these secrets in Render. They are intentionally never sent to Netlify.
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_SECURE
+        value: "false"
+      - key: SMTP_USERNAME
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM_EMAIL
+        sync: false
+      - key: SMTP_FROM_NAME
+        value: Clienty - Sistema de Ventas
       - key: AUTH_ACCESS_TOKEN_TTL
         value: 15m
       - key: AUTH_REFRESH_TOKEN_DAYS

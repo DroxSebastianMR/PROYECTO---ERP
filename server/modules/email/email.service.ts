@@ -32,6 +32,10 @@ class EmailService {
         replyTo: input.replyTo,
       });
 
+      if (!result.accepted.length) {
+        throw new Error(`El proveedor SMTP rechazó el destinatario: ${result.rejected.join(", ") || "desconocido"}.`);
+      }
+
       return { messageId: result.messageId, accepted: result.accepted };
     } catch (error) {
       if (error instanceof EmailConfigurationError) throw error;
@@ -53,6 +57,9 @@ class EmailService {
       port: env.SMTP.port,
       secure: env.SMTP.secure,
       auth: { user: env.SMTP.username, pass: env.SMTP.password },
+      connectionTimeout: 15_000,
+      greetingTimeout: 15_000,
+      socketTimeout: 30_000,
     });
     return this.transporter;
   }
