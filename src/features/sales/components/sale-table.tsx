@@ -1,6 +1,7 @@
 import { Eye, Tag, Printer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { SaleReceipt } from "@/features/sales/types/sale.types";
+import { salePaymentMethodLabel } from "@/features/sales/utils/sale-labels";
 
 interface SaleTableProps {
   sales: SaleReceipt[];
@@ -70,7 +71,7 @@ export const SaleTable = ({ sales, onView, onPrint }: SaleTableProps) => {
                   </td>
                   <td className="whitespace-nowrap px-6 py-4">
                     <span className="inline-flex items-center rounded-md bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
-                      {sale.paymentMethod}
+                      {salePaymentMethodLabel(sale.paymentMethod)}
                     </span>
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-right font-bold text-slate-900">
