@@ -108,6 +108,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const keepSessionAlive = useCallback(async () => {
     const storedSession = authStorageService.get();
     if (!storedSession) return;
+
+    // Acknowledge the action immediately. Refreshing is a background operation and
+    // should never make the operator wait behind the session prompt.
+    setIsSessionPromptOpen(false);
+
     try {
       const response = await authService.refreshToken(storedSession.session.refreshToken);
       authStorageService.save(
@@ -120,9 +125,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       );
       setAccessToken(response.tokens.accessToken);
       setUser(response.user);
-      setIsSessionPromptOpen(false);
     } catch {
-      // Do not force logout on a transient network failure; the user can retry.
+      // Do not force logout on a transient network failure. The current token can
+      // still serve requests until it expires and the next prompt will retry.
     }
   }, []);
 

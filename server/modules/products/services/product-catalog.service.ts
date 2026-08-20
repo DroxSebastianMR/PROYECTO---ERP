@@ -28,10 +28,14 @@ export const productCatalogService = {
   getById: (companyId: string, id: string) => productsRepository.findById(companyId, id),
 
   async create(companyId: string, input: ProductInput) {
-    await productValidationService.ensureBarcodeAvailable(companyId, input.barcode);
     await productValidationService.validatePresentations(companyId, input.presentations);
     const classification = await productClassificationService.resolve(companyId, input);
     const sku = await productIdentifiersService.nextSku(companyId, classification.categoryName);
+    const primaryBarcode = normalizeProductText(input.barcode) ?? sku;
+
+    // The SKU is a stable internal identifier, so it is the safe default for every new product.
+    // A manually entered barcode remains supported and becomes the primary code instead.
+    await productValidationService.ensureBarcodeAvailable(companyId, primaryBarcode);
 
     return prisma.$transaction(
       async (transaction) => {
@@ -39,7 +43,7 @@ export const productCatalogService = {
           data: {
             companyId,
             sku,
-            barcode: normalizeProductText(input.barcode),
+            barcode: primaryBarcode,
             name: input.name.trim(),
             categoryId: classification.categoryId,
             brandId: classification.brandId,
@@ -55,6 +59,14 @@ export const productCatalogService = {
             presentations: input.presentations?.length
               ? { create: presentationsData(companyId, input.presentations) }
               : undefined,
+            barcodes: {
+              create: {
+                companyId,
+                code: primaryBarcode,
+                format: "CODE128",
+                isPrimary: true,
+              },
+            },
           },
           include: productInclude,
         });
