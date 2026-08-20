@@ -9,9 +9,9 @@ a una impresora térmica USB. No se despliega en Render ni se expone a la red.
 dotnet run --project tools/clienty-pos-bridge -- --printer "POS-80-Series"
 ```
 
-Mantén esa consola abierta durante la operación de caja. La aplicación escucha
-solo en `http://127.0.0.1:9415`, imprime en RAW ESC/POS y usa `ESC p` para abrir
-la gaveta por el pin 2. Si el modelo usa el pin 5, ejecuta:
+Para desarrollo, mantén esa consola abierta durante la operación de caja. La
+aplicación escucha solo en `http://127.0.0.1:9415`, imprime en RAW ESC/POS y usa
+`ESC p` para abrir la gaveta por el pin 2. Si el modelo usa el pin 5, ejecuta:
 
 ```powershell
 dotnet run --project tools/clienty-pos-bridge -- --printer "POS-80-Series" --drawer-pin 5
@@ -69,5 +69,7 @@ sí mismo al USB de una computadora.
    .\install.ps1 -PrinterName "POS-80-Series"
    ```
 
-El instalador crea el inicio automático solo para el usuario actual de Windows.
-El puente se inicia al abrir sesión y permanece accesible solo desde esa PC.
+El instalador registra una tarea programada solo para el usuario actual de
+Windows. El puente inicia al abrir sesión de forma invisible, se reinicia si
+falla y permanece accesible únicamente desde esa PC. No cierres ni abras una
+consola para el uso diario.
