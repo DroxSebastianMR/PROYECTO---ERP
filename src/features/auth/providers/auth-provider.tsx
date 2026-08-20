@@ -6,7 +6,11 @@ import {
   authStorageService,
 } from "@/features/auth/services/auth-storage.service";
 import { AuthContext, type AuthContextValue } from "@/features/auth/providers/auth-context";
-import { getAccessToken, setAccessToken } from "@/infrastructure/api/client/axios.instance";
+import {
+  configureAccessTokenRefresh,
+  getAccessToken,
+  setAccessToken,
+} from "@/infrastructure/api/client/axios.instance";
 import {
   AuthStorage,
   type AuthenticatedUser,
@@ -65,6 +69,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(response.user);
   }, []);
 
+  const refreshAccessToken = useCallback(async (): Promise<string | null> => {
+    const storedSession = authStorageService.get();
+    if (!storedSession) return null;
+
+    try {
+      const response = await authService.refreshToken(storedSession.session.refreshToken);
+      authStorageService.save(
+        {
+          user: response.user,
+          refreshToken: response.tokens.refreshToken,
+          accessToken: response.tokens.accessToken,
+        },
+        storedSession.storage,
+      );
+      setAccessToken(response.tokens.accessToken);
+      setUser(response.user);
+      return response.tokens.accessToken;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  useEffect(() => {
+    configureAccessTokenRefresh(refreshAccessToken);
+    return () => configureAccessTokenRefresh(null);
+  }, [refreshAccessToken]);
+
   useEffect(() => {
     const restoreSession = async () => {
       const storedSession = authStorageService.get();
@@ -114,22 +145,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsSessionPromptOpen(false);
 
     try {
-      const response = await authService.refreshToken(storedSession.session.refreshToken);
-      authStorageService.save(
-        {
-          user: response.user,
-          refreshToken: response.tokens.refreshToken,
-          accessToken: response.tokens.accessToken,
-        },
-        storedSession.storage,
-      );
-      setAccessToken(response.tokens.accessToken);
-      setUser(response.user);
+      await refreshAccessToken();
     } catch {
       // Do not force logout on a transient network failure. The current token can
       // still serve requests until it expires and the next prompt will retry.
     }
-  }, []);
+  }, [refreshAccessToken]);
 
   useEffect(() => {
     if (!user) return;
