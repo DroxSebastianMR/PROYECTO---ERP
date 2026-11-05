@@ -13,6 +13,7 @@ import { customersRouter } from "./modules/customers/customers.routes.js";
 import { barcodesRouter } from "./modules/barcodes/barcodes.routes.js";
 import { requireAuthentication } from "./modules/auth/auth.middleware.js";
 import { cashRouter } from "./modules/cash/cash.routes.js";
+import { reportsRouter } from "./modules/reports/reports.routes.js";
 import { requirePermission, type Permission } from "./modules/auth/permissions.js";
 
 export function createApp() {
@@ -60,6 +61,7 @@ export function createApp() {
   protectedRoutes.use("/users", requirePermission("users.manage"), usersRouter);
   protectedRoutes.use("/notifications", notificationsRouter);
   protectedRoutes.use("/cash", authorizeModule("cash.access", "cash.sessions.manage"), cashRouter);
+  protectedRoutes.use("/reports", authorizeModule("reports.access", "reports.export"), reportsRouter);
   app.use("/api", protectedRoutes);
   app.use(
     (error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

@@ -1,4 +1,4 @@
-import { AlertTriangle, Boxes, CreditCard, Store } from "lucide-react";
+import { AlertTriangle, Boxes, CircleDollarSign, Store, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { PATHS } from "@/app/router/constants/paths";
 import { useAuth } from "@/features/auth/hooks/use-auth";
@@ -22,9 +22,9 @@ export const DashboardPage = () => {
     <header><h1 className="text-2xl font-bold tracking-[-.045em] sm:text-[30px]">Dashboard</h1><p className="mt-1 text-[15px] text-slate-700">Bienvenido nuevamente, {user?.fullName ?? "usuario"}.</p></header>
     <section className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-5">
       <MetricCard title="Ventas del día" value={money(data.metrics.todaySales)} Icon={Store} />
-      <MetricCard title="Ventas del mes" value={money(data.metrics.monthIncome)} Icon={CreditCard} />
-      <MetricCard title="Valor del stock" value={money(data.metrics.stockValue)} Icon={Boxes} />
-      <MetricCard title="Prod. registrados" value={String(data.metrics.products)} Icon={Boxes} />
+      <MetricCard title="Valor stock compras" value={money(data.metrics.stockPurchaseValue)} Icon={CircleDollarSign} />
+      <MetricCard title="Valor stock ventas" value={money(data.metrics.stockSalesValue)} Icon={Boxes} />
+      <MetricCard title="Margen estimado" value={money(data.metrics.stockMargin)} Icon={TrendingUp} />
       <MetricCard title="Stock bajo" value={String(data.metrics.lowStock)} Icon={AlertTriangle} alert />
     </section>
     <section className="mt-6 grid min-w-0 gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)] xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">

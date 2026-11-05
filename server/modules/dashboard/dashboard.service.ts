@@ -4,7 +4,6 @@ import { prisma } from "../../lib/prisma.js";
 const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 const startOfDay = (date = new Date()) =>
   new Date(date.getFullYear(), date.getMonth(), date.getDate());
-const startOfMonth = (date = new Date()) => new Date(date.getFullYear(), date.getMonth(), 1);
 const dateLabel = (date: Date) =>
   new Intl.DateTimeFormat("es-PE", { dateStyle: "short", timeStyle: "short" }).format(date);
 const saleStatus = (status: SaleStatus) =>
@@ -21,42 +20,27 @@ export const dashboardService = {
     const yearStart = new Date(year, 0, 1);
     const yearEnd = new Date(year + 1, 0, 1);
     const today = startOfDay(now);
-    const month = startOfMonth(now);
     const [
-      products,
-      customers,
       stocks,
       todaySales,
-      monthPurchases,
-      monthIncome,
       yearlySales,
       recentSales,
       recentPurchases,
       recentCustomers,
       recentMovements,
     ] = await Promise.all([
-      prisma.product.count({ where: { companyId, isActive: true } }),
-      prisma.customer.count({ where: { companyId, isActive: true } }),
       prisma.inventoryStock.findMany({
         where: { warehouse: { companyId }, product: { isActive: true } },
         select: {
           id: true,
           quantity: true,
           minimum: true,
-          product: { select: { name: true, sku: true, unit: true, purchasePrice: true } },
+          product: { select: { name: true, sku: true, unit: true, purchasePrice: true, salePrice: true } },
           warehouse: { select: { name: true } },
         },
       }),
       prisma.sale.aggregate({
         where: { companyId, createdAt: { gte: today }, status: { in: paidStatuses } },
-        _sum: { total: true },
-      }),
-      prisma.purchase.aggregate({
-        where: { companyId, createdAt: { gte: month }, status: { not: "CANCELLED" } },
-        _sum: { total: true },
-      }),
-      prisma.sale.aggregate({
-        where: { companyId, createdAt: { gte: month }, status: { in: paidStatuses } },
         _sum: { total: true },
       }),
       prisma.sale.findMany({
@@ -137,16 +121,21 @@ export const dashboardService = {
     return {
       metrics: {
         todaySales: Number(todaySales._sum.total ?? 0),
-        monthPurchases: Number(monthPurchases._sum.total ?? 0),
-        products,
-        customers,
-        monthIncome: Number(monthIncome._sum.total ?? 0),
-        lowStock: stocks.filter((stock) => stock.quantity.lessThanOrEqualTo(stock.minimum)).length,
-        stockValue: stocks.reduce(
-          (total, stock) =>
-            total + Number(stock.quantity) * Number(stock.product.purchasePrice ?? 0),
+        stockPurchaseValue: stocks.reduce(
+          (total, stock) => total + Number(stock.quantity) * Number(stock.product.purchasePrice ?? 0),
           0,
         ),
+        stockSalesValue: stocks.reduce(
+          (total, stock) => total + Number(stock.quantity) * Number(stock.product.salePrice),
+          0,
+        ),
+        stockMargin: stocks.reduce(
+          (total, stock) =>
+            total +
+            Number(stock.quantity) * (Number(stock.product.salePrice) - Number(stock.product.purchasePrice ?? 0)),
+          0,
+        ),
+        lowStock: stocks.filter((stock) => stock.quantity.lessThanOrEqualTo(stock.minimum)).length,
       },
       sales: months.map((name, index) => ({ month: name, ...monthlySales[index] })),
       recentSales: recentSales.map((sale) => ({

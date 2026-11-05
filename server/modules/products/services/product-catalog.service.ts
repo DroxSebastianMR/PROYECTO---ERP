@@ -27,14 +27,23 @@ export const productCatalogService = {
 
   getById: (companyId: string, id: string) => productsRepository.findById(companyId, id),
 
+  async checkBarcodeAvailability(companyId: string, barcode: string, productId?: string) {
+    try {
+      await productValidationService.ensureBarcodeAvailable(companyId, barcode, productId);
+      return { barcode: normalizeProductText(barcode) ?? barcode, available: true };
+    } catch (error) {
+      if (error instanceof ProductCatalogError && error.status === 409) {
+        return { barcode: normalizeProductText(barcode) ?? barcode, available: false, message: error.message };
+      }
+      throw error;
+    }
+  },
+
   async create(companyId: string, input: ProductInput) {
     await productValidationService.validatePresentations(companyId, input.presentations);
     const classification = await productClassificationService.resolve(companyId, input);
     const sku = await productIdentifiersService.nextSku(companyId, classification.categoryName);
-    const primaryBarcode = normalizeProductText(input.barcode) ?? sku;
-
-    // The SKU is a stable internal identifier, so it is the safe default for every new product.
-    // A manually entered barcode remains supported and becomes the primary code instead.
+    const primaryBarcode = normalizeProductText(input.barcode);
     await productValidationService.ensureBarcodeAvailable(companyId, primaryBarcode);
 
     return prisma.$transaction(
@@ -59,14 +68,18 @@ export const productCatalogService = {
             presentations: input.presentations?.length
               ? { create: presentationsData(companyId, input.presentations) }
               : undefined,
-            barcodes: {
-              create: {
-                companyId,
-                code: primaryBarcode,
-                format: "CODE128",
-                isPrimary: true,
-              },
-            },
+            ...(primaryBarcode
+              ? {
+                  barcodes: {
+                    create: {
+                      companyId,
+                      code: primaryBarcode,
+                      format: "CODE128",
+                      isPrimary: true,
+                    },
+                  },
+                }
+              : {}),
           },
           include: productInclude,
         });
@@ -85,7 +98,8 @@ export const productCatalogService = {
 
   async update(companyId: string, id: string, input: ProductInput) {
     const existing = await assertProductExists(companyId, id);
-    await productValidationService.ensureBarcodeAvailable(companyId, input.barcode, id);
+    const primaryBarcode = normalizeProductText(input.barcode);
+    await productValidationService.ensureBarcodeAvailable(companyId, primaryBarcode, id);
     await productValidationService.validatePresentations(companyId, input.presentations, id);
     const classification = await productClassificationService.resolve(companyId, input);
 
@@ -96,7 +110,7 @@ export const productCatalogService = {
           where: { id },
           data: {
             sku: existing.sku,
-            barcode: normalizeProductText(input.barcode),
+            barcode: primaryBarcode,
             name: input.name.trim(),
             categoryId: classification.categoryId,
             brandId: classification.brandId,
@@ -112,6 +126,19 @@ export const productCatalogService = {
             ...(input.presentations
               ? { presentations: { create: presentationsData(companyId, input.presentations) } }
               : {}),
+            barcodes: {
+              deleteMany: {},
+              ...(primaryBarcode
+                ? {
+                    create: {
+                      companyId,
+                      code: primaryBarcode,
+                      format: "CODE128",
+                      isPrimary: true,
+                    },
+                  }
+                : {}),
+            },
           },
           include: productInclude,
         });
