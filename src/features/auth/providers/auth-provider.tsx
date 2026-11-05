@@ -1,11 +1,16 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { authService } from "@/features/auth/services/auth.service";
 import {
   AUTH_SESSION_STORAGE_KEY,
   authStorageService,
 } from "@/features/auth/services/auth-storage.service";
 import { AuthContext, type AuthContextValue } from "@/features/auth/providers/auth-context";
-import { getAccessToken, setAccessToken } from "@/infrastructure/api/client/axios.instance";
+import {
+  configureAccessTokenRefresh,
+  getAccessToken,
+  setAccessToken,
+} from "@/infrastructure/api/client/axios.instance";
 import {
   AuthStorage,
   type AuthenticatedUser,
@@ -28,6 +33,7 @@ const hasUsableAccessToken = (token?: string) => {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<AuthenticatedUser | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
   const [isSessionPromptOpen, setIsSessionPromptOpen] = useState(false);
@@ -36,6 +42,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const storedSession = authStorageService.get();
     const activeAccessToken = getAccessToken();
     authStorageService.clear();
+    queryClient.clear();
+    window.localStorage.removeItem("districorp.query-cache");
     setUser(null);
     setAccessToken(null);
 
@@ -45,7 +53,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch {
       // Local logout must always succeed, even if the server is unreachable.
     }
-  }, []);
+  }, [queryClient]);
 
   const login = useCallback(async (credentials: LoginCredentials) => {
     const response = await authService.login(credentials);
@@ -60,6 +68,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setAccessToken(response.tokens.accessToken);
     setUser(response.user);
   }, []);
+
+  const refreshAccessToken = useCallback(async (): Promise<string | null> => {
+    const storedSession = authStorageService.get();
+    if (!storedSession) return null;
+
+    try {
+      const response = await authService.refreshToken(storedSession.session.refreshToken);
+      authStorageService.save(
+        {
+          user: response.user,
+          refreshToken: response.tokens.refreshToken,
+          accessToken: response.tokens.accessToken,
+        },
+        storedSession.storage,
+      );
+      setAccessToken(response.tokens.accessToken);
+      setUser(response.user);
+      return response.tokens.accessToken;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  useEffect(() => {
+    configureAccessTokenRefresh(refreshAccessToken);
+    return () => configureAccessTokenRefresh(null);
+  }, [refreshAccessToken]);
 
   useEffect(() => {
     const restoreSession = async () => {
@@ -90,6 +125,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(response.user);
       } catch {
         authStorageService.clear();
+        queryClient.clear();
+        window.localStorage.removeItem("districorp.query-cache");
         setAccessToken(null);
       } finally {
         setIsInitializing(false);
@@ -97,28 +134,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     void restoreSession();
-  }, []);
+  }, [queryClient]);
 
   const keepSessionAlive = useCallback(async () => {
     const storedSession = authStorageService.get();
     if (!storedSession) return;
+
+    // Acknowledge the action immediately. Refreshing is a background operation and
+    // should never make the operator wait behind the session prompt.
+    setIsSessionPromptOpen(false);
+
     try {
-      const response = await authService.refreshToken(storedSession.session.refreshToken);
-      authStorageService.save(
-        {
-          user: response.user,
-          refreshToken: response.tokens.refreshToken,
-          accessToken: response.tokens.accessToken,
-        },
-        storedSession.storage,
-      );
-      setAccessToken(response.tokens.accessToken);
-      setUser(response.user);
-      setIsSessionPromptOpen(false);
+      await refreshAccessToken();
     } catch {
-      // Do not force logout on a transient network failure; the user can retry.
+      // Do not force logout on a transient network failure. The current token can
+      // still serve requests until it expires and the next prompt will retry.
     }
-  }, []);
+  }, [refreshAccessToken]);
 
   useEffect(() => {
     if (!user) return;

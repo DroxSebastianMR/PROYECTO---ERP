@@ -1,10 +1,10 @@
-import { AlertTriangle, Boxes, CreditCard, ShoppingCart, Store, Users } from "lucide-react";
+import { AlertTriangle, Boxes, CircleDollarSign, Store, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { PATHS } from "@/app/router/constants/paths";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { MetricCard } from "@/features/dashboard/components/metric-card";
 import { MonthlySalesChart } from "@/features/dashboard/components/monthly-sales-chart";
-import { PaymentMethods } from "@/features/dashboard/components/payment-methods";
+import { TopSellingProducts } from "@/features/dashboard/components/top-selling-products";
 import { RecentSales } from "@/features/dashboard/components/recent-sales";
 import { ActivityFeed } from "@/features/dashboard/components/activity-feed";
 import { DashboardSkeleton } from "@/features/dashboard/components/dashboard-skeleton";
@@ -20,17 +20,16 @@ export const DashboardPage = () => {
   const { data } = dashboard;
   return <div className="mx-auto max-w-[1480px] p-4 sm:p-6 lg:p-7">
     <header><h1 className="text-2xl font-bold tracking-[-.045em] sm:text-[30px]">Dashboard</h1><p className="mt-1 text-[15px] text-slate-700">Bienvenido nuevamente, {user?.fullName ?? "usuario"}.</p></header>
-    <section className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+    <section className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-5">
       <MetricCard title="Ventas del día" value={money(data.metrics.todaySales)} Icon={Store} />
-      <MetricCard title="Compras del mes" value={money(data.metrics.monthPurchases)} Icon={ShoppingCart} />
-      <MetricCard title="Prod. registrados" value={String(data.metrics.products)} Icon={Boxes} />
-      <MetricCard title="Clientes registrados" value={String(data.metrics.customers)} Icon={Users} />
-      <MetricCard title="Ingresos del mes" value={money(data.metrics.monthIncome)} Icon={CreditCard} />
+      <MetricCard title="Valor stock compras" value={money(data.metrics.stockPurchaseValue)} Icon={CircleDollarSign} />
+      <MetricCard title="Valor stock ventas" value={money(data.metrics.stockSalesValue)} Icon={Boxes} />
+      <MetricCard title="Margen estimado" value={money(data.metrics.stockMargin)} Icon={TrendingUp} />
       <MetricCard title="Stock bajo" value={String(data.metrics.lowStock)} Icon={AlertTriangle} alert />
     </section>
     <section className="mt-6 grid min-w-0 gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)] xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
-      <MonthlySalesChart data={data.sales} period={dashboard.period} onPeriodChange={dashboard.setPeriod} />
-      <PaymentMethods methods={data.paymentMethods} />
+      <MonthlySalesChart data={data.sales} period={dashboard.period} selectedMonth={dashboard.selectedMonth} onPeriodChange={dashboard.setPeriod} onMonthSelect={dashboard.setSelectedMonth} />
+      <TopSellingProducts products={dashboard.topProducts} period={dashboard.topProductsPeriod} month={dashboard.selectedMonth} onPeriodChange={dashboard.setTopProductsPeriod} onMonthChange={dashboard.setSelectedMonth} isLoading={dashboard.isTopProductsLoading} />
       <div className="min-w-0 lg:col-start-1">
         <RecentSales sales={data.recentSales} showAll={dashboard.showAllSales} onToggle={dashboard.toggleSales} />
         <section className="mt-5 overflow-hidden rounded-xl border border-red-100 bg-white shadow-[0_8px_20px_rgba(37,99,235,.03)]">

@@ -38,6 +38,7 @@ productsRouter.post("/measurement-units", handle(productsController.createMeasur
 productsRouter.patch("/measurement-units/:id", handle(productsController.updateMeasurementUnit));
 productsRouter.get("/brands", handle(productsController.listBrands));
 productsRouter.post("/brands", handle(productsController.createBrand));
+productsRouter.get("/barcode-availability", handle(productsController.checkBarcodeAvailability));
 productsRouter.get("/", handle(productsController.list));
 productsRouter.post("/", handle(productsController.create));
 productsRouter.get("/:id/history", handle(productsController.history));

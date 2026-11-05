@@ -4,12 +4,12 @@ import {
   CheckCircle2,
   CircleUserRound,
   Eye,
+  Mail,
   LockKeyhole,
   Plus,
   RefreshCw,
   Search,
   ShieldCheck,
-  UserCog,
   UsersRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useUsers } from "@/features/users/hooks/use-users";
 import { UserFormModal } from "@/features/users/components/user-form-modal";
+import { RoleManagementTab } from "@/features/users/components/role-management-tab";
 import { ROLE_LABELS, type ManagedUserRole } from "@/features/users/types/user.types";
 import { PERMISSION_LABELS, type Permission } from "@/lib/permissions";
 
@@ -31,7 +32,12 @@ const dateFormat = new Intl.DateTimeFormat("es-PE", { dateStyle: "medium", timeS
 
 export const UsersPage = () => {
   const state = useUsers();
-  const [permissionsTab, setPermissionsTab] = useState<"role" | "additional">("role");
+  const [moduleTab, setModuleTab] = useState<"users" | "roles">("users");
+  const [permissionsTab, setPermissionsTab] = useState<"role" | "additional" | "recovery">("role");
+  const [additionalPermissionsDraft, setAdditionalPermissionsDraft] = useState<string[]>([]);
+  const [permissionsSaved, setPermissionsSaved] = useState(false);
+  const [recoveryDraft, setRecoveryDraft] = useState({ personalEmail: "", dni: "" });
+  const [recoverySaved, setRecoverySaved] = useState(false);
   const rolePermissions = useMemo(
     () =>
       state.roles.find((definition) => definition.role === state.permissionsUser?.role)
@@ -44,8 +50,31 @@ export const UsersPage = () => {
   );
 
   useEffect(() => {
-    if (state.permissionsUser) setPermissionsTab("role");
+    if (state.permissionsUser) {
+      setPermissionsTab("role");
+      setAdditionalPermissionsDraft(state.permissionsUser.additionalPermissions);
+      setPermissionsSaved(false);
+      setRecoveryDraft({
+        personalEmail: state.permissionsUser.personalEmail ?? "",
+        dni: state.permissionsUser.dni ?? "",
+      });
+      setRecoverySaved(false);
+    }
   }, [state.permissionsUser?.id]);
+
+  const saveAdditionalPermissions = async () => {
+    const user = state.permissionsUser;
+    if (!user) return;
+
+    await state.updateUser(user.id, { permissions: additionalPermissionsDraft });
+    setPermissionsSaved(true);
+  };
+  const saveRecoveryDetails = async () => {
+    const user = state.permissionsUser;
+    if (!user) return;
+    await state.updateUser(user.id, recoveryDraft);
+    setRecoverySaved(true);
+  };
   const metrics = useMemo(
     () => ({
       active: state.allUsers.filter((item) => item.isActive).length,
@@ -76,27 +105,19 @@ export const UsersPage = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="ghost"
-            onClick={() => void state.refresh()}
-            disabled={state.isRefreshing}
-            className="border border-slate-200 bg-white text-slate-700"
-          >
-            <RefreshCw className={`mr-2 h-4 w-4 ${state.isRefreshing ? "animate-spin" : ""}`} />
-            Actualizar
-          </Button>
           <Button onClick={() => state.setIsFormOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Nuevo usuario
           </Button>
         </div>
       </header>
+      <div className="mt-6 flex w-fit rounded-xl border border-slate-200 bg-white p-1"><button type="button" onClick={() => setModuleTab("users")} className={`rounded-lg px-4 py-2 text-sm font-semibold ${moduleTab === "users" ? "bg-blue-600 text-white shadow-sm" : "text-slate-600"}`}>Usuarios</button><button type="button" onClick={() => setModuleTab("roles")} className={`rounded-lg px-4 py-2 text-sm font-semibold ${moduleTab === "roles" ? "bg-blue-600 text-white shadow-sm" : "text-slate-600"}`}>Roles y permisos</button></div>
       {state.error && (
         <div className="mt-5 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
           {state.error}
         </div>
       )}
-      <section className="mt-6 grid gap-4 sm:grid-cols-3">
+      {moduleTab === "users" && <><section className="mt-6 grid gap-4 sm:grid-cols-3">
         {[
           ["Usuarios activos", metrics.active, UsersRound, "text-blue-600 bg-blue-50"],
           ["Administradores", metrics.admins, ShieldCheck, "text-violet-600 bg-violet-50"],
@@ -222,27 +243,8 @@ export const UsersPage = () => {
           </table>
         </div>
       </section>
-      <section className="mt-6 grid gap-4 md:grid-cols-3">
-        {state.roles.map((definition) => (
-          <article
-            key={definition.role}
-            className="rounded-xl border border-slate-200 bg-white p-5"
-          >
-            <div className="flex items-center gap-2">
-              <UserCog className="h-5 w-5 text-blue-600" />
-              <h2 className="font-semibold text-slate-900">{ROLE_LABELS[definition.role]}</h2>
-            </div>
-            <ul className="mt-4 space-y-2 text-sm text-slate-600">
-              {definition.permissions.map((permission) => (
-                <li key={permission} className="flex gap-2">
-                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-blue-600" />
-                  {PERMISSION_LABELS[permission as Permission] ?? permission}
-                </li>
-              ))}
-            </ul>
-          </article>
-        ))}
-      </section>
+      </>}
+      {moduleTab === "roles" && <section className="mt-6"><RoleManagementTab roles={state.roles} permissions={state.permissions} accessRoles={state.accessRoles} isSaving={state.isSubmitting} onUpdateRole={state.updateRolePermissions} onCreateRole={state.createAccessRole} /></section>}
       <UserFormModal
         isOpen={state.isFormOpen}
         onClose={() => state.setIsFormOpen(false)}
@@ -256,9 +258,13 @@ export const UsersPage = () => {
         title={`Permisos de ${state.permissionsUser?.fullName ?? ""}`}
         maxWidth="xl"
         description="Los permisos se asignan de forma segura según el rol."
+        headerClassName="relative overflow-hidden border-b-0 bg-gradient-to-r from-blue-800 via-blue-700 to-indigo-700 px-6 py-5"
+        titleClassName="text-white"
+        descriptionClassName="text-blue-100"
+        headerIcon={<span className="grid h-10 w-10 place-items-center rounded-xl border border-white/20 bg-white/10 text-white"><ShieldCheck className="h-5 w-5" /></span>}
       >
         <div className="space-y-5">
-          <div className="grid grid-cols-2 rounded-xl bg-slate-100 p-1">
+          <div className="grid rounded-xl bg-slate-100 p-1 sm:grid-cols-3">
             <button
               type="button"
               onClick={() => setPermissionsTab("role")}
@@ -274,6 +280,14 @@ export const UsersPage = () => {
             >
               <Plus className="h-4 w-4" />
               Acciones adicionales ({state.permissionsUser?.additionalPermissions.length ?? 0})
+            </button>
+            <button
+              type="button"
+              onClick={() => setPermissionsTab("recovery")}
+              className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${permissionsTab === "recovery" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+            >
+              <Mail className="h-4 w-4" />
+              Recuperación
             </button>
           </div>
 
@@ -294,7 +308,7 @@ export const UsersPage = () => {
                 ))}
               </div>
             </div>
-          ) : (
+          ) : permissionsTab === "additional" ? (
             <div>
               <p className="mb-3 text-sm text-slate-500">
                 Agrega acciones puntuales sin modificar los permisos base del rol.
@@ -304,14 +318,15 @@ export const UsersPage = () => {
                   <label key={permission} className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 transition hover:border-blue-200 hover:bg-blue-50">
                     <input
                       type="checkbox"
-                      checked={state.permissionsUser?.additionalPermissions.includes(permission) ?? false}
+                      checked={additionalPermissionsDraft.includes(permission)}
                       disabled={state.isSubmitting}
                       onChange={(event) => {
-                        const user = state.permissionsUser;
-                        if (!user) return;
-                        const permissions = event.target.checked ? [...user.additionalPermissions, permission] : user.additionalPermissions.filter((item) => item !== permission);
-                        state.setPermissionsUser({ ...user, additionalPermissions: permissions });
-                        void state.updateUser(user.id, { permissions });
+                        setPermissionsSaved(false);
+                        setAdditionalPermissionsDraft((permissions) =>
+                          event.target.checked
+                            ? [...permissions, permission]
+                            : permissions.filter((item) => item !== permission),
+                        );
                       }}
                       className="h-4 w-4 shrink-0 rounded border-slate-300 text-blue-600"
                     />
@@ -324,6 +339,45 @@ export const UsersPage = () => {
                   Este rol ya incluye todas las acciones disponibles.
                 </p>
               )}
+              {!!availableAdditionalPermissions.length && (
+                <div className="mt-5 flex flex-wrap items-center justify-end gap-3 border-t border-slate-100 pt-4">
+                  {permissionsSaved && (
+                    <span className="text-xs font-medium text-emerald-700">
+                      Permisos guardados correctamente.
+                    </span>
+                  )}
+                  <Button
+                    type="button"
+                    onClick={() => void saveAdditionalPermissions()}
+                    disabled={state.isSubmitting}
+                  >
+                    {state.isSubmitting ? "Guardando..." : "Guardar permisos"}
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-4 rounded-xl border border-blue-100 bg-blue-50/40 p-4">
+              <div>
+                <p className="font-semibold text-slate-800">Datos de recuperación</p>
+                <p className="mt-1 text-sm text-slate-500">El enlace de recuperación se enviará únicamente al correo personal registrado.</p>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="text-sm font-medium text-slate-700">
+                  Correo personal
+                  <Input type="email" value={recoveryDraft.personalEmail} onChange={(event) => { setRecoverySaved(false); setRecoveryDraft((draft) => ({ ...draft, personalEmail: event.target.value })); }} placeholder="nombre@gmail.com" className="mt-1.5" />
+                </label>
+                <label className="text-sm font-medium text-slate-700">
+                  DNI
+                  <Input inputMode="numeric" maxLength={8} value={recoveryDraft.dni} onChange={(event) => { setRecoverySaved(false); setRecoveryDraft((draft) => ({ ...draft, dni: event.target.value.replace(/\D/g, "") })); }} placeholder="8 dígitos" className="mt-1.5" />
+                </label>
+              </div>
+              <div className="flex flex-wrap items-center justify-end gap-3 border-t border-blue-100 pt-4">
+                {recoverySaved && <span className="text-xs font-medium text-emerald-700">Datos de recuperación guardados.</span>}
+                <Button type="button" onClick={() => void saveRecoveryDetails()} disabled={state.isSubmitting || !recoveryDraft.personalEmail || recoveryDraft.dni.length !== 8}>
+                  {state.isSubmitting ? "Guardando..." : "Guardar datos"}
+                </Button>
+              </div>
             </div>
           )}
         </div>

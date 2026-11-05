@@ -1,5 +1,9 @@
 export const PATHS = {
-  AUTH: { LOGIN: "/login", FORGOT_PASSWORD: "/recuperar-contrasena" },
+  AUTH: {
+    LOGIN: "/login",
+    FORGOT_PASSWORD: "/recuperar-contrasena",
+    RESET_PASSWORD: "/cambiar-contrasena",
+  },
   APP: {
     DASHBOARD: "/dashboard",
     PRODUCTS: "/productos",

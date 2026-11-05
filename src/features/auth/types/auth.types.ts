@@ -39,6 +39,15 @@ export type LoginCredentials = {
 export type LoginResponse = AuthApiResponse;
 export type RefreshResponse = AuthApiResponse;
 
+export type PasswordRecoveryInput = {
+  identifier: string;
+};
+
+export type PasswordResetInput = {
+  token: string;
+  password: string;
+};
+
 export type StoredAuthSession = {
   user: AuthenticatedUser;
   refreshToken: string;

@@ -1,9 +1,12 @@
 import { useState } from "react";
-import { Wallet } from "lucide-react";
+import { DoorOpen, Wallet } from "lucide-react";
 import { CashMovementsTab } from "@/features/cash/components/cash-movements-tab";
 import { CashSessionTab } from "@/features/cash/components/cash-session-tab";
 import { CashCountTab } from "@/features/cash/components/cash-count-tab";
 import { useCash } from "@/features/cash/hooks/use-cash";
+import { cashDrawerService } from "@/features/sales/services/cash-drawer.service";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
 
 type CashTab = "movements" | "session" | "count";
 
@@ -14,15 +17,25 @@ const tabs: Array<{ id: CashTab; label: string }> = [
 ];
 
 export const CashPage = () => {
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<CashTab>("movements");
+  const [isOpeningDrawer, setIsOpeningDrawer] = useState(false);
   const cash = useCash();
+
+  const openDrawer = async () => {
+    setIsOpeningDrawer(true);
+    const result = await cashDrawerService.openManually();
+    setIsOpeningDrawer(false);
+    if (result.status === "unavailable") toast.error("No se pudo comunicar con la impresora térmica local.");
+    if (result.status === "skipped") toast.warning("La integración con la gaveta no está habilitada en esta computadora.");
+  };
 
   if (cash.isLoading) return <CashLoadingState />;
 
   return (
     <div className="mx-auto max-w-[1480px] p-4 sm:p-6 lg:p-7">
       <header>
-        <div className="flex flex-wrap items-center gap-3"><h1 className="flex items-center gap-2.5 text-2xl font-bold tracking-[-.045em] text-slate-900 sm:gap-3 sm:text-[30px]"><Wallet className="h-8 w-8 text-blue-600" />Caja</h1><span className={`rounded-full px-3 py-1 text-xs font-semibold ${cash.current ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{cash.current ? "Caja abierta" : "Caja cerrada"}</span></div>
+        <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex flex-wrap items-center gap-3"><h1 className="flex items-center gap-2.5 text-2xl font-bold tracking-[-.045em] text-slate-900 sm:gap-3 sm:text-[30px]"><Wallet className="h-8 w-8 text-blue-600" />Caja</h1><span className={`rounded-full px-3 py-1 text-xs font-semibold ${cash.current ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{cash.current ? "Caja abierta" : "Caja cerrada"}</span></div><Button type="button" variant="outline" disabled={!cash.current || isOpeningDrawer} onClick={() => void openDrawer()} className="gap-2 border-blue-200 text-blue-700 hover:bg-blue-50"><DoorOpen className="h-4 w-4" />{isOpeningDrawer ? "Abriendo gaveta..." : "Abrir gaveta"}</Button></div>
         <p className="mt-1 text-[15px] text-slate-600">Control de apertura, movimientos, arqueos y cierre diario de caja.</p>
       </header>
       <nav className="mt-6 flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1.5" aria-label="Secciones de Caja">

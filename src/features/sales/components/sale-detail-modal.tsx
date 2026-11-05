@@ -23,7 +23,7 @@ export const SaleDetailModal = ({ isOpen, onClose, sale, onConfirm, isSubmitting
         <SaleSummaryCard sale={sale} />
         <div className="hidden"><SaleTicket sale={sale} /></div>
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-5">
-          <Button onClick={() => printSaleTicket()} variant="ghost" className="gap-2 border border-slate-200 text-slate-700"><Printer className="h-4 w-4" /> Imprimir ticket</Button>
+          <Button onClick={() => void printSaleTicket(sale)} variant="ghost" className="gap-2 border border-slate-200 text-slate-700"><Printer className="h-4 w-4" /> Imprimir ticket</Button>
           <div className="flex gap-2">
             {sale.status === "DRAFT" && <Button onClick={() => void onConfirm(sale.id)} disabled={isSubmitting} className="gap-2 bg-emerald-600 text-white hover:bg-emerald-700"><CheckCircle className="h-4 w-4" /> Vender y cobrar</Button>}
             <Button onClick={onClose}>Cerrar</Button>

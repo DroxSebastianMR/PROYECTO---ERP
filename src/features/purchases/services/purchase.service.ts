@@ -130,11 +130,23 @@ export const purchaseService = {
     });
   },
   calculateMetrics(purchases: PurchaseOrder[]): PurchaseMetrics {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const isCurrentMonth = (purchase: PurchaseOrder) => {
+      const date = new Date(purchase.purchasedAt ?? purchase.createdAt);
+      return date.getFullYear() === currentYear && date.getMonth() === currentMonth;
+    };
+    const receivedStatuses: PurchaseOrder["status"][] = [
+      "RECEIVED",
+      "PARTIALLY_RECEIVED",
+      "PENDING_PAYMENT",
+      "PAID",
+    ];
+
     return {
       totalMonthPurchases: purchases
-        .filter((purchase) =>
-          ["PARTIALLY_RECEIVED", "PENDING_PAYMENT", "PAID"].includes(purchase.status),
-        )
+        .filter((purchase) => isCurrentMonth(purchase) && receivedStatuses.includes(purchase.status))
         .reduce((total, purchase) => total + purchase.total, 0),
       pendingOrdersCount: purchases.filter((purchase) =>
         ["DRAFT", "ORDERED", "PARTIALLY_RECEIVED"].includes(purchase.status),

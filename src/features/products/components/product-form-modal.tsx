@@ -1,4 +1,4 @@
-import { useEffect, useState, type DragEvent, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type DragEvent, type FormEvent } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -8,6 +8,7 @@ import {
   Package,
   Plus,
   Save,
+  ScanBarcode,
   Sparkles,
   Tag,
   Trash2,
@@ -18,7 +19,10 @@ import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { useToast } from "@/components/ui/toast";
 import { ProductFormStepper } from "@/features/products/components/product-form-stepper";
+import { useBarcodeAvailability } from "@/features/products/hooks/use-barcode-availability";
+import { useProductBarcodeScanner } from "@/features/products/hooks/use-product-barcode-scanner";
 import { productImageStorage } from "@/features/products/services/product-image-storage.service";
 import type {
   Product,
@@ -48,6 +52,7 @@ export const ProductFormModal = ({
   onCreateMeasurementUnit,
   isSubmitting,
 }: ProductFormModalProps) => {
+  const toast = useToast();
   const isEditing = Boolean(product);
   const [activeStep, setActiveStep] = useState<1 | 2 | 3>(1);
   const [submitRequested, setSubmitRequested] = useState(false);
@@ -83,6 +88,19 @@ export const ProductFormModal = ({
   const [pendingImage, setPendingImage] = useState<{ file: File; previewUrl: string } | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
+  const isSaving = isSubmitting || isUploadingImage;
+  const handleBarcodeScan = useCallback(
+    (barcode: string) => {
+      setFormData((current) => ({ ...current, barcode }));
+      toast.success("Código de barras leído correctamente.");
+    },
+    [toast],
+  );
+  const barcodeInputRef = useProductBarcodeScanner({
+    enabled: isOpen && activeStep === 1 && !isSaving,
+    onScan: handleBarcodeScan,
+  });
+  const barcodeAvailability = useBarcodeAvailability(formData.barcode, product?.id);
 
   const clearPendingImage = () => {
     setPendingImage((current) => {
@@ -91,7 +109,6 @@ export const ProductFormModal = ({
     });
   };
   const imagePreviewUrl = pendingImage?.previewUrl || formData.imageUrl;
-  const isSaving = isSubmitting || isUploadingImage;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -156,7 +173,7 @@ export const ProductFormModal = ({
     try {
       productImageStorage.validate(file);
     } catch (error) {
-      alert(error instanceof Error ? error.message : "La imagen seleccionada no es válida.");
+      toast.error(error instanceof Error ? error.message : "La imagen seleccionada no es válida.");
       return;
     }
     const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
@@ -200,14 +217,25 @@ export const ProductFormModal = ({
     const finalCategory = useCustomCategory ? customCategory.trim() : formData.category;
 
     if (!formData.name.trim() || !finalCategory) {
-      alert("Por favor completa los campos obligatorios: Nombre y Categoría.");
+      toast.warning("Completa los campos obligatorios: nombre y categoría.");
+      setActiveStep(1);
+      return;
+    }
+
+    if (!formData.barcode.trim()) {
+      toast.warning("Lee o registra el código de barras de fábrica del producto.");
+      setActiveStep(1);
+      return;
+    }
+    if (barcodeAvailability.isAvailable === false) {
+      toast.error(barcodeAvailability.message ?? "El código de barras ya está registrado.");
       setActiveStep(1);
       return;
     }
 
     const salePriceNum = parseFloat(formData.salePrice);
     if (isNaN(salePriceNum) || salePriceNum < 0) {
-      alert("El precio de venta debe ser un número positivo.");
+      toast.warning("El precio de venta debe ser un número positivo.");
       setActiveStep(2);
       return;
     }
@@ -239,7 +267,7 @@ export const ProductFormModal = ({
       if (pendingImage) clearPendingImage();
     } catch (error) {
       if (uploadedImage) await productImageStorage.remove(uploadedImage.path).catch(() => undefined);
-      alert(error instanceof Error ? error.message : "No se pudo registrar el producto.");
+      toast.error(error instanceof Error ? error.message : "No se pudo registrar el producto.");
     } finally {
       setIsUploadingImage(false);
     }
@@ -356,17 +384,45 @@ export const ProductFormModal = ({
                 />
               </div>
 
-              {/* Código de barras */}
+              {/* Código de barras de fábrica */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Código de Barras / EAN
-                </label>
-                <Input
-                  placeholder="Ej. 7750123456789"
-                  value={formData.barcode}
-                  onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
-                  className="font-mono text-xs"
-                />
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <label className="block text-xs font-semibold text-slate-700">
+                    Código de barras de fábrica <span className="text-rose-500">*</span>
+                  </label>
+                  {barcodeAvailability.isChecking ? (
+                    <span className="text-[11px] font-medium text-slate-500">Verificando…</span>
+                  ) : barcodeAvailability.isAvailable === true ? (
+                    <span className="text-[11px] font-semibold text-emerald-600">Disponible</span>
+                  ) : barcodeAvailability.isAvailable === false ? (
+                    <span className="text-[11px] font-semibold text-rose-600">Ya registrado</span>
+                  ) : null}
+                </div>
+                <div className="relative">
+                  <ScanBarcode className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-blue-600" />
+                  <Input
+                    ref={barcodeInputRef}
+                    required
+                    placeholder="Pistolea o escribe el código"
+                    value={formData.barcode}
+                    onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") event.preventDefault();
+                    }}
+                    className="pl-9 font-mono text-xs"
+                    aria-describedby="product-barcode-help"
+                  />
+                </div>
+                <p
+                  id="product-barcode-help"
+                  className={`mt-1 text-[11px] ${
+                    barcodeAvailability.isAvailable === false ? "text-rose-600" : "text-slate-500"
+                  }`}
+                >
+                  {barcodeAvailability.isAvailable === false
+                    ? barcodeAvailability.message
+                    : "El lector queda listo automáticamente al abrir este formulario."}
+                </p>
               </div>
 
               {/* SKU (Solo lectura) */}
@@ -578,25 +634,23 @@ export const ProductFormModal = ({
                 </p>
               </div>
 
-              {/* Afectación al IGV / Tratamiento Tributario */}
+              {/* Afectación al IGV */}
               <div className="sm:col-span-2">
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Tratamiento Tributario / IGV SUNAT
-                </label>
-                <select
-                  value={formData.taxTreatment}
-                  onChange={(e) =>
-                    setFormData({
+                <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 transition hover:border-blue-200 hover:bg-blue-50/40">
+                  <span>
+                    <span className="block text-sm font-semibold text-slate-800">Afecto a IGV</span>
+                    <span className="mt-0.5 block text-xs text-slate-500">Al vender, se agregará el IGV de 18% al precio base.</span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={formData.taxTreatment === "TAXED"}
+                    onChange={(event) => setFormData({
                       ...formData,
-                      taxTreatment: e.target.value as "TAXED" | "EXONERATED" | "UNAFFECTED",
-                    })
-                  }
-                  className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-blue-600"
-                >
-                  <option value="TAXED">Gravado / Afecto al IGV (18%)</option>
-                  <option value="EXONERATED">Exonerado del IGV (Selva / Bienes exonerados)</option>
-                  <option value="UNAFFECTED">Inafecto al IGV</option>
-                </select>
+                      taxTreatment: event.target.checked ? "TAXED" : "UNAFFECTED",
+                    })}
+                    className="h-5 w-5 shrink-0 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  />
+                </label>
               </div>
             </div>
           </div>

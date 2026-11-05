@@ -37,11 +37,18 @@ export const permissionService = {
 
   async resolveEffectivePermissions(user: { id: string; role: UserRole; permissions?: readonly string[] }) {
     try {
-      const [rolePermissions, userPermissions] = await Promise.all([
-        prisma.rolePermission.findMany({ where: { role: user.role, permission: { isActive: true } }, select: { permission: { select: { code: true } } } }),
-        prisma.userPermission.findMany({ where: { userId: user.id, permission: { isActive: true } }, select: { permission: { select: { code: true } } } }),
-      ]);
-      return normalize([...rolePermissions.map(({ permission }) => permission.code), ...userPermissions.map(({ permission }) => permission.code), ...(user.permissions ?? [])]);
+      const definitions = await prisma.permissionDefinition.findMany({
+        where: {
+          isActive: true,
+          OR: [
+            { rolePermissions: { some: { role: user.role } } },
+            { userPermissions: { some: { userId: user.id } } },
+          ],
+        },
+        select: { code: true },
+      });
+
+      return normalize([...definitions.map(({ code }) => code), ...(user.permissions ?? [])]);
     } catch {
       return normalize([...fallbackRolePermissions[user.role], ...(user.permissions ?? [])]);
     }
@@ -54,6 +61,14 @@ export const permissionService = {
     } catch {
       return fallbackRolePermissions[role];
     }
+  },
+
+  async replaceRolePermissions(role: UserRole, codes: readonly string[]) {
+    const definitions = await prisma.permissionDefinition.findMany({ where: { code: { in: normalize(codes) }, isActive: true }, select: { id: true } });
+    await prisma.$transaction([
+      prisma.rolePermission.deleteMany({ where: { role } }),
+      ...(definitions.length ? [prisma.rolePermission.createMany({ data: definitions.map(({ id: permissionId }) => ({ role, permissionId })) })] : []),
+    ]);
   },
 
   async replaceUserAdditionalPermissions(userId: string, codes: readonly string[]) {

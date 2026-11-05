@@ -5,7 +5,7 @@ import { dashboardRouter } from "./modules/dashboard/dashboard.routes.js";
 import { authRouter } from "./modules/auth/auth.routes.js";
 import { productsRouter } from "./modules/products/routes/products.routes.js";
 import { inventoryRouter } from "./modules/inventory/inventory.routes.js";
-import { purchasesRouter } from "./modules/purchases/purchases.routes.js";
+import { purchasesRouter } from "./modules/purchases/routes/purchases.routes.js";
 import { salesRouter } from "./modules/sales/sales.routes.js";
 import { usersRouter } from "./modules/users/users.routes.js";
 import { notificationsRouter } from "./modules/notifications/notifications.routes.js";
@@ -13,6 +13,7 @@ import { customersRouter } from "./modules/customers/customers.routes.js";
 import { barcodesRouter } from "./modules/barcodes/barcodes.routes.js";
 import { requireAuthentication } from "./modules/auth/auth.middleware.js";
 import { cashRouter } from "./modules/cash/cash.routes.js";
+import { reportsRouter } from "./modules/reports/reports.routes.js";
 import { requirePermission, type Permission } from "./modules/auth/permissions.js";
 
 export function createApp() {
@@ -60,6 +61,7 @@ export function createApp() {
   protectedRoutes.use("/users", requirePermission("users.manage"), usersRouter);
   protectedRoutes.use("/notifications", notificationsRouter);
   protectedRoutes.use("/cash", authorizeModule("cash.access", "cash.sessions.manage"), cashRouter);
+  protectedRoutes.use("/reports", authorizeModule("reports.access", "reports.export"), reportsRouter);
   app.use("/api", protectedRoutes);
   app.use(
     (error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

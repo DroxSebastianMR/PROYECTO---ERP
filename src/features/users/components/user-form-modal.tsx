@@ -15,9 +15,12 @@ type Props = {
   roles: UserRoleDefinition[];
 };
 export const UserFormModal = ({ isOpen, isSubmitting, onClose, onSubmit, roles }: Props) => {
+  const [activeTab, setActiveTab] = useState<"account" | "permissions">("account");
   const [form, setForm] = useState<CreateUserInput>({
     fullName: "",
     email: "",
+    personalEmail: "",
+    dni: "",
     password: "",
     role: "SALES_PURCHASING",
     permissions: [],
@@ -28,7 +31,8 @@ export const UserFormModal = ({ isOpen, isSubmitting, onClose, onSubmit, roles }
     setError(null);
     try {
       await onSubmit(form);
-      setForm({ fullName: "", email: "", password: "", role: "SALES_PURCHASING", permissions: [] });
+      setForm({ fullName: "", email: "", personalEmail: "", dni: "", password: "", role: "SALES_PURCHASING", permissions: [] });
+      setActiveTab("account");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "No se pudo crear el usuario.");
     }
@@ -40,14 +44,19 @@ export const UserFormModal = ({ isOpen, isSubmitting, onClose, onSubmit, roles }
       title="Nuevo usuario"
       description="Crea una cuenta y asigna el nivel de acceso inicial."
       maxWidth="md"
+      headerClassName="relative overflow-hidden border-b-0 bg-gradient-to-r from-blue-800 via-blue-700 to-indigo-700 px-6 py-5"
+      titleClassName="text-white"
+      descriptionClassName="text-blue-100"
+      headerIcon={<span className="grid h-10 w-10 place-items-center rounded-xl border border-white/20 bg-white/10 text-blue-100"><UserPlus className="h-5 w-5" /></span>}
     >
-      <form onSubmit={submit} className="space-y-4">
+      <form onSubmit={submit} className="space-y-5">
         {error && (
           <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
             {error}
           </p>
         )}
-        <label className="block text-sm font-medium text-slate-700">
+        <div className="grid grid-cols-2 rounded-xl bg-slate-100 p-1"><button type="button" onClick={() => setActiveTab("account")} className={`rounded-lg px-3 py-2 text-sm font-semibold ${activeTab === "account" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500"}`}>Datos de cuenta</button><button type="button" onClick={() => setActiveTab("permissions")} className={`rounded-lg px-3 py-2 text-sm font-semibold ${activeTab === "permissions" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500"}`}>Permisos adicionales</button></div>
+        {activeTab === "account" && <div className="space-y-4 rounded-xl border border-slate-100 bg-slate-50/60 p-4"><label className="block text-sm font-medium text-slate-700">
           Nombre completo
           <Input
             required
@@ -65,7 +74,34 @@ export const UserFormModal = ({ isOpen, isSubmitting, onClose, onSubmit, roles }
             type="email"
             value={form.email}
             onChange={(event) => setForm({ ...form, email: event.target.value })}
-            placeholder="usuario@empresa.pe"
+            placeholder="usuario@clienty.pe"
+            className="mt-1.5"
+          />
+        </label>
+        <label className="block text-sm font-medium text-slate-700">
+          Correo personal para recuperación
+          <Input
+            required
+            type="email"
+            autoComplete="email"
+            value={form.personalEmail}
+            onChange={(event) => setForm({ ...form, personalEmail: event.target.value })}
+            placeholder="nombre@gmail.com"
+            className="mt-1.5"
+          />
+          <span className="mt-1.5 block text-xs font-normal text-slate-500">
+            Se utilizará únicamente para enviar el enlace de recuperación de contraseña.
+          </span>
+        </label>
+        <label className="block text-sm font-medium text-slate-700">
+          DNI
+          <Input
+            required
+            inputMode="numeric"
+            maxLength={8}
+            value={form.dni}
+            onChange={(event) => setForm({ ...form, dni: event.target.value.replace(/\D/g, "") })}
+            placeholder="8 dígitos"
             className="mt-1.5"
           />
         </label>
@@ -97,8 +133,8 @@ export const UserFormModal = ({ isOpen, isSubmitting, onClose, onSubmit, roles }
             <option value="MANAGER">Supervisor</option>
             <option value="WAREHOUSE">Almacén</option>
           </select>
-        </label>
-        <fieldset>
+        </label></div>}
+        {activeTab === "permissions" && <fieldset className="rounded-xl border border-blue-100 bg-blue-50/40 p-4">
           <legend className="text-sm font-medium text-slate-700">Permisos adicionales</legend>
           <p className="mt-1 text-xs text-slate-500">El rol aporta sus accesos base desde la base de datos. Marca solo los accesos extra para este usuario.</p>
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -115,14 +151,14 @@ export const UserFormModal = ({ isOpen, isSubmitting, onClose, onSubmit, roles }
               </label>
             ))}
           </div>
-        </fieldset>
+        </fieldset>}
         <div className="flex justify-end gap-3 pt-2">
           <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting}>
             Cancelar
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type={activeTab === "account" ? "submit" : "button"} onClick={activeTab === "permissions" ? () => setActiveTab("account") : undefined} disabled={isSubmitting}>
             <UserPlus className="mr-2 h-4 w-4" />
-            {isSubmitting ? "Creando..." : "Crear usuario"}
+            {isSubmitting ? "Creando..." : activeTab === "permissions" ? "Revisar datos" : "Crear usuario"}
           </Button>
         </div>
       </form>

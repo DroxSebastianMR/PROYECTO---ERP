@@ -5,12 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { useToast } from "@/components/ui/toast";
 import type { CashMovement, CurrentCash } from "@/features/cash/types/cash.types";
 
 const money = (value: number) => new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" }).format(value);
 const time = (value: string) => new Intl.DateTimeFormat("es-PE", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
 
 export const CashMovementsTab = ({ current, movements, isSaving, onCreate }: { current: CurrentCash; movements: CashMovement[]; isSaving: boolean; onCreate: (input: { type: "INCOME" | "EXPENSE"; description: string; amount: number; paymentMethod: "CASH" | "BANK_TRANSFER" | "CARD" | "YAPE_PLIN" }) => Promise<unknown> }) => {
+  const toast = useToast();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"ALL" | "INCOME" | "EXPENSE">("ALL");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -27,7 +29,7 @@ export const CashMovementsTab = ({ current, movements, isSaving, onCreate }: { c
     try {
       await onCreate({ type, description: description.trim(), amount: Number(amount), paymentMethod });
       setDescription(""); setAmount(""); setPaymentMethod("CASH"); setIsModalOpen(false);
-    } catch (error) { alert(error instanceof Error ? error.message : "No se pudo registrar el movimiento."); }
+    } catch (error) { toast.error(error instanceof Error ? error.message : "No se pudo registrar el movimiento."); }
   };
   return <>
     <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

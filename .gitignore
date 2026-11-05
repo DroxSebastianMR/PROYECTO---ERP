@@ -1,5 +1,8 @@
 node_modules
 dist
+**/bin/
+**/obj/
+tools/clienty-pos-bridge/publish/
 .env
 .env.local
 !.env.example

@@ -27,6 +27,7 @@ type SaleApi = {
     productId: string;
     quantity: Numeric;
     unitPrice: Numeric;
+    unitCost: Numeric;
     discount: Numeric;
     subtotal: Numeric;
     product: { sku: string; name: string; unit: string };
@@ -56,6 +57,7 @@ const mapSale = (sale: SaleApi): SaleReceipt => ({
     unit: item.product.unit,
     quantity: number(item.quantity),
     unitPrice: number(item.unitPrice),
+    unitCost: number(item.unitCost),
     discount: number(item.discount),
     subtotal: number(item.subtotal),
   })),

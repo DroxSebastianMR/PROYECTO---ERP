@@ -1,3 +1,6 @@
+import { toPng } from "html-to-image";
+import type { SaleReceipt } from "@/features/sales/types/sale.types";
+
 const printDocumentStyles = `
   @page { size: 80mm auto; margin: 0; }
   * { box-sizing: border-box; }
@@ -18,7 +21,42 @@ const printDocumentStyles = `
   .thermal-sale-ticket footer { padding-top: 1mm; text-align: center; font-weight: 700; }
 `;
 
-export const printSaleTicket = (ticketId = "printable-sale-ticket") => {
+const bridgeUrl = import.meta.env.VITE_POS_DRAWER_BRIDGE_URL?.trim();
+const usePosBridge = import.meta.env.VITE_POS_DRAWER_ENABLED === "true" && Boolean(bridgeUrl);
+
+const captureTicket = async (ticketId: string) => {
+  const ticket = document.getElementById(ticketId);
+  if (!ticket) return undefined;
+
+  // Sales history keeps its tickets inside a hidden container. The clone is
+  // temporarily placed off-screen so the POS bridge receives that same layout.
+  const printableTicket = ticket.cloneNode(true) as HTMLElement;
+  printableTicket.removeAttribute("id");
+  printableTicket.style.cssText = [
+    "position:fixed",
+    "left:0",
+    "top:0",
+    "z-index:-1",
+    "pointer-events:none",
+  ].join(";");
+  document.body.appendChild(printableTicket);
+
+  try {
+    return await toPng(printableTicket, {
+      backgroundColor: "#ffffff",
+      cacheBust: true,
+      pixelRatio: 3,
+    });
+  } catch {
+    // The image is optional. A logo or external asset must never stop the
+    // thermal ticket from being delivered to the local POS bridge.
+    return undefined;
+  } finally {
+    printableTicket.remove();
+  }
+};
+
+const printBrowserTicket = (ticketId: string) => {
   const ticket = document.getElementById(ticketId);
   if (!ticket) return false;
 
@@ -46,4 +84,25 @@ export const printSaleTicket = (ticketId = "printable-sale-ticket") => {
   }
   printWindow.addEventListener("afterprint", () => printWindow.close(), { once: true });
   return true;
+};
+
+/**
+ * Thermal printing goes through the local POS bridge whenever it is enabled.
+ * The browser driver may have its own drawer kick configured, so it is not used
+ * on the cashier PC; this keeps digital payments from opening the drawer.
+ */
+export const printSaleTicket = async (sale: SaleReceipt, ticketId = "printable-sale-ticket") => {
+  if (!usePosBridge || !bridgeUrl) return printBrowserTicket(ticketId);
+
+  try {
+    const ticketImage = await captureTicket(ticketId);
+    const response = await fetch(bridgeUrl.replace(/\/cash-drawer\/open$/, "/receipts/print"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...sale, ticketImage }),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
 };

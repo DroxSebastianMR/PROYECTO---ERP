@@ -26,6 +26,7 @@ export const useUsers = () => {
     queryFn: userService.getPermissions,
     staleTime: Infinity,
   });
+  const accessRolesQuery = useQuery({ queryKey: ["users", "access-roles"], queryFn: userService.getAccessRoles, staleTime: 30_000 });
   const invalidate = () => queryClient.invalidateQueries({ queryKey: USERS_KEY });
   const createMutation = useMutation({
     mutationFn: userService.create,
@@ -39,6 +40,8 @@ export const useUsers = () => {
       userService.update(id, input),
     onSuccess: invalidate,
   });
+  const updateRolePermissionsMutation = useMutation({ mutationFn: ({ role, permissions }: { role: ManagedUserRole; permissions: string[] }) => userService.updateRolePermissions(role, permissions), onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["users", "roles"] }) });
+  const createAccessRoleMutation = useMutation({ mutationFn: userService.createAccessRole, onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["users", "access-roles"] }) });
   const users = usersQuery.data ?? [];
   const filteredUsers = useMemo(
     () =>
@@ -54,6 +57,7 @@ export const useUsers = () => {
     allUsers: users,
     roles: rolesQuery.data ?? [],
     permissions: permissionsQuery.data ?? [],
+    accessRoles: accessRolesQuery.data ?? [],
     search,
     setSearch,
     role,
@@ -65,10 +69,12 @@ export const useUsers = () => {
     setIsFormOpen,
     permissionsUser,
     setPermissionsUser,
-    isSubmitting: createMutation.isPending || updateMutation.isPending,
+    isSubmitting: createMutation.isPending || updateMutation.isPending || updateRolePermissionsMutation.isPending || createAccessRoleMutation.isPending,
     refresh: () => usersQuery.refetch(),
     createUser: (input: CreateUserInput) => createMutation.mutateAsync(input),
     updateUser: (id: string, input: Parameters<typeof userService.update>[1]) =>
       updateMutation.mutateAsync({ id, input }),
+    updateRolePermissions: (role: ManagedUserRole, permissions: string[]) => updateRolePermissionsMutation.mutateAsync({ role, permissions }),
+    createAccessRole: (input: { name: string; description?: string; permissions: string[] }) => createAccessRoleMutation.mutateAsync(input),
   };
 };

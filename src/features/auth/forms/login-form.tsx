@@ -1,21 +1,27 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { ArrowRight, Eye, EyeOff, LockKeyhole, UserRound } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { PATHS } from "@/app/router/constants/paths";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AuthInput } from "@/features/auth/components/auth-input";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { ApiError } from "@/lib/api/http-client";
+import { authApiWarmupService } from "@/features/auth/services/auth-api-warmup.service";
 
 export const LoginForm = () => {
   const { login } = useAuth();
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    void authApiWarmupService.warm();
+  }, []);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -28,6 +34,9 @@ export const LoginForm = () => {
     try {
       setIsSubmitting(true);
       await login({ email: email.trim(), password }, rememberMe);
+      // Navigate explicitly after the session is stored. This avoids relying on
+      // a later guard render and makes the completed login feel immediate.
+      navigate(PATHS.APP.DASHBOARD, { replace: true });
     } catch (submissionError) {
       setError(
         submissionError instanceof ApiError
@@ -51,6 +60,7 @@ export const LoginForm = () => {
           Icon={UserRound}
           value={email}
           onChange={(event) => setEmail(event.target.value)}
+          disabled={isSubmitting}
           required
         />
         <AuthInput
@@ -62,10 +72,12 @@ export const LoginForm = () => {
           Icon={LockKeyhole}
           value={password}
           onChange={(event) => setPassword(event.target.value)}
+          disabled={isSubmitting}
           required
           rightElement={
             <button
               type="button"
+              disabled={isSubmitting}
               onClick={() => setShowPassword((visible) => !visible)}
               className="text-slate-400 transition hover:text-slate-600"
               aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
@@ -84,6 +96,7 @@ export const LoginForm = () => {
             id="remember"
             checked={rememberMe}
             onCheckedChange={(checked) => setRememberMe(checked === true)}
+            disabled={isSubmitting}
           />
           <span>Recordar sesión</span>
         </label>

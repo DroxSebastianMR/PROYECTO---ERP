@@ -17,8 +17,8 @@
   }
 }
 
-/* On laptops the ERP stays dense and usable without relying on browser zoom.
-   Phones and tablets retain their native responsive sizing. */
+/* Keep the ERP compact on POS-D and laptop/desktop screens without asking the
+   operator to change browser zoom. Phones and tablets retain native sizing. */
 @media (min-width: 1024px) {
   .app-desktop-compact {
     zoom: 0.9;

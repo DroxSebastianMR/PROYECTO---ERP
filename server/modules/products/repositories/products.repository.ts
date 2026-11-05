@@ -42,6 +42,9 @@ export const productsRepository = {
         where: { companyId, barcode, ...(productId ? { id: { not: productId } } : {}) },
       }),
       prisma.productPresentation.findFirst({ where: { companyId, barcode } }),
+      prisma.productBarcode.findFirst({
+        where: { companyId, code: barcode, ...(productId ? { productId: { not: productId } } : {}) },
+      }),
     ]);
   },
 

@@ -4,6 +4,8 @@ import { tokenService } from "./token.service.js";
 import { env } from "../../config/env.js";
 import type { AuthenticatedUser, LoginInput } from "./auth.types.js";
 import { permissionService } from "./permission.service.js";
+import { createPasswordRecoveryEmail, emailService } from "../email/index.js";
+import type { PasswordRecoveryInput, PasswordResetInput } from "./auth.types.js";
 
 export class AuthError extends Error {
   constructor(
@@ -77,5 +79,48 @@ export const authService = {
       userAgent,
     );
     return { user, tokens };
+  },
+  async requestPasswordRecovery(input: PasswordRecoveryInput) {
+    const identifier = input.identifier.trim().toLowerCase();
+    const user = await authRepository.findUserByRecoveryIdentifier(identifier);
+
+    // This response is intentionally identical for unknown accounts to avoid user enumeration.
+    if (!user?.personalEmail) return;
+
+    const rawToken = passwordService.createResetToken();
+    const expiresAt = new Date(Date.now() + env.PASSWORD_RESET_TOKEN_TTL_MINUTES * 60_000);
+    await authRepository.createPasswordResetToken(
+      user.id,
+      passwordService.hashResetToken(rawToken),
+      expiresAt,
+    );
+
+    const resetUrl = new URL("/cambiar-contrasena", env.CLIENT_URL);
+    resetUrl.searchParams.set("token", rawToken);
+    const template = createPasswordRecoveryEmail({
+      recipientName: user.fullName,
+      resetUrl: resetUrl.toString(),
+      expiresInMinutes: env.PASSWORD_RESET_TOKEN_TTL_MINUTES,
+    });
+
+    try {
+      await emailService.send({ to: { email: user.personalEmail }, ...template });
+    } catch (error) {
+      // Do not disclose account existence through this public endpoint.
+      const cause = error instanceof Error && error.cause instanceof Error ? error.cause : error;
+      console.error("Password recovery email could not be sent", {
+        name: cause instanceof Error ? cause.name : "UnknownError",
+        message: cause instanceof Error ? cause.message : String(cause),
+        code: cause && typeof cause === "object" && "code" in cause ? String(cause.code) : undefined,
+      });
+    }
+  },
+  async resetPassword(input: PasswordResetInput) {
+    const passwordHash = await passwordService.hash(input.password);
+    const wasReset = await authRepository.consumePasswordResetToken(
+      passwordService.hashResetToken(input.token),
+      passwordHash,
+    );
+    if (!wasReset) throw new AuthError("El enlace de recuperación no es válido o ya expiró.", 400);
   },
 };
