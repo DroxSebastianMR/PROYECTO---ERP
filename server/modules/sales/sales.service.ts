@@ -53,14 +53,14 @@ type SaleCalculationItem = SaleInput["items"][number] & { taxTreatment: TaxTreat
 const calculate = (items: SaleCalculationItem[]) =>
   items.reduce(
     (total, item) => {
-      const gross = item.quantity * item.unitPrice - (item.discount ?? 0);
+      const subtotal = item.quantity * item.unitPrice - (item.discount ?? 0);
       const isTaxed = item.taxTreatment === TaxTreatment.TAXED;
-      const subtotal = isTaxed ? gross / 1.18 : gross;
+      const tax = isTaxed ? subtotal * 0.18 : 0;
       return {
         subtotal: total.subtotal + subtotal,
-        tax: total.tax + (isTaxed ? gross - subtotal : 0),
+        tax: total.tax + tax,
         discount: total.discount + (item.discount ?? 0),
-        total: total.total + gross,
+        total: total.total + subtotal + tax,
       };
     },
     { subtotal: 0, tax: 0, discount: 0, total: 0 },

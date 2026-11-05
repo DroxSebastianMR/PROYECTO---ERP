@@ -5,10 +5,8 @@ import {
   Package,
   Layers,
   Ruler,
-  Barcode,
 } from "lucide-react";
 import { useState } from "react";
-import { BarcodesPage } from "@/features/barcodes/pages";
 import { CatalogMasterTab } from "@/features/products/components/catalog-master-tab";
 import { useProducts } from "@/features/products/hooks/use-products";
 import { ProductMetricsSummary } from "@/features/products/components/product-metrics-summary";
@@ -23,7 +21,7 @@ import { can } from "@/lib/access-control";
 
 export const ProductsPage = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<"products" | "categories" | "units" | "barcodes">(
+  const [activeTab, setActiveTab] = useState<"products" | "categories" | "units">(
     "products",
   );
   const {
@@ -75,9 +73,8 @@ export const ProductsPage = () => {
     { id: "products", label: "Productos", icon: Package, permission: "products.catalog.access" },
     { id: "categories", label: "Categorías", icon: Layers },
     { id: "units", label: "Unidad de medida", icon: Ruler },
-    { id: "barcodes", label: "Códigos de barras", icon: Barcode },
   ] as const;
-  const tabPermissions = { products: "products.catalog.access", categories: "products.categories.access", units: "products.units.access", barcodes: "products.barcodes.access" } as const;
+  const tabPermissions = { products: "products.catalog.access", categories: "products.categories.access", units: "products.units.access" } as const;
   const visibleTabs = tabs.filter((tab) => can(user ?? undefined, tabPermissions[tab.id]));
   if (activeTab !== "products")
     return (
@@ -103,15 +100,7 @@ export const ProductsPage = () => {
             </button>
           ))}
         </nav>
-        {activeTab === "barcodes" ? (
-          <div className="mt-6">
-            <BarcodesPage embedded />
-          </div>
-        ) : (
-          <CatalogMasterTab
-            type={activeTab === "categories" ? "categories" : "measurement-units"}
-          />
-        )}
+        <CatalogMasterTab type={activeTab === "categories" ? "categories" : "measurement-units"} />
       </div>
     );
   return (

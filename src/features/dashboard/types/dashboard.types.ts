@@ -7,7 +7,13 @@ export type ActivityKind = "client" | "purchase" | "alert" | "report";
 export type Activity = { id: string; kind: ActivityKind; title: string; detail: string; timestamp: string };
 export type StockAlert = { id: string; product: string; sku: string; warehouse: string; quantity: number; minimum: number; unit: string };
 export type DashboardData = {
-  metrics: { todaySales: number; monthPurchases: number; products: number; customers: number; monthIncome: number; lowStock: number; stockValue: number };
+  metrics: {
+    todaySales: number;
+    stockPurchaseValue: number;
+    stockSalesValue: number;
+    stockMargin: number;
+    lowStock: number;
+  };
   sales: SalesPoint[];
   recentSales: RecentSale[];
   activities: Activity[];

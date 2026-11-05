@@ -184,7 +184,9 @@ const run = async () => {
       data: {
         companyId: company.id,
         sku: item.sku,
-        barcode: item.sku,
+        // Los códigos de barras se registran desde el producto con el código
+        // físico de fábrica. El SKU continúa disponible como identificador interno.
+        barcode: null,
         name: item.name,
         description: item.description,
         brandId: brand.id,
@@ -201,9 +203,6 @@ const run = async () => {
         taxTreatment: TaxTreatment.TAXED,
         imageUrl: item.imageUrl,
       },
-    });
-    await prisma.productBarcode.create({
-      data: { companyId: company.id, productId: product.id, code: item.sku, isPrimary: true },
     });
     await prisma.inventoryStock.create({ data: { productId: product.id, warehouseId: warehouse.id, quantity: item.initialStock, reserved: 0, minimum: item.minimumStock, maximum: item.initialStock * 2 } });
     await prisma.inventoryMovement.create({

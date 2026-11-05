@@ -2,6 +2,8 @@ import type { NextFunction, Request, Response } from "express";
 import type { AuthenticatedRequest } from "../../auth/auth.middleware.js";
 import {
   categoryUpdateSchema,
+  barcodeAvailabilityQuerySchema,
+  createProductSchema,
   classificationSchema,
   measurementUnitSchema,
   measurementUnitUpdateSchema,
@@ -68,10 +70,20 @@ export const productsController = {
       ),
     );
   },
+  async checkBarcodeAvailability(request: Request, response: Response) {
+    const query = barcodeAvailabilityQuerySchema.parse(request.query);
+    response.json(
+      await productsService.checkBarcodeAvailability(
+        companyId(request),
+        query.barcode,
+        query.excludeProductId,
+      ),
+    );
+  },
   async create(request: Request, response: Response) {
     response
       .status(201)
-      .json(await productsService.create(companyId(request), productSchema.parse(request.body)));
+      .json(await productsService.create(companyId(request), createProductSchema.parse(request.body)));
   },
   async history(request: Request, response: Response) {
     response.json(

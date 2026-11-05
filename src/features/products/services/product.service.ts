@@ -71,11 +71,23 @@ const toPayload = (input: CreateProductInput | UpdateProductInput) => ({
   presentations: input.presentations ?? [],
 });
 
+export interface BarcodeAvailability {
+  barcode: string;
+  available: boolean;
+  message?: string;
+}
+
 export const productService = {
   async getProducts(): Promise<Product[]> {
     const data = await httpClient<ProductApi[]>("/products");
     return data.map(mapProduct);
   },
+  checkBarcodeAvailability: (barcode: string, excludeProductId?: string) =>
+    httpClient<BarcodeAvailability>(
+      `/products/barcode-availability?barcode=${encodeURIComponent(barcode)}${
+        excludeProductId ? `&excludeProductId=${encodeURIComponent(excludeProductId)}` : ""
+      }`,
+    ),
   getMeasurementUnits: () =>
     httpClient<import("@/features/products/types/product.types").MeasurementUnit[]>(
       "/products/measurement-units",

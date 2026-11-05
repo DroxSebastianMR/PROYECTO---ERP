@@ -259,22 +259,16 @@ export const NewSaleForm = ({
       return remaining;
     });
   };
-  const total = cart.reduce(
-    (sum, line) =>
-      sum +
-      line.quantity *
-        (line.quantity >= (line.product.wholesaleMinQuantity ?? 10) && line.product.wholesalePrice
-          ? line.product.wholesalePrice
-          : line.product.salePrice),
-    0,
-  );
-  const igvAmount = cart.reduce((sum, line) => {
+  const saleAmounts = cart.reduce((amounts, line) => {
     const unitPrice = line.quantity >= (line.product.wholesaleMinQuantity ?? 10) && line.product.wholesalePrice
       ? line.product.wholesalePrice
       : line.product.salePrice;
-    const lineTotal = line.quantity * unitPrice;
-    return (line.product.taxTreatment ?? "TAXED") === "TAXED" ? sum + lineTotal - lineTotal / 1.18 : sum;
-  }, 0);
+    const subtotal = line.quantity * unitPrice;
+    const igv = (line.product.taxTreatment ?? "TAXED") === "TAXED" ? subtotal * 0.18 : 0;
+    return { subtotal: amounts.subtotal + subtotal, igv: amounts.igv + igv, total: amounts.total + subtotal + igv };
+  }, { subtotal: 0, igv: 0, total: 0 });
+  const total = saleAmounts.total;
+  const igvAmount = saleAmounts.igv;
   const splitTotal = paymentSplits.reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0);
   const selectedCustomer = customers.find((customer) => customer.id === customerId);
   const isCashPayment = !isSplitPayment && paymentMethod === "CASH";
@@ -596,7 +590,7 @@ export const NewSaleForm = ({
                 </div>
                 {igvAmount > 0 && (
                   <div className="mt-2 flex items-center justify-between border-t border-blue-50 pt-2 text-xs">
-                    <span className="font-semibold uppercase tracking-wide text-slate-500">IGV incluido (18%)</span>
+                    <span className="font-semibold uppercase tracking-wide text-slate-500">IGV (18%)</span>
                     <span className="font-bold text-blue-700">{money(igvAmount)}</span>
                   </div>
                 )}
