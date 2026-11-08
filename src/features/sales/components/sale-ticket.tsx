@@ -1,6 +1,6 @@
 import { receiptBranding } from "@/features/sales/config/receipt-branding";
 import type { SalePaymentMethod, SaleReceipt } from "@/features/sales/types/sale.types";
-import nortivaLogo from "@/assets/img/logo.png";
+import nortivaLogo from "@/assets/img/nortiva-minimarket-logo.png";
 
 interface SaleTicketProps {
   sale: SaleReceipt;
@@ -49,7 +49,7 @@ export const SaleTicket = ({ sale, id = "printable-sale-ticket" }: SaleTicketPro
         <img
           src={nortivaLogo}
           alt="Logo Nortiva"
-          className="mx-auto mb-2 h-20 w-auto max-w-[190px] object-contain"
+          className="mx-auto mb-2 h-24 w-auto max-w-[200px] object-contain"
         />
         <p className="font-bold tracking-wide">{receiptBranding.businessName}</p>
         <p className="font-semibold">{receiptBranding.businessLine}</p>
@@ -93,7 +93,6 @@ export const SaleTicket = ({ sale, id = "printable-sale-ticket" }: SaleTicketPro
       <Separator />
       <TotalsRow label="SUBTOTAL:" value={money(sale.subtotalAmount)} />
       <TotalsRow label="DESCUENTO:" value={money(discount)} />
-      {sale.igvAmount > 0 && <TotalsRow label="IGV (18%):" value={money(sale.igvAmount)} />}
       <TotalsRow label="TOTAL:" value={money(sale.total)} emphasized />
 
       <Separator />
@@ -109,6 +108,7 @@ export const SaleTicket = ({ sale, id = "printable-sale-ticket" }: SaleTicketPro
       <footer className="pt-1 text-center font-semibold">
         {receiptBranding.footer.map((line) => <p key={line}>{line}</p>)}
         <p className="mt-3 font-normal">Gracias por su compra</p>
+        <p className="mt-2 text-[9px] font-normal text-slate-500">Desarrollado por Clienty</p>
       </footer>
     </article>
   );

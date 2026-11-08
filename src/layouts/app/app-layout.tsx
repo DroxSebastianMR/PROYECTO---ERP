@@ -20,6 +20,9 @@ export const AppLayout = () => {
       <AppHeader onMenuClick={() => setIsSidebarOpen(true)} />
       <main className="min-h-screen pt-[60px]">
         <Outlet />
+        <footer className="px-4 py-6 text-center text-xs font-medium text-slate-400 lg:px-8">
+          Desarrollado por Clienty
+        </footer>
       </main>
     </div>
   );

@@ -81,7 +81,6 @@ export const SaleSummaryCard = ({ sale }: SaleSummaryCardProps) => (
 
     <section className="ml-auto w-full max-w-sm rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white p-5 shadow-sm">
       <SummaryTotal label="Subtotal" value={sale.subtotalAmount} />
-      {sale.igvAmount > 0 && <SummaryTotal label="IGV (18%)" value={sale.igvAmount} />}
       <div className="my-3 border-t border-blue-200" />
       <div className="flex items-end justify-between"><span className="font-bold text-slate-800">Total cobrado</span><span className="text-2xl font-bold tracking-tight text-blue-700">{money(sale.total)}</span></div>
     </section>

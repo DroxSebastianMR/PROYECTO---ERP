@@ -9,7 +9,7 @@ interface ProductFormStepperProps {
 
 const steps = [
   { id: 1 as const, name: "General e imagen", icon: Package },
-  { id: 2 as const, name: "Precios e IGV", icon: Tag },
+  { id: 2 as const, name: "Precios", icon: Tag },
   { id: 3 as const, name: "Inventario y medidas", icon: Warehouse },
 ];
 

@@ -264,11 +264,9 @@ export const NewSaleForm = ({
       ? line.product.wholesalePrice
       : line.product.salePrice;
     const subtotal = line.quantity * unitPrice;
-    const igv = (line.product.taxTreatment ?? "TAXED") === "TAXED" ? subtotal * 0.18 : 0;
-    return { subtotal: amounts.subtotal + subtotal, igv: amounts.igv + igv, total: amounts.total + subtotal + igv };
-  }, { subtotal: 0, igv: 0, total: 0 });
+    return { subtotal: amounts.subtotal + subtotal, total: amounts.total + subtotal };
+  }, { subtotal: 0, total: 0 });
   const total = saleAmounts.total;
-  const igvAmount = saleAmounts.igv;
   const splitTotal = paymentSplits.reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0);
   const selectedCustomer = customers.find((customer) => customer.id === customerId);
   const isCashPayment = !isSplitPayment && paymentMethod === "CASH";
@@ -588,12 +586,6 @@ export const NewSaleForm = ({
                     {money(total)}
                   </span>
                 </div>
-                {igvAmount > 0 && (
-                  <div className="mt-2 flex items-center justify-between border-t border-blue-50 pt-2 text-xs">
-                    <span className="font-semibold uppercase tracking-wide text-slate-500">IGV (18%)</span>
-                    <span className="font-bold text-blue-700">{money(igvAmount)}</span>
-                  </div>
-                )}
                 {isCashPayment && <CashChangeSummary dueAmount={total} received={cashReceived} />}
               </div>
               <div className="mt-4 grid grid-cols-2 gap-3">
