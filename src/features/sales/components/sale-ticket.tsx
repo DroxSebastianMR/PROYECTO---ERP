@@ -1,6 +1,5 @@
 import { receiptBranding } from "@/features/sales/config/receipt-branding";
 import type { SalePaymentMethod, SaleReceipt } from "@/features/sales/types/sale.types";
-import nortivaLogo from "@/assets/img/nortiva-minimarket-logo.png";
 
 interface SaleTicketProps {
   sale: SaleReceipt;
@@ -47,8 +46,8 @@ export const SaleTicket = ({ sale, id = "printable-sale-ticket" }: SaleTicketPro
     >
       <header className="ticket-header text-center">
         <img
-          src={nortivaLogo}
-          alt="Logo Nortiva"
+          src={receiptBranding.logo}
+          alt={receiptBranding.logoAlt}
           className="mx-auto mb-2 h-24 w-auto max-w-[200px] object-contain"
         />
         <p className="font-bold tracking-wide">{receiptBranding.businessName}</p>
