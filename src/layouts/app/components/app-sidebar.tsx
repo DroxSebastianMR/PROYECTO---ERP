@@ -1,5 +1,4 @@
 import {
-  Archive,
   Barcode,
   BarChart3,
   CircleUserRound,
@@ -19,6 +18,7 @@ import { PATHS } from "@/app/router/constants/paths";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { canAccessPath } from "@/lib/access-control";
+import nortivaLogo from "@/assets/img/nortiva-minimarket-logo.png";
 
 const navigation = [
   ["Dashboard", LayoutDashboard, PATHS.APP.DASHBOARD],
@@ -56,8 +56,8 @@ export const AppSidebar = ({ isOpen = false, onClose }: AppSidebarProps) => {
     >
       <div className="px-6 pb-4 pt-6">
         <div className="mb-6 flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-lg bg-blue-600 text-blue-100">
-            <Archive className="h-[18px] w-[18px]" />
+          <div className="grid h-12 w-12 place-items-center overflow-hidden rounded-lg border border-blue-100 bg-white p-1 shadow-sm">
+            <img src={nortivaLogo} alt="Nortiva SAC Minimarket" className="h-full w-full object-contain" />
           </div>
           <div>
             <p className="text-[24px] font-bold leading-6 tracking-[-.055em] text-blue-700">
@@ -118,6 +118,7 @@ export const AppSidebar = ({ isOpen = false, onClose }: AppSidebarProps) => {
           <LogOut className="h-5 w-5" />
           Cerrar Sesión
         </button>
+        <p className="mt-3 text-center text-[10px] font-medium text-slate-400">Desarrollado por Clienty</p>
       </div>
     </aside>
   );
