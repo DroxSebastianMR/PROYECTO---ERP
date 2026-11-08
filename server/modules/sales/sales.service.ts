@@ -4,7 +4,6 @@ import {
   SaleDocumentType,
   SalePaymentMethod,
   SaleStatus,
-  TaxTreatment,
   type UserRole,
   type Prisma,
 } from "@prisma/client";
@@ -48,22 +47,17 @@ const saleScope = (companyId: string, userId?: string, _role?: UserRole, permiss
   ...(permissions?.includes("sales.history.view_own") && !permissions.includes("sales.history.view_all") ? userId ? { createdById: userId } : {} : {}),
 });
 
-type SaleCalculationItem = SaleInput["items"][number] & { taxTreatment: TaxTreatment };
-
-const calculate = (items: SaleCalculationItem[]) =>
+const calculate = (items: SaleInput["items"]) =>
   items.reduce(
     (total, item) => {
       const subtotal = item.quantity * item.unitPrice - (item.discount ?? 0);
-      const isTaxed = item.taxTreatment === TaxTreatment.TAXED;
-      const tax = isTaxed ? subtotal * 0.18 : 0;
       return {
         subtotal: total.subtotal + subtotal,
-        tax: total.tax + tax,
         discount: total.discount + (item.discount ?? 0),
-        total: total.total + subtotal + tax,
+        total: total.total + subtotal,
       };
     },
-    { subtotal: 0, tax: 0, discount: 0, total: 0 },
+    { subtotal: 0, discount: 0, total: 0 },
   );
 
 /** Applies all sale stock reductions without repeating product and warehouse lookups per item. */
@@ -177,7 +171,7 @@ export const salesService = {
         : null,
       prisma.product.findMany({
         where: { companyId, isActive: true, id: { in: productIds } },
-        select: { id: true, taxTreatment: true, purchasePrice: true },
+        select: { id: true, purchasePrice: true },
       }),
     ]);
     if (!warehouse) throw new SaleError("Almacén de venta inválido.", 404);
@@ -186,12 +180,11 @@ export const salesService = {
       throw new SaleError("Uno o más productos no son válidos.", 404);
 
     const productById = new Map(products.map((product) => [product.id, product]));
-    const itemsWithTaxTreatment = input.items.map((item) => ({
+    const saleItems = input.items.map((item) => ({
       ...item,
-      taxTreatment: productById.get(item.productId)!.taxTreatment,
       unitCost: Number(productById.get(item.productId)!.purchasePrice ?? 0),
     }));
-    const amount = calculate(itemsWithTaxTreatment);
+    const amount = calculate(saleItems);
     const payments = input.paymentMethod === SalePaymentMethod.CREDIT
       ? []
       : input.payments?.length
@@ -246,17 +239,17 @@ export const salesService = {
             dueAt: input.dueAt,
             status: paid ? SaleStatus.PAID : SaleStatus.PENDING_PAYMENT,
             subtotal: toMoney(amount.subtotal),
-            taxAmount: toMoney(amount.tax),
+            taxAmount: 0,
             discountAmount: toMoney(amount.discount),
             total: toMoney(amount.total),
             items: {
-              create: itemsWithTaxTreatment.map((item) => ({
+              create: saleItems.map((item) => ({
                 productId: item.productId,
                 quantity: item.quantity,
                 unitPrice: item.unitPrice,
                 unitCost: toMoney(item.unitCost),
                 discount: item.discount ?? 0,
-                taxRate: item.taxTreatment === TaxTreatment.TAXED ? 18 : 0,
+                taxRate: 0,
                 subtotal: toMoney(item.quantity * item.unitPrice - (item.discount ?? 0)),
               })),
             },

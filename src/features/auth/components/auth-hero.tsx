@@ -1,11 +1,12 @@
-import { Archive, Boxes, ChartNoAxesCombined, PackageCheck, Truck } from "lucide-react";
+import { Boxes, ChartNoAxesCombined, PackageCheck, Truck } from "lucide-react";
+import nortivaLogo from "@/assets/img/nortiva-minimarket-logo.png";
 
 export const AuthHero = () => (
   <aside className="relative hidden overflow-hidden bg-[#edf4ff] lg:flex lg:flex-col lg:justify-between lg:p-12 xl:p-[52px]">
     <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(214,231,255,.95),transparent_50%),radial-gradient(circle_at_100%_100%,rgba(225,239,255,.9),transparent_45%)]" />
     <div className="relative flex items-center gap-3">
-      <div className="grid h-11 w-11 place-items-center rounded-xl border border-white/80 bg-white/60 text-blue-600 shadow-sm backdrop-blur">
-        <Archive className="h-5 w-5" strokeWidth={2.4} />
+      <div className="grid h-12 w-12 place-items-center overflow-hidden rounded-xl border border-white/80 bg-white/80 p-1 shadow-sm backdrop-blur">
+        <img src={nortivaLogo} alt="Nortiva SAC Minimarket" className="h-full w-full object-contain" />
       </div>
       <span className="text-[23px] font-bold tracking-[-0.055em] text-slate-900">Clienty</span>
     </div>

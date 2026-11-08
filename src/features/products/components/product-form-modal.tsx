@@ -554,7 +554,7 @@ export const ProductFormModal = ({
           </div>
         )}
 
-        {/* PASO 2: PRECIOS & TRATAMIENTO TRIBUTARIO */}
+        {/* PASO 2: PRECIOS */}
         {activeStep === 2 && (
           <div className="space-y-4 animate-in fade-in-0 duration-200">
             <div className="flex items-center justify-between rounded-xl border border-blue-100 bg-gradient-to-r from-blue-50/90 to-indigo-50/40 p-3.5 shadow-sm">
@@ -564,10 +564,10 @@ export const ProductFormModal = ({
                 </div>
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-blue-900">
-                    Paso 2: Precios de Venta & Impuestos
+                    Paso 2: Precios de Venta
                   </h4>
                   <p className="text-[11px] text-slate-600">
-                    Configura las tarifas al público, precios por volumen y afectación del IGV.
+                    Configura las tarifas al público y los precios por volumen.
                   </p>
                 </div>
               </div>
@@ -634,24 +634,6 @@ export const ProductFormModal = ({
                 </p>
               </div>
 
-              {/* Afectación al IGV */}
-              <div className="sm:col-span-2">
-                <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 transition hover:border-blue-200 hover:bg-blue-50/40">
-                  <span>
-                    <span className="block text-sm font-semibold text-slate-800">Afecto a IGV</span>
-                    <span className="mt-0.5 block text-xs text-slate-500">Al vender, se agregará el IGV de 18% al precio base.</span>
-                  </span>
-                  <input
-                    type="checkbox"
-                    checked={formData.taxTreatment === "TAXED"}
-                    onChange={(event) => setFormData({
-                      ...formData,
-                      taxTreatment: event.target.checked ? "TAXED" : "UNAFFECTED",
-                    })}
-                    className="h-5 w-5 shrink-0 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                  />
-                </label>
-              </div>
             </div>
           </div>
         )}
